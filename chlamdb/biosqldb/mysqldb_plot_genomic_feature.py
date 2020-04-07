@@ -210,7 +210,8 @@ def plot_multiple_regions_crosslink(target_protein_list,
                                     out_name,
                                     biodb_name="chlamydia_03_15",
                                     color_locus_list = [],
-                                    flip_record_based_on_first=True):
+                                    flip_record_based_on_first=True,
+                                    color_orthogroup_list=[]):
 
 
     import matplotlib.cm as cm
@@ -414,6 +415,12 @@ def plot_multiple_regions_crosslink(target_protein_list,
                     # cas des pseudogenes qui sont des CDS mais n'ont pas de protein ID
                     continue
 
+                try:
+                    g = feature.qualifiers["orthogroup"][0]
+                except:
+                    # cas des pseudogenes qui sont des CDS mais n'ont pas de protein ID
+                    continue
+
 
                 if a in color_locus_list:
                     #print '###########################', a, color_locus_list
@@ -426,6 +433,18 @@ def plot_multiple_regions_crosslink(target_protein_list,
                         color = color1
                     else:
                         color = color2
+                        
+                if g in color_orthogroup_list:
+                    #print '###########################', a, color_locus_list
+                    if len(gd_feature_set) % 2 == 0:
+                        color = colors.HexColor('#ca4700')
+                    else:
+                        color = colors.HexColor('#fd7a32')
+                else:
+                    if len(gd_feature_set) % 2 == 0:
+                        color = color1
+                    else:
+                        color = color2                   
 
                 #try:
                 #    try:
@@ -566,7 +585,7 @@ def chunks(l, n):
 
 out_q = Queue()
 
-def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, region_size_bp, cache, color_locus_list = []):
+def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, region_size_bp, cache, color_locus_list = [], color_orthogroup_list = []):
     plasmid_list = []
     sub_record_list = []
     print(server, biodb, biodb_name, locus_tag_list, out_name, region_size_bp)
@@ -692,7 +711,8 @@ def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, re
                                                         plasmid_list,
                                                         out_name,
                                                         biodb_name,
-                                                        color_locus_list=color_locus_list)
+                                                        color_locus_list=color_locus_list,
+                                                        color_orthogroup_list=color_orthogroup_list)
     return region_locus_list, orthogroup_list
 
 def location2plot(biodb,
