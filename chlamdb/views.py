@@ -113,11 +113,12 @@ def get_task_info(request):
     
     if task_id is not None:
         task = AsyncResult(task_id)
+
         data = {
             'state': task.state,
             'result': task.result,
         }
-        
+
         return HttpResponse(json.dumps(data), content_type='application/json')
     else:
         return HttpResponse('No job id given.')
@@ -642,6 +643,7 @@ def orthogroup_annotation(request, display_form):
 def test():
     from chlamdb.plots import plot_genomic_feature
 
+
 def locus_annotation(request, display_form):
     biodb = settings.BIODB
     
@@ -838,7 +840,12 @@ def locus_annotation(request, display_form):
             #style2.rotation = 90
             tree2.render(path, dpi=800, tree_style=style2)
             
+            style2.branch_vertical_margin = 12
+            
             tree_complete, tree_species = species_tree.get_species_tree(biodb)
+            
+            print("###################### species tree #######################")
+            print(tree_species)
             
             sql = 'select orthogroup_id, locus_tag from annotation.seqfeature_id2locus_2019_06_PVC t1 ' \
                   ' inner join orthology.seqfeature_id2orthogroup_2019_06_PVC t2 on t1.seqfeature_id=t2.seqfeature_id' \
@@ -881,6 +888,8 @@ def locus_annotation(request, display_form):
                                                                  column_scale=True,
                                                                  as_float=False,
                                                                  rotate=False)
+
+            style3.branch_vertical_margin = 12
 
             show_on_circos_url = "/%s?" % circos_target +  '&l='.join(locus2taxon.keys())
 
