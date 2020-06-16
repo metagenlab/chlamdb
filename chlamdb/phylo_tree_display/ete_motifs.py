@@ -859,7 +859,8 @@ def multiple_profiles_heatmap(biodb,
                               tree=False,
                               as_float=False,
                               rotate=False,
-                              sqlite3=False):
+                              sqlite3=False,
+                              node2node_label=False):
 
     '''
 
@@ -934,7 +935,11 @@ def multiple_profiles_heatmap(biodb,
     t1.set_outgroup(R)
     t1.ladderize()
 
-    taxon_id2organism_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb,filter_names=True)
+    # retrieve leaf labels from db
+    if not node2node_label:
+        taxon_id2organism_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb,filter_names=True)
+    else:
+        taxon_id2organism_name = node2node_label
 
     head = True
     leaf_list = [i for i in t1.iter_leaves()]

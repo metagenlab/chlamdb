@@ -54,7 +54,12 @@ def extract_interpro_task(biodb,
         ''')
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
-        return html   
+        current_task.update_state(state='SUCCESS',
+        meta={'current': 1,
+            'total': 3,
+            'percent': 25,
+            'description': "Get InterPro entry list",
+            "result": html})
 
     # get sub matrix and complete matrix
     if not accessions:
@@ -92,14 +97,13 @@ def extract_interpro_task(biodb,
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
  
-        current_task.update_state(state='SECCESS',
+        current_task.update_state(state='SUCCESS',
                               meta={'current': 3,
                                     'total': 3,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
  
-        return html
-    
 
     # get count in subgroup
     interpro2count = dict((mat > 0).sum(axis=1))
@@ -343,14 +347,12 @@ def extract_interpro_task(biodb,
 
     html = template.render(Context(locals()))#render_to_string(template, context=locals())
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                             meta={'current': 3,
                                 'total': 3,
                                 'percent': 100,
-                                'description': "Done"})
-
-    return html
-
+                                'description': "Done",
+                                'result': html})
 
 
 @shared_task
@@ -389,7 +391,14 @@ def extract_orthogroup_task(biodb,
         ''')
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
-        return html   
+
+        current_task.update_state(state='SUCCESS',
+        meta={'current': 1,
+            'total': 3,
+            'percent': 25,
+            'description': "Get orthogroup list",
+            'result': html})
+ 
     
     if not accessions:
         # get sub matrix and complete matrix
@@ -429,13 +438,13 @@ def extract_orthogroup_task(biodb,
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
  
-        current_task.update_state(state='SECCESS',
+        current_task.update_state(state='SUCCESS',
                               meta={'current': 3,
                                     'total': 3,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
  
-        return html
     else:
 
         # get count in subgroup
@@ -752,14 +761,13 @@ def extract_orthogroup_task(biodb,
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
  
-        current_task.update_state(state='SECCESS',
+        current_task.update_state(state='SUCCESS',
                               meta={'current': 3,
                                     'total': 3,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
  
-        return html
-
 
 
 
@@ -991,13 +999,13 @@ def run_circos(reference_taxon, target_taxons):
 
     html = template.render(Context(locals()))#render_to_string(template, context=locals())
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 4,
                                     'total': 4,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
 
-    return html
 
 
 @shared_task
@@ -1150,14 +1158,12 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
 
     html = template.render(Context(locals()))#render_to_string(template, context=locals())
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 4,
                                     'total': 4,
                                     'percent': 100,
-                                    'description': "Done"})
-
-    return html
-
+                                    'description': "Done",
+                                    'result': html})
 
 
 @shared_task
@@ -1307,13 +1313,13 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
 
     html = template.render(Context(locals()))
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 3,
                                     'total': 3,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
 
-    return html
 
 
 @shared_task
@@ -1385,13 +1391,12 @@ def basic_tree_task(biodb,
 
     html = template.render(Context(locals()))
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Done"})
-   
-    return html
+                                    'description': "Done", 
+                                    'result': html})
 
 
 @shared_task
@@ -1469,14 +1474,13 @@ def TM_tree_task(biodb,
 
     html = template.render(Context(locals()))
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
    
-    return html
-
 
 @shared_task
 def pfam_tree_task(biodb, 
@@ -1599,13 +1603,13 @@ def pfam_tree_task(biodb,
 
     html = template.render(Context(locals()))
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
 
-    return html
 
 
 
@@ -1683,9 +1687,9 @@ def phylogeny_task(biodb,
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Plotting phylogenetic tree"})
+                                    'description': "Plotting phylogenetic tree",
+                                    'result': html})
     
-    return html
 
 
 @shared_task
@@ -1783,13 +1787,13 @@ def plot_heatmap_task(biodb,
 
     html = template.render(Context(locals()))
 
-    current_task.update_state(state='SECCESS',
+    current_task.update_state(state='SUCCESS',
                               meta={'current': 2,
                                     'total': 2,
                                     'percent': 100,
-                                    'description': "Done"})
+                                    'description': "Done",
+                                    'result': html})
 
-    return html
 
 
 @shared_task
@@ -1829,7 +1833,13 @@ def KEGG_map_ko_task(biodb,
         ''')
 
         html = template.render(Context(locals()))#render_to_string(template, context=locals())
-        return html
+        current_task.update_state(state='SUCCESS',
+                                meta={'current': 1,
+                                        'total': 1,
+                                        'percent': 50,
+                                        'description': "Preparing data",
+                                        'result': html})
+
     
     ko_list = [i[4] for i in map_data]
 
@@ -2066,9 +2076,10 @@ def KEGG_map_ko_task(biodb,
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Plotting phylogenetic tree"})
+                                    'description': "Plotting phylogenetic tree",
+                                    'result': html})
     
-    return html
+
 
 @shared_task
 def KEGG_map_ko_organism_task(biodb, 
@@ -2334,6 +2345,6 @@ def KEGG_map_ko_organism_task(biodb,
                               meta={'current': 1,
                                     'total': 1,
                                     'percent': 100,
-                                    'description': "Plotting phylogenetic tree"})
+                                    'description': "Plotting phylogenetic tree",
+                                    'result': html})
     
-    return html
