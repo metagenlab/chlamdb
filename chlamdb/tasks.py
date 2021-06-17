@@ -1005,6 +1005,7 @@ def run_circos(reference_taxon, target_taxons):
                                     'percent': 100,
                                     'description': "Done",
                                     'result': html})
+    return html
 
 
 
