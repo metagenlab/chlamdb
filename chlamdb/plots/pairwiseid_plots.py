@@ -32,7 +32,7 @@ def density_plot(value_list_of_lists, label_list,
         import rpy2.robjects.numpy2ri as numpy2ri
         from pandas import DataFrame
         from rpy2.robjects import pandas2ri
-        pandas2ri.activate()
+        from rpy2.robjects import conversion
 
         header_split = header.split(" ")
         if len(header) > 2 and not "bacterium" in header and not "sp." in header:
@@ -48,7 +48,7 @@ def density_plot(value_list_of_lists, label_list,
                 format_list.append([value, label])
         df = DataFrame(format_list, columns=['identity', 'comp'])
         #m = m.astype(float)
-        robjects.r.assign('plot_data', pandas2ri.py2ri(df))
+        robjects.r.assign('plot_data', conversion.py2rpy(df))
 
         median = ""
         if show_median:
