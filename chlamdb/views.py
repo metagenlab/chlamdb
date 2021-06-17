@@ -434,7 +434,7 @@ def circos_homology(request):
 
                 if not biorecord:
                     new_record = db.lookup(accession=accession)
-                    biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+                    biorecord = SeqRecord(Seq(new_record.seq),
                                                              id=new_record.id, name=new_record.name,
                                                              description=new_record.description,
                                                              dbxrefs =new_record.dbxrefs,
@@ -2113,7 +2113,7 @@ def extract_region(request):
     biodb = settings.BIODB
     extract_region_form_class = make_extract_region_form(biodb)
     server, db = manipulate_biosqldb.load_db(biodb)
-    from Bio.Alphabet import generic_protein
+    #from Bio.Alphabet import generic_protein
     import re
 
 
@@ -2617,6 +2617,8 @@ def locusx(request, locus=None, menu=True):
                     lst = operon_locus
             else:
                 lst = []
+
+            print("CACHE----", cache)
 
             locus_tags, orthogroup_list = mysqldb_plot_genomic_feature.proteins_id2cossplot(server, db, biodb, [locus],
                                                                               temp_file.name, 15000,
@@ -9171,7 +9173,7 @@ def get_record(request, accession, seqtype):
     '''
     from io import StringIO
     import re
-    from Bio.Alphabet import IUPAC
+    #from Bio.Alphabet import IUPAC
 
     biodb = settings.BIODB
 
@@ -11238,7 +11240,7 @@ def get_record_from_memory(biodb, cache_obj, record_key, accession):
         biorecord = cache_obj.get(record_key)
         if not biorecord:
             new_record = biodb.lookup(accession=accession)
-            biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+            biorecord = SeqRecord(Seq(new_record.seq),
                                                              id=new_record.id, name=new_record.name,
                                                              description=new_record.description,
                                                              dbxrefs =new_record.dbxrefs,
@@ -12531,7 +12533,7 @@ def locus_list2circos(request, target_taxon):
 
         if not biorecord:
             new_record = db.lookup(accession=accession)
-            biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+            biorecord = SeqRecord(Seq(new_record.seq),
                                                      id=new_record.id, name=new_record.name,
                                                      description=new_record.description,
                                                      dbxrefs =new_record.dbxrefs,
@@ -12657,7 +12659,7 @@ def hmm2circos(request):
 
                 if not biorecord:
                     new_record = db.lookup(accession=accession)
-                    biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+                    biorecord = SeqRecord(Seq(new_record.seq),
                                                              id=new_record.id, name=new_record.name,
                                                              description=new_record.description,
                                                              dbxrefs =new_record.dbxrefs,

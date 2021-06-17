@@ -208,7 +208,7 @@ def find_clusters_of_orthogroups(db_name, identity_cutoff, distance_cutoff=10000
             new_record_reformat = mc[db_name + "_" + accession]
         except KeyError:
             #print accession, 'not in memory'
-            new_record_reformat = SeqRecord(Seq(rec_raw.seq.data, rec_raw.seq.alphabet),
+            new_record_reformat = SeqRecord(Seq(rec_raw.seq),
                                                              id=rec_raw.id, name=rec_raw.name,
                                                              description=rec_raw.description,
                                                              dbxrefs =rec_raw.dbxrefs,
@@ -432,7 +432,7 @@ def find_clusters_of_locus(db_name, identity_cutoff, distance_cutoff=20000):
             print(accession, 'in memory')
         except KeyError:
             print(accession, 'NOT in memory')
-            new_record_reformat = SeqRecord(Seq(rec_raw.seq.data, rec_raw.seq.alphabet),
+            new_record_reformat = SeqRecord(Seq(rec_raw.seq),
                                                              id=rec_raw.id,
                                                              name=rec_raw.name,
                                                              description=rec_raw.description,

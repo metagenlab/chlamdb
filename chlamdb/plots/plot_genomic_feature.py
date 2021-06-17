@@ -337,7 +337,7 @@ def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, re
 
     all_records = [biodb.lookup(accession=one_bioentry) for one_bioentry in bioentry_id_list]
     unloaded_records = [biodb.lookup(accession=one_bioentry) for one_bioentry in unloaded_bioentry]
-    reformat_records = [SeqRecord(Seq(temp_record.seq.data, temp_record.seq.alphabet), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in unloaded_records]
+    reformat_records = [SeqRecord(Seq(temp_record.seq), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in unloaded_records]
     reformat_records = reformat_records + loaded_bioentry
 
     print "all_record :", reformat_records
@@ -398,7 +398,7 @@ def proteins_id2sub_record_list(server, biodb, biodb_name, locus_tag_list, regio
     all_records = [biodb.lookup(accession=one_bioentry) for one_bioentry in bioentry_id_list]
     #print "formatting records..."
     
-    reformat_records = [SeqRecord(Seq(temp_record.seq.data, temp_record.seq.alphabet), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in all_records]
+    reformat_records = [SeqRecord(Seq(temp_record.seq), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in all_records]
     #print "creating seqfeature_id2seqfeature..."
     #seqfeature_id2seqfeature = manipulate_biosqldb.seqfeature_id2seqfeature_object_dict(*all_records)
     #print reformat_records, reformat_records

@@ -631,13 +631,15 @@ def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, re
 
     for bioentry in bioentry_id_list:
         key = biodb_name + "_" + bioentry
+        print("REDIS_KEY", key)
         biorecord = cache.get(key)
+        print("cache check ok")
         if biorecord:
             #print key, "in memory"
             #loaded_bioentry.append(loaded_records[bioentry])
             continue
         else:
-            #print key, "NOT in memory"
+            print (key, "NOT in memory")
             cache_time = None
             #unloaded_bioentry.append(bioentry)
             new_record = biodb.lookup(accession=bioentry)
@@ -736,7 +738,7 @@ def location2plot(biodb,
         cache_time = None
 
         new_record = biodb.lookup(accession=accession)
-        new_record_reformat = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+        new_record_reformat = SeqRecord(Seq(new_record.seq),
                                                          id=new_record.id, name=new_record.name,
                                                          description=new_record.description,
                                                          dbxrefs =new_record.dbxrefs,
@@ -779,7 +781,7 @@ def location2simpleplot(biodb, biodb_name, bioentry, location_start, location_st
         print (key, "NOT in memory")
 
         new_record = biodb.lookup(accession=bioentry)
-        new_record_reformat = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+        new_record_reformat = SeqRecord(Seq(new_record.seq),
                                                              id=new_record.id, name=new_record.name,
                                                              description=new_record.description,
                                                              dbxrefs =new_record.dbxrefs,
@@ -805,7 +807,7 @@ def proteins_id2sub_record_list(server, biodb, biodb_name, locus_tag_list, regio
     all_records = [biodb.lookup(accession=one_bioentry) for one_bioentry in bioentry_id_list]
     #print "formatting records..."
 
-    reformat_records = [SeqRecord(Seq(temp_record.seq.data, temp_record.seq.alphabet), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in all_records]
+    reformat_records = [SeqRecord(Seq(temp_record.seq), id=temp_record.id, name=temp_record.name, description=temp_record.description, dbxrefs =temp_record.dbxrefs, features=temp_record.features, annotations=temp_record.annotations) for temp_record in all_records]
     #print "creating seqfeature_id2seqfeature..."
     #seqfeature_id2seqfeature = manipulate_biosqldb.seqfeature_id2seqfeature_object_dict(*all_records)
     #print reformat_records, reformat_records

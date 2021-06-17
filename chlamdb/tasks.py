@@ -43,7 +43,7 @@ def extract_interpro_task(biodb,
     
     if int(n_missing)>=len(include):
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
             <div class="panel-heading" style="width:100%">
@@ -85,7 +85,7 @@ def extract_interpro_task(biodb,
 
     if len(match_groups) == 0:
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
         <div class="panel-heading" style="width:100%">
@@ -186,7 +186,7 @@ def extract_interpro_task(biodb,
 
 
     template = Template('''
-            {% load staticfiles %}
+
             {% load static %}
             {% load custom_tags %}
 
@@ -380,7 +380,7 @@ def extract_orthogroup_task(biodb,
     
     if int(n_missing)>=len(include):
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
             <div class="panel-heading" style="width:100%">
@@ -426,7 +426,7 @@ def extract_orthogroup_task(biodb,
 
     if len(match_groups) == 0:
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
         <div class="panel-heading" style="width:100%">
@@ -519,7 +519,7 @@ def extract_orthogroup_task(biodb,
         locus2interpro = get_locus_annotations(biodb, locus_list)    
 
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         {% load custom_tags %}
 
@@ -798,7 +798,7 @@ def run_circos(reference_taxon, target_taxons):
 
         if not biorecord:
             new_record = db.lookup(accession=accession)
-            biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+            biorecord = SeqRecord(Seq(new_record.seq),
                                                      id=new_record.id, name=new_record.name,
                                                      description=new_record.description,
                                                      dbxrefs =new_record.dbxrefs,
@@ -979,7 +979,7 @@ def run_circos(reference_taxon, target_taxons):
     map_name = ref_name
 
     template = Template('''
-            {% load staticfiles %}
+
             {% load static %}
             <div class="row">
               <a download="circos.svg" class="btn" href="{% static circos_svg_file %}"><i class="fa fa-download"></i> Download SVG</a>
@@ -1039,7 +1039,7 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
 
         if not biorecord:
             new_record = db.lookup(accession=accession)
-            biorecord = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+            biorecord = SeqRecord(Seq(new_record.seq),
                                                      id=new_record.id, name=new_record.name,
                                                      description=new_record.description,
                                                      dbxrefs =new_record.dbxrefs,
@@ -1139,7 +1139,6 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
     map_name = ref_name
 
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
             <div class="row">
               <a download="circos.svg" class="btn" href="{% static circos_svg_file %}"><i class="fa fa-download"></i> Download SVG</a>
@@ -1288,7 +1287,6 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
  
  
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
 
 
@@ -1362,7 +1360,6 @@ def basic_tree_task(biodb,
 
 
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
 
             {% if not no_tree %}     
@@ -1442,7 +1439,6 @@ def TM_tree_task(biodb,
 
 
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
 
             {% if not no_tree %}    
@@ -1552,7 +1548,6 @@ def pfam_tree_task(biodb,
 
 
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
 
             {% if not no_tree %}
@@ -1651,7 +1646,6 @@ def phylogeny_task(biodb,
 
 
     template = Template('''
-            {% load staticfiles %}
             {% load static %}
             {% if not no_tree %}
             <h3>Phylogeny including best RefSeq hits</h3>
@@ -1774,7 +1768,7 @@ def plot_heatmap_task(biodb,
     timestamp = time.strftime("%H%M%S", named_tuple)
     
     template = Template('''
-            {% load staticfiles %}
+
             {% load static %}
             {% if not no_tree %}
             <h3>Heatmap</h3>
@@ -1823,7 +1817,7 @@ def KEGG_map_ko_task(biodb,
         pathway_id = map_data[0][-1]
     except IndexError:
         template = Template('''
-        {% load staticfiles %}
+        
         {% load static %}
         <div class="panel panel-danger" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
             <div class="panel-heading" style="width:100%">
@@ -1923,7 +1917,7 @@ def KEGG_map_ko_task(biodb,
     kegg_maps.map2highlighted_map(map_name, ko_list_found_in_db, ko2freq, biodb, path_map_freq+'.pdf')
 
     template = Template('''
-                      {% load staticfiles %}
+          
                       {% load static %}
                       {% load custom_tags %}
 
@@ -2192,7 +2186,7 @@ def KEGG_map_ko_organism_task(biodb,
 
 
     template = Template('''
-                    {% load staticfiles %}
+        
                     {% load static %}
                     {% load custom_tags %}
 
