@@ -641,7 +641,7 @@ def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, re
             cache_time = None
             #unloaded_bioentry.append(bioentry)
             new_record = biodb.lookup(accession=bioentry)
-            new_record_reformat = SeqRecord(Seq(new_record.seq.data, new_record.seq.alphabet),
+            new_record_reformat = SeqRecord(Seq(new_record.seq),
                                             id=new_record.id, name=new_record.name,
                                             description=new_record.description,
                                             dbxrefs =new_record.dbxrefs,
