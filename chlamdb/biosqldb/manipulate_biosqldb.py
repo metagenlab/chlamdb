@@ -956,7 +956,7 @@ def taxon_id2orthogroup_size(server, biodatabase_name, taxon_id):
 
 
 def seqfeature_id2feature_location(server, seqfeature_id):
-    sql ='select start_pos, end_pos, strand from location where seqfeature_id= %s and rank = 1' % seqfeature_id
+    sql ='select start_pos, end_pos, strand from location where seqfeature_id= %s and `rank` = 1' % seqfeature_id
     ##print sql
     result = server.adaptor.execute_and_fetchall(sql, )
     ##print "res", result
