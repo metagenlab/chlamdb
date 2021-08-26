@@ -14,13 +14,13 @@ def core_pan_genome_plot(numpy_matrix,
                           output_path="~/test.svg"):
 
         import rpy2.robjects as robjects
-        import rpy2.robjects.numpy2ri
-        rpy2.robjects.numpy2ri.activate()
+        #import rpy2.robjects.numpy2ri as numpy2ri
+        #rpy2.robjects.numpy2ri.activate()
         import rpy2.robjects.numpy2ri as numpy2ri
         from rpy2.robjects import pandas2ri
         pandas2ri.activate()
-
-        robjects.r.assign('Mdata',numpy2ri.numpy2ri(numpy_matrix))
+        from rpy2.robjects import conversion
+        robjects.r.assign('Mdata', conversion.py2rpy(numpy_matrix))
 
         robjects.r('''
             library(Cairo)
@@ -89,8 +89,9 @@ def pan_genome_barplot(numpy_matrix,
         import rpy2.robjects.numpy2ri as numpy2ri
         from rpy2.robjects import pandas2ri
         pandas2ri.activate()
+        from rpy2.robjects import conversion
 
-        robjects.r.assign('Mdata',numpy2ri.numpy2ri(numpy_matrix))
+        robjects.r.assign('Mdata', conversion.py2rpy(numpy_matrix))
 
         robjects.r('''
             library(Cairo)

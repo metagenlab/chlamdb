@@ -83,6 +83,8 @@ def map2highlighted_map(map_id, ko_list, ko2freq, biodb, outpath = 'test.pdf', t
     kgml_map.show_genes = False
     kgml_map.show_compounds = False
     kgml_map.show_genes = False
+
+    print(f"Drawing to {outpath}")
     kgml_map.draw(outpath)
 
     '''
@@ -94,8 +96,9 @@ def map2highlighted_map(map_id, ko_list, ko2freq, biodb, outpath = 'test.pdf', t
     '''
 
     #print re.sub('pdf', 'svg', outpath)
-    #shell_command.shell_command('inkscape %s --export-plain-svg=%s' % (outpath, re.sub('pdf', 'svg', outpath))) # 'pdf2svg %s %s all'
-    shell_command.shell_command('pdf2svg %s %s all' % (outpath, re.sub('pdf', 'svg', outpath))) # 'pdf2svg %s %s all'
+    shell_command.shell_command('inkscape -l %s %s' % (re.sub('pdf', 'svg', outpath), outpath)) # 'pdf2svg %s %s all'
+    #shell_command.shell_command('pdf2svg %s %s all' % (outpath, re.sub('pdf', 'svg', outpath))) # 'pdf2svg %s %s all'
+    print("edit SVG")
     t = edit_svg_map("%s" % re.sub('pdf', 'svg', outpath), ko2freq.keys(), biodb, map_id, taxon_id=taxon_id)
     #print "%s" % re.sub('pdf', 'svg', outpath)
     t.write("%s" % re.sub('pdf', 'svg', outpath))
@@ -116,15 +119,17 @@ def edit_svg_map(map_path, keep_ko_list, biodb_name, map_name,taxon_id=False):
 
     from xml.etree import ElementTree
     tree = ElementTree.parse(map_path)
-    #print tree
+    print("tree", tree)
     for element in tree.iter():
+        print(element.tag)
+        print(element.attrib)
         if element.tag.split("}")[1] == 'text':
             #print element.tag
             #print element.attrib
 
             for child in element:
-                #print child.tag
-                #print child.attrib
+                print (child.tag)
+                print (child.attrib)
                 if child.text[0] != 'K':
                     #print child.text
                     try:

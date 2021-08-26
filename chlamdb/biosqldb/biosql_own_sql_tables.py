@@ -393,7 +393,8 @@ def group2gene(biodb, group_list, rank_limit=2):
 
     server, db = manipulate_biosqldb.load_db(biodb)
     group_filter = '","'.join(group_list)
-    sql = 'select orthogroup_name,description,count from orthology.orthogroup2gene_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where rank<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
+    sql = 'select orthogroup_name,description,count from orthology.orthogroup2gene_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where `rank`<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
+    print(sql)
     data = server.adaptor.execute_and_fetchall(sql,)
     ortho2gene = {}
 
@@ -413,7 +414,7 @@ def group2product(biodb, group_list, rank_limit=2):
 
     server, db = manipulate_biosqldb.load_db(biodb)
     group_filter = '","'.join(group_list)
-    sql = 'select orthogroup_name,description,count from orthology.orthogroup2product_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where rank<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
+    sql = 'select orthogroup_name,description,count from orthology.orthogroup2product_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where `rank`<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
     data = server.adaptor.execute_and_fetchall(sql,)
     ortho2product = {}
 
@@ -433,7 +434,7 @@ def group2cog(biodb, group_list, rank_limit=2):
 
     server, db = manipulate_biosqldb.load_db(biodb)
     group_filter = '","'.join(group_list)
-    sql = 'select orthogroup_name,COG_name,t3.description,count,code,t5.description from orthology.orthogroup2cog_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id inner join COG.cog_names_2014 t3 on t1.COG_id=t3.COG_id inner join COG.cog_id2cog_category t4 on t1.COG_id=t4.COG_id inner join COG.code2category t5 on t4.category_id=t5.category_id where rank<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
+    sql = 'select orthogroup_name,COG_name,t3.description,count,code,t5.description from orthology.orthogroup2cog_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id inner join COG.cog_names_2014 t3 on t1.COG_id=t3.COG_id inner join COG.cog_id2cog_category t4 on t1.COG_id=t4.COG_id inner join COG.code2category t5 on t4.category_id=t5.category_id where `rank`<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
     data = server.adaptor.execute_and_fetchall(sql,)
     ortho2cog = {}
 
@@ -456,7 +457,7 @@ def group2pfam(biodb, group_list, rank_limit=2):
 
     server, db = manipulate_biosqldb.load_db(biodb)
     group_filter = '","'.join(group_list)
-    sql = 'select orthogroup_name,signature_accession,signature_description,count from orthology.orthogroup2pfam_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id inner join interpro.signature t3 on t1.signature_id=t3.signature_id where rank<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
+    sql = 'select orthogroup_name,signature_accession,signature_description,count from orthology.orthogroup2pfam_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id inner join interpro.signature t3 on t1.signature_id=t3.signature_id where `rank`<%s and orthogroup_name in ("%s");' % (biodb, biodb, rank_limit, group_filter)
     data = server.adaptor.execute_and_fetchall(sql,)
     ortho2pfam = {}
 

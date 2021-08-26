@@ -2736,20 +2736,20 @@ def locusx(request, locus=None, menu=True):
             
             
             # consensus annotation
-            sql_group1 = 'select rank,count,description from orthology.orthogroup2gene_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where t2.orthogroup_name="%s";' % (biodb, 
+            sql_group1 = 'select `rank`,count,description from orthology.orthogroup2gene_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where t2.orthogroup_name="%s";' % (biodb, 
                                                                                                                                                                                                       biodb, 
                                                                                                                                                                                                       locus)
-            sql_group2 = 'select rank,count,description from orthology.orthogroup2product_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where t2.orthogroup_name="%s";' % (biodb, 
+            sql_group2 = 'select `rank`,count,description from orthology.orthogroup2product_%s t1 inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id where t2.orthogroup_name="%s";' % (biodb, 
                                                                                                                                                                                                       biodb, 
                                                                                                                                                                                                       locus)
-            sql_group3 = 'select rank, COG_name, t3.description, count, code, t5.description from orthology.orthogroup2cog_%s t1 ' \
+            sql_group3 = 'select `rank`, COG_name, t3.description, count, code, t5.description from orthology.orthogroup2cog_%s t1 ' \
                          ' inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id ' \
                          ' inner join COG.cog_names_2014 t3 on t1.COG_id=t3.COG_id ' \
                          ' inner join COG.cog_id2cog_category t4 on t3.COG_id=t4.COG_id' \
                          ' inner join COG.code2category t5 on t4.category_id=t5.category_id where t2.orthogroup_name="%s";' % (biodb, 
                                                                                                                             biodb, 
                                                                                                                             locus)
-            sql_group4 = 'select rank,ko_accession,count,name,definition,EC,pathways,modules from orthology.orthogroup2ko_%s t1 ' \
+            sql_group4 = 'select `rank`,ko_accession,count,name,definition,EC,pathways,modules from orthology.orthogroup2ko_%s t1 ' \
                          ' inner join orthology.orthogroup_%s t2 on t1.group_id=t2.orthogroup_id ' \
                          ' inner join enzyme.ko_annotation t3 on t1.ko_id=t3.ko_id where t2.orthogroup_name="%s";' % (biodb, 
                                                                                                                     biodb, 
