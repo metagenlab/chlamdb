@@ -3,9 +3,6 @@
 
 <html>
     <head>
-
-
-
         {% load static %}
         {% load custom_tags %}
         {% load crispy_forms_tags %}
@@ -42,7 +39,8 @@
               <div class="row">
                 <div class="col-lg-12">
                    {% include "chlamdb/menu.html" %}
-
+                   <div class="home-title"><b> Kegg Orthologs </b></div>
+                   <hr class="lines-home">
                     <nav>
                         <ul id="tabs_main" class="nav nav-tabs">
                             <li class="active"><a href="{% url 'extract_ko' %}">Detailed comparison</a></li>
@@ -50,7 +48,7 @@
                             <li><a href="{% url 'module_barchart' %}">KO categories barchart</a></li>
                             <li><a href="{% url 'venn_ko' %}">Venn KO</a></li>
                             <li><a href="{% url 'plot_heatmap' 'ko' %}">Whole proteomes heatmaps</a></li>
-                            <li><a href="{% url 'pan_genome' 'COG' %}">Pan/Core genome plots</a></li>
+                            <li><a href="{% url 'pan_genome' 'ko' %}">Pan/Core genome plots</a></li>
                         </ul>
                     </nav>
 
@@ -110,29 +108,14 @@
 
                     <div class="tab-pane active" id="red">
 
-
-                        <div id="export_bouttons_groups">
-                                <form name="circos_form" id="circos_form" action="{% url 'circos_main' %}" method="post">
-                                {% csrf_token %}
-                                    <input type="hidden" name="reference_taxon" value="{{ reference_taxon }}">
-                                    <input type="hidden" name="target_list" value="{{ target_circos_taxons }}">
-                                    <input type="hidden" name="highlight" value="{{ locus_list }}">
-                                    <button class="btn btn-success">Show on circular map</button>
-                                </form>
-                            <br/>
-                        </div>
-
                         <h3>Number of Kegg Orthologs: {{ sum_group }} </h3>
 
                         <table class="display" id="extract_ko">
 
                             <thead>
                                 <tr>
-                                <th></th>
                                     <th id="entete_locus">KO</th>
-                                    <th>Name</th>
                                     <th>Description</th>
-                                    <th>EC</th>
                                     <th>Kegg Pathways</th>
                                     <th>Kegg Modules</th>
                                     <th>present in (/{{include|length}})</th>
@@ -142,13 +125,12 @@
 
                             {% for value in match_groups_data %}
                                 <tr>
-                                    <td>{{value.0}}</td>
-                                    <td><a href="{% url 'fam' value.1 'ko' %}">{{value.1}}</a></td>
-                                    {% for value_2 in value.2 %}
-                                    <td>{{value_2|safe}}</td>
-                                    {% endfor %}
-                                    <td>{{value.3}}</td>
+                                    <td><a href="{% url 'fam_ko' value.0 %}">{{value.0}}</a></td>
+                                    <td>{{value.1}}</td>
+                                    <td>{{value.2|safe}}</td>
+                                    <td>{{value.3|safe}}</td>
                                     <td>{{value.4}}</td>
+                                    <td>{{value.5}}</td>
                                 </tr>
                             {% endfor %}
 
@@ -277,30 +259,6 @@
 
 <script type="text/javascript" id="js2">
   $(document).ready(function() {
-
-      var x=document.getElementById("id_reference");
-      for (var i = 0; i < x.options.length; i++) {
-          $("#id_reference").children("option[value^=" + x.options[i].value + "]").hide()
-      }
-
-      $("#id_orthologs_in").change(function() {
-          document.getElementById("id_reference").selectedIndex=0;
-          var x=document.getElementById("id_orthologs_in");
-          for (var i = 0; i < x.options.length; i++) {
-              if(x.options[i].selected ==true){
-
-              $("#id_reference").children("option[value^=" + x.options[i].value + "]").show()
-              }else{
-              $("#id_reference").children("option[value^=" + x.options[i].value + "]").hide()
-
-              }
-              }
-      })
-
-  })
-
-
-  $(document).ready(function() {
   $('#extract_ko').DataTable( {
    dom: 'Bfrtip',
   "paging":   true,
@@ -337,18 +295,16 @@
   ],
   } );
   } );
-
-
-
 </script>
-
-
 
 </body>
 {% include "chlamdb/style_menu.html" %}
+{% include "chlamdb/show_hide_plasmid_accessions.html" %}
+
 <style>
 #div_id_checkbox_single_copy{
   display: none;
 }
 </style>
+
 </html>

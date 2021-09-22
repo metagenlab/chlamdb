@@ -18,7 +18,9 @@
             <div class="row">
               <div class="col-lg-12">
                  {% include "chlamdb/menu.html" %}
-
+                 <div class="home-title"><b> Kegg Orthologs </b></div>
+                 <hr class="lines-home">
+                  
                   <nav>
                   <ul id="tabs" class="nav nav-tabs">
                               <li><a href="{% url 'extract_ko' %}">Detailed comparison</a></li>
@@ -109,7 +111,6 @@
                     series: {{series|safe}}
                   };
 
-                  {{category_map|safe}}
                   {{taxon_map|safe}}
 
                   var chartWidth       = 300,
@@ -190,7 +191,6 @@
                           return data.labels[Math.floor(i/data.series.length)];
                         else
                           return ""})
-                          // "/chlamdb/venn_cog/{{biodb}}/" + "/" + category + "{{circos_url|safe}}"
                       .on("click",drill2);
 
                   function drill(d, i) {
@@ -202,7 +202,7 @@
                   function drill2(d,j) {
                           var category = data.labels[d3.select(this.parentNode).attr("category_id")]; //data object
                           var category = category.split(' ').join('+')
-                          window.open("/chlamdb/ko_venn_subset/" + category + "{{circos_url|safe}}") };
+                          window.open("/chlamdb/ko_venn_subset/" + category + "{{taxids|safe}}") };
 
                   //bar.on("click", drill);
 

@@ -45,10 +45,7 @@
                                   <li class="active"><a href="#tab1" data-toggle="tab">General</a></li>
                                   <li><a href="#tab2" data-toggle="tab">Protein list</a></li>
                                   <li><a href="#tab3" data-toggle="tab">Profile</a></li>
-                                  {% if type == 'cog' %}
-                                      <li><a href="#tab66" data-toggle="tab" onclick="window.open('{% url 'eggnog_profile' fam 'phylum' %}', 'orthoIDframe2'); return false">Taxonomic profile (phylum)</a></li>
-                                      <li><a href="#tab66" data-toggle="tab" onclick="window.open('{% url 'eggnog_profile' fam 'order' %}', 'orthoIDframe2'); return false">Taxonomic profile (order)</a></li>
-                                  {% elif type == 'pfam' %}
+                                  {% if type == 'pfam' %}
                                       <li><a href="{% url 'pfam_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
                                       <li><a href="{% url 'pfam_profile' fam 'order' %}">Taxonomic profile (order)</a></li>
                                   {% elif type == 'Pfam' %}
@@ -67,13 +64,7 @@
                                                         <h3 class="panel-title">Description</h3>
                                                     </div>
                                                     <table class="table table-striped" style="width: 100%">
-                                                        {% if type == 'cog' %}
-                                                            <tr>
-                                                                <th>External link</th>
-                                                                <td><a href="http://www.ncbi.nlm.nih.gov/Structure/cdd/cddsrv.cgi?uid={{ fam }}"> {{ fam }} <i class="fa fa-external-link"></i></a></td>
-                                                            </tr>
-        
-                                                        {% elif type == 'pfam' %}
+                                                        {% if type == 'pfam' %}
 
                                                             <tr>
                                                                 <th>External link</th>
@@ -126,15 +117,11 @@
         
                                                             <tr>
                                                                 <th style="width:160px">Accession</th>
-                                                                <td>{{ ko_data.1 }}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th style="width:160px">Name</th>
-                                                                <td>{{ ko_data.2 }}</td>
+                                                                <td>{{ fam }}</td>
                                                             </tr>
                                                             <tr>
                                                                 <th style="width:160px">Description</th>
-                                                                <td>{{ ko_data.3 }}</td>
+                                                                <td>{{ ko_desc }}</td>
                                                             </tr>
         
         
@@ -179,6 +166,16 @@
                                                                     <td> N/A </td>
                                                                 </tr>
                                                             {% endif %}
+
+														{% elif type == "cog" %}
+                                                            <tr>
+                                                                <th style="width:160px">Description</th>
+                                                                <td> {{ info.1 }} </td>
+                                                            </tr>
+															<tr>
+                                                                <th style="width:160px">Function(s)</th>
+																<td> {{info.0|safe}}</td>
+															</tr>
             
                                                         {% else %}
                                                             <tr>
@@ -200,11 +197,11 @@
                                                             <table class="table table-striped" style="width: 100%">
                                                                 <tbody>
                                                                     {% for path in pathway_data %}
+
                                                                     <tr>
-                                                                        <td style="width:160px"><a href="{% url 'KEGG_mapp_ko' path.0 %}">{{path.0}}</a></td>
-                                                                        <td>{{path.1}}</td>
-                                                                        <td>{{path.2}}</td>
+                                                                        <td>{{path|safe}}</td>
                                                                     </tr>
+
                                                                     {% endfor %}
                                                                 </tbody>
                                                             </table>
@@ -218,7 +215,7 @@
                                                                         <tbody>
                                                                             {% for path in module_data %}
                                                                                 <tr>
-                                                                                    <td style="width:160px"><a href="{% url 'KEGG_module_map' path.0 %}">{{path.0}}</a></td>
+                                                                                    <td>{{path.0|safe}}</td>
                                                                                     <td>{{path.1}}</td>
                                                                                     <td>{{path.2}}</td>
                                                                                 </tr>
@@ -314,7 +311,7 @@
                                                         <div style="padding-left:40px">
                                                             <ul style="list-style-type:disc;">
                                                                     {% for group in group_count %}
-                                                                    <li><a href="{% url 'locusx' group True%}">{{group}}</a></li>
+                                                                    <li>{{group|safe}}</li>
                                                                     {% endfor %}
                                                             </ul>
                                                         </div>
@@ -342,10 +339,6 @@
                                                     <th>Stop</th>
                                                     <th>S.</th>
                                                     <th>Gene</th>
-                                                    <th>nH</th>
-                                                    <th>nG</th>
-                                                    <th>TM</th>
-                                                    <th>SP</th>
                                                     <th>Product</th>
                                                     <th>Organism</th>
                                                 </tr>
@@ -366,10 +359,6 @@
                                                         <td>{{values.7}}</td>
                                                         <td>{{values.8}}</td>
                                                         <td>{{values.9}}</td>
-                                                        <td>{{values.10}}</td>
-                                                        <td>{{values.11}}</td>
-                                                        <td>{{values.12}}</td>
-                                                        <td>{{values.13}}</td>
                                                     </tr>
                                                 {% endfor %}
                                             </tbody>

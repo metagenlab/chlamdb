@@ -11,16 +11,7 @@ from crispy_forms.layout import Layout, Submit, Row, Column, MultiField, Div, Fi
 from crispy_forms.bootstrap import AppendedText
 from django.conf import settings
 
-biodb = settings.BIODB
-
-server,db = load_db(biodb)
-
-sql ="select accession from bioentry where biodatabase_id = 22"
-result = server.adaptor.execute_and_fetchall(sql, )
-accession_list = [i[0] for i in result]
-accession_choices = []
-for i in accession_list:
-    accession_choices.append((i,i))
+choices = []
 
 class GenerateRandomUserForm(forms.Form):
     total_user = forms.IntegerField(
@@ -28,71 +19,53 @@ class GenerateRandomUserForm(forms.Form):
         required=True,
     )
 
-def get_accessions(database_name, all=False, plasmid=False):
 
-    from chlamdb.biosqldb import manipulate_biosqldb
-    server, db = manipulate_biosqldb.load_db(biodb)
-    if not plasmid:
-        #print "no plasmid"
-        sql ='SELECT bioentry.taxon_id, bioentry.description FROM bioentry ' \
-             'inner join biodatabase on bioentry.biodatabase_id = biodatabase.biodatabase_id ' \
-             'where biodatabase.name ="%s"and bioentry.description not like "%%%%plasmid%%%%" and bioentry.description not like "%%%%phage%%%%"' \
-             'order by bioentry.description' % database_name #
-    else:
-        #print 'plasmid'
-        sql ='SELECT bioentry.accession, bioentry.description FROM bioentry ' \
-             'inner join biodatabase on bioentry.biodatabase_id = biodatabase.biodatabase_id ' \
-             'where biodatabase.name ="%s"' \
-             'order by bioentry.description' % database_name
-             
-    result = server.adaptor.execute_and_fetchall(sql, )
-    accession_list = [i for i in result]
-    #print "acc", accession_list
+def get_accessions(db, all=False, plasmid=False):
+    result            = db.get_genomes_description(lst_plasmids=True)
     accession_choices = []
+    index             = 0
+    reverse_index     = []
 
-    for accession in accession_list:
-        accession_choices.append((accession[0], accession[1]))
-
-
-    import re
-    accessions = {}
-    for i, accession in enumerate(accession_choices):
-        #print i, accession
-        description = accession[1]
-        description = re.sub(", complete genome\.", "", description)
-        description = re.sub(", complete genome", "", description)
-        description = re.sub(", complete sequence\.", "", description)
-        description = re.sub("strain ", "", description)
-        description = re.sub("str\. ", "", description)
-        description = re.sub(" complete genome sequence\.", "", description)
-        description = re.sub(" complete genome\.", "", description)
-        description = re.sub(" chromosome", "", description)
-        description = re.sub(" DNA", "S.", description)
-        description = re.sub("Merged record from ", "", description)
-        description = re.sub(", wgs", "", description)
-        description = re.sub("Candidatus ", "", description)
-        description = re.sub(".contig.0_1, whole genome shotgun sequence.", "", description)
-        #accession_choices[i] = (accession[0], description)
-        if description in accessions.values():
-            description += ' v2'
-        accessions[accession[0]] = description
-
-    accession_choices = []
-    for accession in sorted(accessions.keys()):
-        accession_choices.append([accession, accessions[accession]])
+    # cannot use taxid because plasmids have the same
+    # taxids as the chromosome
+    for taxid, data in result.iterrows():
+        accession_choices.append((index, data.description))
+        index += 1
+        reverse_index.append((taxid, False))
+        if plasmid and data.has_plasmid==1:
+            accession_choices.append((index, data.description + " plasmid"))
+            reverse_index.append((taxid, True))
+            index += 1
+            is_plasmid = True
 
     if all:
         accession_choices = [["all", "all"]] + accession_choices
+    return accession_choices , reverse_index
 
-    return accession_choices
 
-biodatabases = [ i for i in get_biodatabase_list(server)]
+def get_accessions_BLAST(db, all=False, plasmid=False):
+    result            = db.get_genomes_description(lst_plasmids=True)
+    accession_choices = []
+    index          = 1
+    reverse_index     = []
 
-choices = []
-for i in biodatabases:
-    choices.append((i,i))
+    # cannot use taxid because plasmids have the same
+    # taxids as the chromosome
+    for taxid, data in result.iterrows():
+        accession_choices.append((index, data.description))
+        reverse_index.append((taxid, False))
+        try:
+            if plasmid and data.has_plasmid==1:
+                accession_choices.append((str(index) + " plasmid", data.description + " plasmid"))
+                reverse_index.append((taxid, True))
+                is_plasmid = True
+                index += 1
+        except:
+            index += 1
 
-choices = tuple(choices)
+    if all:
+        accession_choices = [["all", "all"]] + accession_choices
+    return accession_choices #, reverse_index  #understand why there is this 'reverse_index' in the original def (error in def blast)
 
 
 def make_contact_form(server, database_name):
@@ -119,7 +92,7 @@ def make_plot_form(database_name):
         #location_start = forms.CharField(max_length=9, label="sart (bp)", required=False)
         #location_stop = forms.CharField(max_length=9, label="end (bp)", required=False)
         region_size = forms.CharField(max_length=5, label="Region size (bp)", initial = 8000, required = False)
-        genomes = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"8"}), required = False)
+        genomes = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"8", "multiple data-actions-box":"true"}), required = False)
         all_homologs = forms.ChoiceField(choices=choices, initial="no")
 
         def __init__(self, *args, **kwargs):
@@ -180,12 +153,15 @@ def make_interpro_from(database_name):
     return InterproForm
 
 
-def make_metabo_from(database_name, add_box=False):
+def make_metabo_from(db, add_box=False):
 
-    accession_choices = get_accessions(database_name)
+    accession_choices, rev_index = get_accessions(db)
 
     class MetaboForm(forms.Form):
-        targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % (20), "class":"selectpicker", "data-live-search":"true"}), required = False)
+        targets = forms.MultipleChoiceField(choices=accession_choices,
+                widget=forms.SelectMultiple(attrs={'size':'%s' % (20), "class":"selectpicker", "data-live-search":"true", "multiple data-actions-box":"true"}),
+                required = False)
+
         if add_box:
             input_box = forms.CharField(widget=forms.Textarea(attrs={'cols': 10, 'rows': 10}))
 
@@ -217,20 +193,27 @@ def make_metabo_from(database_name, add_box=False):
                                             )
             super(MetaboForm, self).__init__(*args, **kwargs)
 
+        def get_choices(self):
+            targets = self.cleaned_data["targets"]
+            taxids = []
+            for index in targets:
+                taxid, _ = rev_index[int(index)]
+                taxids.append(taxid)
+            return taxids
 
     return MetaboForm
 
 
-def make_venn_from(database_name, plasmid=False, label="Orthologs", limit=None):
+def make_venn_from(db, plasmid=False, label="Orthologs", limit=None):
 
-    accession_choices = get_accessions(database_name, plasmid=plasmid)
+    accession_choices, rev_index = get_accessions(db, plasmid=plasmid)
 
     class VennForm(forms.Form):
-        # orthologs_in = forms.MultipleChoiceField(label='%s conserved in' % label, choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % "17", "class":"selectpicker", "data-live-search":"true"}), required = False)
         if limit is None:
-            targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true"}), required = True)
+            targets = forms.MultipleChoiceField(choices=accession_choices,
+                    widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-actions-box":"true"}), required = True)
         else:
-            targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"%s" % limit}), required = True)
+            targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"%s" % limit ,"multiple data-actions-box":"true"}), required = True)
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -242,12 +225,20 @@ def make_venn_from(database_name, plasmid=False, label="Orthologs", limit=None):
                                         Fieldset("Compare genomes",
                                                  Column(
                                                        Row('targets'),
-                                                       Submit('submit', 'Compare %s' % label),
+                                                       Submit('submit', 'Compare %s' % label,  style="margin-top:15px" ),
                                                        css_class='form-group col-lg-12 col-md-12 col-sm-12'),
                                                 )
                                         )
 
             super(VennForm, self).__init__(*args, **kwargs)
+
+        def get_taxids(self):
+            indices = self.cleaned_data["targets"]
+            taxids  = []
+            for index in indices:
+                taxid, _ = rev_index[int(index)]
+                taxids.append(taxid)
+            return taxids
 
         def clean_venn(self):
             value = self.cleaned_data['targets']
@@ -269,6 +260,27 @@ class BiodatabaseForm(forms.Form):
     def save(self):
         self.biodatabase = self.cleaned_data["biodatabase"]
 
+def make_blast_form(biodb):
+
+    accession_choices =  get_accessions_BLAST(biodb, plasmid=True, all=True)
+
+    print(accession_choices)
+    class BlastForm(forms.Form):
+        blast = forms.ChoiceField(choices=[("blastn_ffn", "blastn_ffn"),
+                                           ("blastn_fna", "blastn_fna"),
+                                           ("blastp", "blastp"),
+                                           ("blastx", "blastx"),
+                                           ("tblastn", "tblastn")])
+
+        max_number_of_hits = forms.ChoiceField(choices=[("10", "10"),
+                                           ("5", "5"),
+                                           ("20", "20"),
+                                           ("30", "30"),
+                                           ("all", "all")])
+        evalue= forms.CharField(widget=forms.TextInput({'placeholder': '10'}))
+
+        target = forms.ChoiceField(choices=accession_choices, widget=forms.Select(attrs={"class":"selectpicker", "data-live-search":"true", }))
+        blast_input = forms.CharField(widget=forms.Textarea(attrs={'cols': 50, 'rows': 5}))
 
 
 
@@ -364,7 +376,7 @@ def make_circos_form(database_name):
 
     class CircosForm(forms.Form):
         circos_reference = forms.ChoiceField(choices=accession_choices)
-        targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"8"}), required=False)
+        targets = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'1', "class":"selectpicker", "data-live-search":"true", "multiple data-max-options":"8",}), required=False)
         #get_region = forms.NullBooleanField(widget=forms.CheckboxInput())
         #region = forms.CharField(max_length=100, label="Region start, stop", initial = "1, 8000", required = False)
 
@@ -379,7 +391,7 @@ def make_circos_form(database_name):
                                                 Row("Circos"),
                                                 Row('circos_reference'),
                                                 Row('targets'),
-                                                Submit('submit_circos', 'Submit'),
+                                                Submit('submit_circos', 'Submit',  style="padding-left:15px"),
                                                 css_class="col-lg-5 col-md-6 col-sm-6")
                                         )
 
@@ -447,27 +459,52 @@ def make_kegg_form(database_name):
     return KeggForm
 
 
-def make_extract_form(database_name, 
-                      plasmid=False, 
-                      label="Orthologs"):
-
-    if not plasmid:
-        accession_choices = get_accessions(database_name)
-    else:
-        accession_choices = get_accessions(database_name, plasmid=True)
+def make_extract_form(db, plasmid=False, label="Orthologs"):
+    accession_choices, rev_index = get_accessions(db, plasmid=plasmid)
 
     class ExtractForm(forms.Form):
-        FREQ_CHOICES = ((0, 0),(1, 1), (2,2), (3,3), (4,4), (5,5), (6,6), (7,7), (8,8), (9,9), (10,10))
+        checkbox_accessions = forms.BooleanField(required = False,
+                label="Distinguish plasmids from chromosomes")
+        checkbox_single_copy = forms.BooleanField(required = False,
+                label="Only consider single copy %s" % label)
 
-        checkbox_accessions = forms.BooleanField(required = False, label="Distinguish plasmids from chromosomes")
-        checkbox_single_copy = forms.BooleanField(required = False, label="Only consider single copy %s" % label)
-
-        orthologs_in = forms.MultipleChoiceField(label='%s conserved in' % label, choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % "17", "class":"selectpicker", "data-live-search":"true"}), required = True)
-        no_orthologs_in = forms.MultipleChoiceField(label="%s absent from (optional)" % label, choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % "17", "class":"selectpicker remove-example", "data-live-search":"true"}), required = False)
+        orthologs_in = forms.MultipleChoiceField(label=f"{label} conserved in",
+                choices=accession_choices,
+                widget=forms.SelectMultiple(attrs={'size':'%s' % "17", "class":"selectpicker", "data-live-search":"true"}), required = True)
+        no_orthologs_in = forms.MultipleChoiceField(label="%s absent from (optional)" % label,
+                choices=accession_choices,
+                widget=forms.SelectMultiple(attrs={'size':'%s' % "17", "class":"selectpicker remove-example", "data-live-search":"true"}), required = False)
 
         new_choices = [['None', 'None']] + accession_choices
-        frequency = forms.ChoiceField(choices=FREQ_CHOICES, label='Missing data (optional)', required = False)
-        reference = forms.ChoiceField(choices=new_choices,label="Reference genome (optional)", required = False)
+
+        frequency_choices = ((i, i) for i in range(len(accession_choices)))
+        frequency = forms.ChoiceField(choices=frequency_choices,
+                label='Missing data (optional)', required = False)
+
+        def extract_choices(self, indices):
+            keep_plasmids = self.cleaned_data["checkbox_accessions"]
+            taxids = []
+            plasmids = None
+            if keep_plasmids:
+                plasmids = []
+
+            for index in indices:
+                taxid, is_plasmid = rev_index[index]
+                if keep_plasmids and is_plasmid:
+                    plasmids.append(taxid)
+                elif not keep_plasmids or not is_plasmid:
+                    taxids.append(taxid)
+            return taxids, plasmids
+
+
+        def get_n_missing(self):
+            return int(self.cleaned_data["frequency"])
+
+        def get_include_choices(self):
+            return self.extract_choices((int(i) for i in self.cleaned_data["orthologs_in"]))
+
+        def get_exclude_choices(self):
+            return self.extract_choices((int(i) for i in self.cleaned_data["no_orthologs_in"]))
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -476,22 +513,21 @@ def make_extract_form(database_name,
             #self.helper.label_class = 'col-lg-4 col-md-6 col-sm-6'
             #self.helper.field_class = 'col-lg-6 col-md-6 col-sm-6'
             self.helper.layout = Layout(
-                                        Fieldset("Compare genomes",
-                                                Column(
-                                                    Row('checkbox_accessions', style="padding-left:15px"),
-                                                    Row('checkbox_single_copy', style="padding-left:15px"),
-                                                Row(Column("orthologs_in", css_class='form-group col-lg-6 col-md-6 col-sm-12'),
-                                                    Column("no_orthologs_in", css_class='form-group col-lg-6 col-md-6 col-sm-12')),
-                                                Column(Row('frequency'),
-                                                Row('reference'),
-                                                Submit('submit', 'Compare %s' % label), css_class='form-group col-lg-12 col-md-12 col-sm-12'),
-                                                css_class="col-lg-8 col-md-8 col-sm-12")
-                                                )
-                                        )
+                    Fieldset("Compare genomes",
+                            Column(
+                                Row('checkbox_accessions', style="padding-left:15px"),
+                                Row('checkbox_single_copy', style="padding-left:15px"),
+                            Row(Column("orthologs_in", css_class='form-group col-lg-6 col-md-6 col-sm-12'),
+                                Column("no_orthologs_in", css_class='form-group col-lg-6 col-md-6 col-sm-12')),
+                            Column(Row('frequency'),
+                            Submit('submit', 'Compare %s' % label,   style="margin-top:15px"), css_class='form-group col-lg-12 col-md-12 col-sm-12'),
+                            css_class="col-lg-8 col-md-8 col-sm-12")
+                            )
+                    )
 
             super(ExtractForm, self).__init__(*args, **kwargs)
-
     return ExtractForm
+
 
 def locus_int_form(database_name):
     from chlamdb.biosqldb import manipulate_biosqldb
@@ -654,20 +690,19 @@ def heatmap_form(database_name):
 
     return Heatmap
 
-def make_module_overview_form(database_name, sub_sub_cat=False):
-    from chlamdb.biosqldb import manipulate_biosqldb
-    server, db = manipulate_biosqldb.load_db(database_name)
-    if not sub_sub_cat:
-        sql = 'select distinct module_sub_cat from enzyme_kegg_module;'
-    else:
-        sql = 'select distinct module_sub_sub_cat from enzyme_kegg_module;'
-    categories = server.adaptor.execute_and_fetchall(sql,)
-    CHOICES = [(i[0],i[0]) for i in categories]
-    CHOICES.append(('microbial_metabolism', 'microbial_metabolism'))
+def make_module_overview_form(db, sub_sub_cat=False):
 
+    if sub_sub_cat:
+        categories = db.get_module_sub_categories()
+    else:
+        categories = db.get_module_categories()
+
+    CHOICES = [(cat_id, cat) for cat_id, cat in categories]
     class ModuleCatChoice(forms.Form):
         category = forms.ChoiceField(choices=CHOICES)
+
     return ModuleCatChoice
+
 
 def make_pathway_overview_form(database_name):
     from chlamdb.biosqldb import manipulate_biosqldb
@@ -746,7 +781,7 @@ def make_blastnr_form(biodb):
         rank_choices.append((rank, rank))
 
     class Blastnr_top(forms.Form):
-        accession = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % "15" , 'class':"selectpicker", "data-width":"200px"}), required = False)
+        accession = forms.MultipleChoiceField(choices=accession_choices, widget=forms.SelectMultiple(attrs={'size':'%s' % "15" , 'class':"selectpicker", "data-width":"200px",}), required = False)
         rank = forms.ChoiceField(choices=rank_choices)
         CHOICES=[('BBH','BBH'),
          ('Majority','Majority Rule')]
@@ -804,16 +839,26 @@ class BlastProfileForm(forms.Form):
 
 def make_blast_form(biodb):
 
-    accession_choices =  get_accessions(biodb, plasmid=True, all=True)
+    accession_choices =  get_accessions_BLAST(biodb, plasmid=False, all=True)
 
+    print(accession_choices)
     class BlastForm(forms.Form):
         blast = forms.ChoiceField(choices=[("blastn_ffn", "blastn_ffn"),
                                            ("blastn_fna", "blastn_fna"),
                                            ("blastp", "blastp"),
                                            ("blastx", "blastx"),
                                            ("tblastn", "tblastn")])
+
+        max_number_of_hits = forms.ChoiceField(choices=[("10", "10"),
+                                           ("5", "5"),
+                                           ("20", "20"),
+                                           ("30", "30"),
+                                           ("all", "all")])
+        evalue= forms.CharField(widget=forms.TextInput({'placeholder': '10'}))
+
         target = forms.ChoiceField(choices=accession_choices, widget=forms.Select(attrs={"class":"selectpicker", "data-live-search":"true"}))
-        blast_input = forms.CharField(widget=forms.Textarea(attrs={'cols': 10, 'rows': 20}))
+        blast_input = forms.CharField(widget=forms.Textarea(attrs={'cols': 50, 'rows': 5}))
+
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)

@@ -1,20 +1,22 @@
-<!DOCTYPE html>
-<html>
-  <head>
-      {% load custom_tags %}
+
+
+
+<!DOCTYPE html> <html>  <head> {% load custom_tags %}
       {% load static %}
       {% load static %}
       {% load crispy_forms_tags %}
       {% include "chlamdb/header.html" %}
   </head>
-
+ 
   <div class="container-fluid" id="main_container">
     <div class="row">
       <div id="wrapper">
         <div id="page-content-wrapper">
           <div class="row">
             <div class="col-lg-12">
-              {% include "chlamdb/menu.html" %}
+             {% include "chlamdb/menu.html" %}
+             <div class="home-title"><b> Orthogroups </b></div>
+             <hr class="lines-home">
 
               <nav>
                   <ul id="tabs_main" class="nav nav-tabs">
@@ -58,21 +60,124 @@
                 </div>
                 -->
                 {% block content %}
-                <form action="{% url "extract_orthogroup" %}" method="post" id="extract-form">
+                <form action='{% url "extract_orthogroup" %}' method="post" id="extract-form">
                     {% csrf_token %}
+                    
                     {% crispy form %}
                 </form>
                 {% endblock %}
             </div>
 
-            <div class="col-lg-12">
-                  <div id="progress-div" class="row" style="padding-top:5px;height:25px;" class="row"></div>
+            {% if wrong_n_missing%}
 
-                  <div class="progress row" style="width=50%;" id="progress">
-                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 20%"></div>
-                  </div>
-                  <div id="results" class="row"></div>
+            <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
+                <div class="panel-heading" style="width:100%">
+                    <h3 class="panel-title">Help</h3>
+                </div>
+                <p style="margin: 10px 10px 10px 10px">You cannot set a number of missing data bigger than the number of included genomes</p>
             </div>
+
+            {% elif no_match%}
+
+            <div class="panel panel-warning" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
+                <div class="panel-heading" style="width:100%">
+                    <h3 class="panel-title"></h3>
+                </div>
+                <p style="margin: 10px 10px 10px 10px">No match</p>
+            </div>
+
+            {% endif %}
+
+			{% if envoi_extract %}
+
+			<div class="row" style="padding-top:20px">
+			<div class="col-lg-12">
+			  <ul id="tabs" class="nav nav-tabs" data-tabs="tabs">
+				  <li class="active"><a href="#red" data-toggle="tab">Orthogroups</a></li>
+				  <li><a href="#orange" data-toggle="tab">Table detail</a></li>
+			  </ul>
+
+			  <div id="my-tab-content" class="tab-content">
+				  <div class="tab-pane active" id="red">
+					<div style="padding-top:10px;">
+
+						<h3>Number of orthogroups: {{ sum_group }} </h3>
+
+
+						  <div class="panel panel-success" style="width:100%; top: 200px; margin: 10px 10px 10px 10px">
+							  <div class="panel-heading" style="width:100%">
+								  <h3 class="panel-title">Help</h3>
+							  </div>
+							  <p style="margin: 10px 10px 10px 10px; line-height: 180%">The annotation(s) of orthologous groups is a consensus of the annotation of all members of the group. For each annotation (gene name, product, COG,...), 
+							  only the two most frequent annotations are reported. Number in parentheses indicates the number of occurences of the annotation (how many proteins of the orthologous group have this exact annotation). </br>
+							  The second tab reports the complete list of protein of reference genome(s).                               
+							  </p>
+						  </div>
+
+
+						<table class="hover" id="table_groups">
+
+							<thead>
+								<tr>
+								{% for value in table_headers %}
+									<th> {{value|safe}} </th>
+								{% endfor %}
+								</tr>
+							</thead>
+
+							<tbody>
+							{% for value in match_groups_data %}
+								<tr>
+									{% for entry in value %}
+									{% if forloop.first %}
+										<td><a href="{% url 'orthogroup' entry %}">{{entry}}</a></td>
+									{% else %}
+										<td>{{entry|safe}}</td>
+									{% endif %}
+									{% endfor %}
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				  </div>
+				  <div class="tab-pane" id="orange">
+						  <div id="export_bouttons_groups">
+							  {% if show_reference_annot %}
+							  <button type="button" class="btn btn-primary btn-xs" onclick="location.href='/chlamdb/fasta/{{fasta_ref_url|safe}}'">fasta aa</button>
+							  {% endif %}
+								<br/>
+						  </div>
+
+
+						  <h3>Number of orthogroups: {{ sum_group }} </h3>
+
+						  <table class="hover" id="orthogroups_table">
+							  <thead>
+								  <tr>
+								  {% for value in details_header %}
+									<th style="text-align:center; padding: 5px 30px"> {{value|safe}} </th>
+								  {% endfor %}
+								  </tr>
+							  </thead>
+
+							  <tbody>
+
+								  {% for entry in details_data %}
+									  <tr>
+										  {% for values in entry %}
+										  <td style="text-align: center;"> {{ values|safe }} </td>
+										  {% endfor %}
+									  </tr>
+								  {% endfor %}
+							  </tbody>
+						  </table>
+				  </div>
+			  </div>
+        </div>
+		{% endif %}
+        
+        </div>
 
         </div> <!-- row -->
       </div> <!-- page-content-wrapper -->
@@ -80,133 +185,17 @@
   </div>  <!-- row -->
   
 </div>  <!-- container-fluid -->
+
+<script>
+
+  $(document).ready(function() {
+	  $('#orthogroups_table').DataTable();
+	  $("#table_groups").DataTable();
+  } );
+
+</script>
+
 {% include "chlamdb/style_menu.html" %}
 {% include "chlamdb/show_hide_plasmid_accessions.html" %}
 </body>
-
-<script type="text/javascript">
-    $("#progress").hide();
-
-    var frm = $('#extract-form');
-    var prg_dv = $('#progress-div');
-    var pgrbar = $('.progress-bar');
-    frm.submit(function () {
-        console.log("submit!!!")
-        $.ajax({
-            type: frm.attr('method'),
-            url: frm.attr('action'),
-            data: frm.serialize(),
-            success: function (data) {
-                console.log("success");
-                console.log(data.task_id);
-                if (data.task_id != null) {
-                    get_task_info(data.task_id);
-                }
-            },
-            error: function (data) {
-                console.log("Something went wrong!");
-            }
-        });
-        return false;
-    });
-
-    function get_task_info(task_id) {
-        $.ajax({
-            type: 'get',
-            url: '/get-task-info/',
-            data: {'task_id': task_id},
-            success: function (data) {
-                pgrbar.css('width', 10+'%').attr('aria-valuenow', 10)
-                $("#progress").show();
-                $('#results').html('')
-                if (data.state == 'PENDING') {
-                    prg_dv.html('Please wait...');
-                }
-                else if (data.state == 'PROGRESS') {
-                    pgrbar.css('width', data.result.percent+'%').attr('aria-valuenow', data.result.percent)
-                    console.log(data.result.percent);
-                    prg_dv.html('Step ' + data.result.current + '/' + data.result.total + ': ' + data.result.description);
-                }
-                else if (data.state == 'SUCCESS') {
-                    // pgrbar.hide();
-                    prg_dv.html('Done');
-                    $('#results').html(data.result);
-                    $("#progress").hide();
-
-                    
-
-                    $('#circos_form').append('<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">');
-
-
-
-                    $('#table_groups').DataTable( {
-                    dom: 'Bfrtip',    
-                    "paging":   true,
-                    "ordering": true,
-                    "info":     false,
-                    buttons: [
-                    {
-                        extend: 'excel',
-                        title: 'orthogroups'
-                    },
-                    {
-                        extend: 'csv',
-                        title: 'orthogroups'
-                    }
-                    ],
-                    } );
-
-
-                    $('#cog_table').DataTable( {
-                    dom: 'Bfrtip',   
-                    "paging":   true,
-                    "ordering": true,
-                    "info":     false,
-                    buttons: [
-                    {
-                        extend: 'excel',
-                        title: 'locus'
-                    },
-                    {
-                        extend: 'csv',
-                        title: 'locus'
-                    }
-                    ],
-                    } );
-
-
-
-                    $('#reference_table').DataTable( {
-                    dom: 'Bfrtip',   
-                    "paging":   true,
-                    "ordering": true,
-                    "info":     false,
-                    buttons: [
-                    {
-                        extend: 'excel',
-                        title: 'locus'
-                    },
-                    {
-                        extend: 'csv',
-                        title: 'locus'
-                    }
-                    ],
-                    } );
-
-
-                }
-
-                if (data.state != 'SUCCESS') {
-                    setTimeout(function () {
-                        get_task_info(task_id)
-                    }, 1000);
-                }
-            },
-            error: function (data) {
-                prg_dv.html("Something went wrong!");
-            }
-        });
-    }
-</script>
-
 </html>

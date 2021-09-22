@@ -10,8 +10,6 @@ import colorsys
 import matplotlib.colors as pcolors
 from django.conf import settings
 
-db_driver = settings.DB_DRIVER
-
 def _get_colors(num_colors):
     colors=[]
     for i in np.arange(0., 360., 360. / num_colors):
@@ -882,7 +880,8 @@ def multiple_profiles_heatmap(biodb,
                               tree=False,
                               as_float=False,
                               rotate=False,
-                              sqlite3=False):
+                              sqlite3=False,
+                              leaf_to_name = None):
 
     '''
 
@@ -897,7 +896,6 @@ def multiple_profiles_heatmap(biodb,
     :param highlight_first_column:
     :return:
     '''
-
     if isinstance(reference_taxon, dict):
         import copy
         reference_taxon_dico = copy.copy(reference_taxon)
@@ -926,7 +924,6 @@ def multiple_profiles_heatmap(biodb,
         column2max = {}
         for column in column_labels:
             values = [float(i) for i in group2taxon2count[column].values()]
-            #print values, column
             norm = mpl.colors.Normalize(vmin=min(values), vmax=max(values))
             cmap = cm.OrRd
             m = cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -936,8 +933,8 @@ def multiple_profiles_heatmap(biodb,
             else:
                 column2max[column] = max(values)
 
-    server, db = manipulate_biosqldb.load_db(biodb)
     if not tree:
+        server, db = manipulate_biosqldb.load_db(biodb)
         sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
         tree = server.adaptor.execute_and_fetchall(sql_tree)[0][0]
@@ -957,17 +954,15 @@ def multiple_profiles_heatmap(biodb,
     t1.set_outgroup(R)
     t1.ladderize()
 
-    taxon_id2organism_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb,filter_names=True)
+    if leaf_to_name == None:
+        server, db = manipulate_biosqldb.load_db(biodb)
+        leaf_to_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb,filter_names=True)
 
     head = True
     leaf_list = [i for i in t1.iter_leaves()]
     n_leaves = len(leaf_list)
 
-    longest_label = 0
-    for i in column_labels:
-        if len(i) > longest_label:
-            longest_label = len(i)
-
+    longest_label = max(len(i) for i in column_labels)
     for lf_count, lf in enumerate(t1.iter_leaves()):
         lf.branch_vertical_margin = 0
 
@@ -1202,7 +1197,7 @@ def multiple_profiles_heatmap(biodb,
 
         #lf.name = taxon_id2organism_name[lf.name]
         try:
-            n = TextFace(taxon_id2organism_name[lf.name], fgcolor = "black", fsize = 12, fstyle = 'italic')
+            n = TextFace(leaf_to_name[lf.name], fgcolor = "black", fsize = 12, fstyle = 'italic')
         except:
             n = TextFace(lf.name, fgcolor = "black", fsize = 12, fstyle = 'italic')
         lf.add_face(n, 0)
