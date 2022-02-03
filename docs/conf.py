@@ -17,12 +17,12 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'ChlamDB'
-copyright = '2019, Trestan Pillonel'
-author = 'Trestan Pillonel'
+project = 'zDB'
+copyright = ''
+author = 'Bastien Marquis, Alessia Carrara, Trestan Pillonel'
 
 # The full version, including alpha/beta/rc tags
-release = '2.0 (June 2019)'
+release = '3.0'
 
 todo_include_todos = True
 
