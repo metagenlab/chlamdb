@@ -6,7 +6,7 @@ Methods
 Overview
 ---------
 
-A simplified scheme of ``ChlamDB`` annotation workflow is shown in **Figure 1**. In summary: 
+A simplified scheme of ``zDB`` annotation workflow is shown in **Figure 1**. In summary: 
 
     * Annotated genome assemblies integrated into ChlamDB were downloaded from GenBank_ (or 
       RefSeq_ if the GenBank assembly was not annotated).

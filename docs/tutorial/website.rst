@@ -49,7 +49,7 @@ Pathways/Modules`` description fields. The results (if matches were found) are r
     **Interpro** and **Kegg Pathways**/**Modules** descriptions.
 
 
-It's also possible to browse genomes tables from links listed in the `ChlamDB home page`_ (column: Browse online)
+It's also possible to browse genomes tables from links listed in the `zDB home page`_ (column: Browse online)
 
 
 
@@ -210,7 +210,7 @@ Metabolism
 
 
 
-.. _`ChlamDB home page`: https://chlamdb.ch/#genomes
+.. _`zDB home page`: https://chlamdb.ch/#genomes
 .. _mreb: https://chlamdb.ch/locusx?accession=mreb
 .. _`mreb Waddlia`: https://chlamdb.ch/locusx?accession=mreb+Waddlia
 .. _`secretion system`: https://chlamdb.ch/locusx?accession=secretion+system
