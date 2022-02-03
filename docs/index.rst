@@ -12,10 +12,10 @@ ChlamDB documentation
    methods/annotation.rst
    tutorial/website.rst
 
-ChlamDB website
+zDB github page
 ===============
 
-* `Go back to ChlamDB website`_
+* `Go to zDB website`_
 
 Search
 =======
@@ -23,4 +23,4 @@ Search
 * :ref:`search`
 
 .. _`the github page` : https://github.com/metagenlab/chlamdb/issues
-.. _`Go back to ChlamDB website` : https://www.chlamdb.ch
+.. _`Go to zDB website` : https://github.com/metagenlab/chlamdb
