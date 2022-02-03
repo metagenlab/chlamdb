@@ -1,7 +1,7 @@
 ChlamDB documentation
 =====================
 
-.. note:: Problems and errors encountered on the **ChlamDB** website can be announced on `the github page`_ of the website
+.. note:: Problems and errors encountered on the **zDB** website can be announced on `the github page`_ of the website
 
 
 
