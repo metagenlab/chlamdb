@@ -50,10 +50,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 
-import quark_sphinx_theme
-import sphinx_bootstrap_theme
-# import sphinx_theme_material
-html_theme_path = [quark_sphinx_theme.get_path()]
+
 html_theme = 'nature'
 #html_theme = 'bootstrap'
 #html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
@@ -63,13 +60,3 @@ html_theme = 'nature'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-html_css_files = [
-    'css/bootstrap.min.css',
-    'css/custom.css',
-]
-
-html_js_files = [
-    'js/bootstrap.min.js',
-    'js/custom.js'
-]
-
