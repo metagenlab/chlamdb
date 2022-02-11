@@ -5,6 +5,95 @@ Website tutorial
 .. warning:: 
     This page is under construction. Contact Trestan Pillonel (trestan.pillonel@chuv.ch) if you have any question or suggestion regarding the website or its documentation.
 
+This page attempts to help the user to understand and perform the analyses offered in the webinterface.
+If you do not find this page satisfactory enough or you have any suggestions to improve the page, contact Trestan Pillonel (trestan.pillonel@chuv.ch).
+
+--------------------------------
+Homology search - Blast
+--------------------------------
+With this analysis you can perform a blast search of on or more sequence of interest (either an amino-acid or a nucleotide sequence) against one more genomes of your database.
+You can control:
+    *the type of homology search according to your input file:
+        -blastp, tblastn with an aa sequence
+        -blast_ffn, blast_fna, blastx with a nt sequence
+    *e-value
+    *maximum number of hits to display
+
+The alignment to matching sequences can be visualised in the following plot, and a list of the entries with info about the matching contigs or locus tag is displayed below.
+The locus tags are clickable and linked to the protein annotation view page (PUT INTERPAGE LINK TO THAT EXPLANATION)
+\
+
+.. figure:: ../img/blast_hits.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 1:** Blast interface for homology search and list oh hits.
+    The max number of hits displayed is in agreement with the value selected in the settings.
+
+Additionally the conservation of the homologous sequence along the selected genomes can be observed in the following output.
+
+.. figure:: ../img/blast_phylogeny.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 2:** Phylogenetic distribution and identity of the provided sequence.
+
+HELP: You can retrieve the sequence of a specific gene in the protein annotation view page (LINK) point 2.
+
+--------------------------------
+Comparisons
+--------------------------------
+This block of analyses can be widely modified based on the settings defined dby the user.
+Orthogroups are identified by default, and each can be additionally annotated with Swissprot and Refseq databases.
+Differently, the user can select to identify KEGG, COG, and PFAM domains along the genomes and perform comparative analyses for each annotation.
+
+Here the outputs related to the Orthogroups analyses are displayed, but their explanation can be extended when consdiering other annotations.
+
+Overview of Orthogroups analyses
+
+.. figure:: ../img/20220209_orthogroups_overview.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 3:** Orthogroups comparison overview.
+
+1. Detailed comparison: you can identiy which orthogroups are in commond between a subset fo genomes of interest and excluded by the others, for example. Some flexibility can be given in selecting those orthogroups that, although present in the selected genomes, are not uniformly present and are missing in some of them ('Missing data' parameter).
+
+1A. Summary of the selected settings for the comparative analysis.
+1B: List of identified orthogroups, description and distribution in the selected genomes.
+1C: List of locus tag per each orthogroups and genomes of origin.
+
+2. Venn diagram: select a maximum of 6 genomes to visualise the distribution of their Orthologs. Easy representation to visualise similarity or dissimilarity in Orthogroups between a few genomes.
+.. figure:: ../img/20220209_orthogroups_venn.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 4.**
+3. Compare Orthogroup sie: Visualise the number of entries of each Orthogroup in commong between a selected set of genomes. This representation higliths which orthogroups are enriched or poorly represented in the genomes of interest.
+
+.. figure:: ../img/orthogroups_sise.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 5.**
+
+4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely scared by a subset of interest and which genome differentiate from the others. 
+
+.. figure:: ../img/20220209_orthogroups_proteome_heat.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 5.**
+5.Pan/Core genome plot: Graphical rapresentation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
+If the green curve reaches a plateau we can talk about closed pangenome since no new Orthogroups are carried by additional genomes, on the contrary the increment of the curve is proportional to the new Orthogroups introduced hen looking at other genomes.
+The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
+
+.. figure:: ../img/20220209_orthogroups_pan_core_genome_NOERRORBAR.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 5.** Accumulation/rarefaction plot. X-axis: number of selected genomes, y-axis (left): pangenome sise, y-axis (right): shared orthologs.
+
 --------------------------------
 Search for a protein of interest
 --------------------------------
@@ -22,17 +111,7 @@ UniParc accession 	            UPI0001D5C1DD_
 UniProtKB-Accession 	        D6YS95_
 UniProtKB-ID 	                D6YS95_WADCW_
 =============================   =================
-=============================   =================
-Name                            Example
-=============================   =================
-Genbank locus tag                   wcw_1594_
-Genbank protein accession           ADI38940.1_
-RefSeq locus tag                    WCW_RS07680_
-RefSeq protein accession            WP_013182646.1_
-UniParc accession                   UPI0001D5C1DD_
-UniProtKB-Accession             D6YS95_
-UniProtKB-ID                    D6YS95_WADCW_
-=============================   =================
+
 
 
 \
