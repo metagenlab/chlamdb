@@ -22,6 +22,18 @@ UniParc accession 	            UPI0001D5C1DD_
 UniProtKB-Accession 	        D6YS95_
 UniProtKB-ID 	                D6YS95_WADCW_
 =============================   =================
+=============================   =================
+Name                            Example
+=============================   =================
+Genbank locus tag                   wcw_1594_
+Genbank protein accession           ADI38940.1_
+RefSeq locus tag                    WCW_RS07680_
+RefSeq protein accession            WP_013182646.1_
+UniParc accession                   UPI0001D5C1DD_
+UniProtKB-Accession             D6YS95_
+UniProtKB-ID                    D6YS95_WADCW_
+=============================   =================
+
 
 \
 
