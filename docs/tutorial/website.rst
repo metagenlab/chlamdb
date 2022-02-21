@@ -11,16 +11,17 @@ If you do not find this page satisfactory enough or you have any suggestions to 
 --------------------------------
 Homology search - Blast
 --------------------------------
-With this analysis you can perform a blast search of on or more sequence of interest (either an amino-acid or a nucleotide sequence) against one more genomes of your database.
-You can control:
-    *the type of homology search according to your input file:
-        -blastp, tblastn with an aa sequence
-        -blast_ffn, blast_fna, blastx with a nt sequence
+Perform a blast search of one or more sequences of interest against one more genomes of your database. Either an amino-acid or a nucleotide sequence can be given as input.
+
+Set up:
+    * the type of homology search according to your input file:
+        * -blastp, tblastn with an aa sequence
+        * -blast_ffn, blast_fna, blastx with a nt sequence
     *e-value
     *maximum number of hits to display
 
-The alignment to matching sequences can be visualised in the following plot, and a list of the entries with info about the matching contigs or locus tag is displayed below.
-The locus tags are clickable and linked to the protein annotation view page (PUT INTERPAGE LINK TO THAT EXPLANATION)
+The alignment to matching sequences can be visualised in the following plot, and a list of the entries and the corrisponding matched contigs or locus tag is displayed below.
+| The locus tags are clickable and linked to the protein annotation view page (PUT INTERPAGE LINK TO THAT EXPLANATION)
 \
 
 .. figure:: ../img/blast_hits.png
@@ -51,48 +52,154 @@ Here the outputs related to the Orthogroups analyses are displayed, but their ex
 
 Overview of Orthogroups analyses
 
-.. figure:: ../img/20220209_orthogroups_overview.png
-    :figclass: align-center
-    :width: 90%
-
-    **Figure 3:** Orthogroups comparison overview.
-
 1. Detailed comparison: you can identiy which orthogroups are in commond between a subset fo genomes of interest and excluded by the others, for example. Some flexibility can be given in selecting those orthogroups that, although present in the selected genomes, are not uniformly present and are missing in some of them ('Missing data' parameter).
 
 1A. Summary of the selected settings for the comparative analysis.
 1B: List of identified orthogroups, description and distribution in the selected genomes.
 1C: List of locus tag per each orthogroups and genomes of origin.
 
+.. figure:: ../img/OverviewOrt_r1_r2.svg
+    :figclass: align-center
+    :width: 120%
+
+    **Figure 3:** Orthogroups comparison overview.
+
 2. Venn diagram: select a maximum of 6 genomes to visualise the distribution of their Orthologs. Easy representation to visualise similarity or dissimilarity in Orthogroups between a few genomes.
-.. figure:: ../img/20220209_orthogroups_venn.png
-    :figclass: align-center
-    :width: 90%
-
-    **Figure 4.**
 3. Compare Orthogroup sie: Visualise the number of entries of each Orthogroup in commong between a selected set of genomes. This representation higliths which orthogroups are enriched or poorly represented in the genomes of interest.
-
-.. figure:: ../img/orthogroups_sise.png
-    :figclass: align-center
-    :width: 90%
-
-    **Figure 5.**
-
 4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely scared by a subset of interest and which genome differentiate from the others. 
 
-.. figure:: ../img/20220209_orthogroups_proteome_heat.png
+.. figure:: ../img/Ort_venSize_heat.svg
     :figclass: align-center
-    :width: 90%
+    :width: 100%
 
-    **Figure 5.**
+    **Figure 4.**
 5.Pan/Core genome plot: Graphical rapresentation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
-If the green curve reaches a plateau we can talk about closed pangenome since no new Orthogroups are carried by additional genomes, on the contrary the increment of the curve is proportional to the new Orthogroups introduced hen looking at other genomes.
-The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
+This analysis generates three plots that display the content and conservation of Orthologous groups in selected genomes of interest.
+A: this plot shows the number of all Orthologous groups present in a set of genomes. If the green curve reaches a plateau we can talk about a closed pangenome since no new Orthogroups are carried by additional genomes, on the contrary the increment of the curve is proportional to the new Orthogroups introduced when looking at other genomes.
+B: The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
+C: the blue curve represents the number of Orthologous groups present in exactly the n genomes displayed in the x-axis. This representation is useful to appreciate how many Orthologous groups are present in the totality of the genomes of interest, for example, or the diversity brought by single genomes. For example if tot-1 is low it means that there are not specific genomes that bring a unique Orthologous groups, opposite would be the contrary.
 
-.. figure:: ../img/20220209_orthogroups_pan_core_genome_NOERRORBAR.png
+
+.. figure:: ../img/Core_pan_Ort_three.svg
     :figclass: align-center
-    :width: 90%
+    :width: 100%
 
     **Figure 5.** Accumulation/rarefaction plot. X-axis: number of selected genomes, y-axis (left): pangenome sise, y-axis (right): shared orthologs.
+
+
+
+--------------------------------
+Genome alignments
+--------------------------------
+
+Plot region
+=============
+Plot the genomic features located in the neighborhood of a provided target locus. This plot let you visualize the conservation of the protein of interest and of the flanking region among selected genomes.
+The conservation of a protein, or an operon or thethe components of a certain machinery, here, for example, the needle components of the type three secretion system of Salmonella are reported, can be evaluated and compared. 
+
+.. figure:: ../img/plot_region.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 8.** Plot regions of gene X of type three secretion system of Salmonella y and its flanking regions (8000 bp) along five selected genomes. In green the predicted gene, in black the pseudogenes and in yellow rRNAs and tRNAs.
+
+
+Circos
+=============
+Visualize genomes alignment in a circular layout. Following the help box it is possible to recognize which regions encode for genes or tRNA, additionally, the identity percentages helped the identification of conconserved genes.
+This visualization favorites the identification of regions which are conserved or absent compared to the reference genome. It is possible to appreciate if any region is conserved or missed among a group of genomes of interest, for example, and looking at the GC content speculate that it is the product of an HGT event. However, please note that regions present in one of the compared genomes but in the reference, will not be visualized. A new plot inverting the genome given as reference will give this info.
+When the user clicks on a gene of interest the protein annotation view page will be displayed and provide the user with all the information about function, distribution and conservation of this protein. 
+    HIGHLIGTH CONSERVED REGIONS, DIFFERENT GC CONTENT REGIONS
+
+.. figure:: ../img/circos.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 9.** Circos plot of six genomes of interest. 
+
+--------------------------------
+Metabolism
+--------------------------------
+Kegg maps
+=============
+
+Put together a sequence of actions you can do in this page and also specify the external links
+
+Kegg modules
+=============
+Same here - check
+
+--------------------------------
+Search for a protein of interest
+--------------------------------
+
+The following protein accessions are recognised and can be used in the search bar and also as input to the plot region analysis (CHECK WHICH ONES ARE STILL OK):
+
+=============================   =================
+Name 	                        Example
+=============================   =================
+Genbank locus tag 	            wcw_1594_
+Genbank protein accession 	    ADI38940.1_
+RefSeq locus tag 	            WCW_RS07680_
+RefSeq protein accession 	    WP_013182646.1_
+UniParc accession 	            UPI0001D5C1DD_
+UniProtKB-Accession 	        D6YS95_
+UniProtKB-ID 	                D6YS95_WADCW_
+=============================   =================
+
+
+
+\
+
+\
+
+It's also possible to seach for a gene or product name:
+
+    * mreb_
+    * `mreb Waddlia`_
+    * `secretion system`_
+
+\
+
+Please note that the search is performed in coding sequence annotations but also in ``Kegg Orthologs``, ``Interpro`` and ``Kegg 
+Pathways/Modules`` description fields. The results (if matches were found) are reported in separate tabs (Figure 1).
+
+\
+
+.. figure:: ../img/search.png
+    :figclass: align-center
+    :width: 90%
+
+    **Figure 1:** Search result for ``secretion system``. Note the presence of multiple tabs with search results in 
+    coding sequence annotations ("**locus** tab"), but also in **EC**, **Kegg Orthologs** (KO), 
+    **Interpro** and **Kegg Pathways**/**Modules** descriptions.
+
+
+It's also possible to browse genomes tables from links listed in the `zDB home page`_ (column: Browse online)
+
+
+
+------------------------
+Protein annotation view
+------------------------
+This page provides a complete overview of a selectd locus (check if only CDS or also RNAs).
+A: A summary of the locus tag name, its size, the gene name if annotated and gene product are reported.
+B: The Orthologous group in which the locus tag has been reported, the number of homologs, the number of genomes there have been found, and the Orthologous group in which all the homologs have been assigned are displayed.
+C: Locus
+.. figure:: ../img/locus_page.svg
+    :figclass: align-center
+
+    Figure 1: Simplified annotation workflow.
+
+-----------------------------
+Orthogroup annotation summary
+-----------------------------
+
+
+
+
+
+
 
 --------------------------------
 Search for a protein of interest
