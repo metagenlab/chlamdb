@@ -50,27 +50,27 @@ Differently, the user can select to identify KEGG, COG, and PFAM domains along t
 
 Here the outputs related to the Orthogroups analyses are displayed, but their explanation can be extended when consdiering other annotations.
 
-Overview of Orthogroups analyses
+**Overview of Orthogroups analyses**
 
-1. Detailed comparison: you can identiy which orthogroups are in commond between a subset fo genomes of interest and excluded by the others, for example. Some flexibility can be given in selecting those orthogroups that, although present in the selected genomes, are not uniformly present and are missing in some of them ('Missing data' parameter).
+1.Detailed comparison: you can identiy which orthogroups are in commond between a subset fo genomes of interest and excluded by the others, for example. Some flexibility can be given in selecting those orthogroups that, although present in the selected genomes, are not uniformly present and are missing in some of them ('Missing data' parameter).
 
-1A. Summary of the selected settings for the comparative analysis.
-1B: List of identified orthogroups, description and distribution in the selected genomes.
-1C: List of locus tag per each orthogroups and genomes of origin.
+1A.Summary of the selected settings for the comparative analysis.
+
+1B.List of identified orthogroups, description and distribution in the selected genomes.
+
+1C.List of locus tag per each orthogroups and genomes of origin.
 
 .. figure:: ../img/OverviewOrt_r1_r2.svg
     :figclass: align-center
-    :width: 120%
 
     **Figure 3:** Orthogroups comparison overview.
 
-2. Venn diagram: select a maximum of 6 genomes to visualise the distribution of their Orthologs. Easy representation to visualise similarity or dissimilarity in Orthogroups between a few genomes.
-3. Compare Orthogroup sie: Visualise the number of entries of each Orthogroup in commong between a selected set of genomes. This representation higliths which orthogroups are enriched or poorly represented in the genomes of interest.
-4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely scared by a subset of interest and which genome differentiate from the others. 
+2.:Venn diagram: select a maximum of 6 genomes to visualise the distribution of their Orthologs. Easy representation to visualise similarity or dissimilarity in Orthogroups between a few genomes.
+3.:Compare Orthogroup sie: Visualise the number of entries of each Orthogroup in commong between a selected set of genomes. This representation higliths which orthogroups are enriched or poorly represented in the genomes of interest.
+4.:Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely scared by a subset of interest and which genome differentiate from the others. 
 
 .. figure:: ../img/Ort_venSize_heat.svg
     :figclass: align-center
-    :width: 100%
 
     **Figure 4.**
 5.Pan/Core genome plot: Graphical rapresentation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
@@ -82,7 +82,6 @@ C: the blue curve represents the number of Orthologous groups present in exactly
 
 .. figure:: ../img/Core_pan_Ort_three.svg
     :figclass: align-center
-    :width: 100%
 
     **Figure 5.** Accumulation/rarefaction plot. X-axis: number of selected genomes, y-axis (left): pangenome sise, y-axis (right): shared orthologs.
 
