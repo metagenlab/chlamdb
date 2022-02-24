@@ -13,29 +13,55 @@ Homology search - Blast
 --------------------------------
 Perform a blast search of one or more sequences of interest against one more genomes of your database. Either an amino-acid or a nucleotide sequence can be given as input.
 
+
+(Note that if a constrain is put for the max number of hits it in case of 'all' genomes you may notnotice that uou are missing some data).
 Set up:
     * the type of homology search according to your input file:
-        * -blastp, tblastn with an aa sequence
-        * -blast_ffn, blast_fna, blastx with a nt sequence
-    *e-value
-    *maximum number of hits to display
+         -blastp, tblastn with an aa sequence
+         -blast_ffn, blast_fna, blastx with a nt sequence
+    * e-value
+    * maximum number of hits to display
+    * target genome or all genomes
 
-The alignment to matching sequences can be visualised in the following plot, and a list of the entries and the corrisponding matched contigs or locus tag is displayed below.
+Note: If the search is performed agianst all, max number of hits should be set tp 'all' to avoid losing high matching hits. 
+
+In the reported example we blastp the protein sequence of the genes of the fliLMNOPQR operon against all genomes of the database (Fig.1). Through this analysis we can identify if any of these genes is present in the genome and evaluate the number and the identity of alignment of each hits (Fig.2 - Result 1). Additionally, the generated annotated phylogeneny provides a easy visualization to interpret their distribution and conservation along all the genomes (Fig.2 - Result 2). 
 | The locus tags are clickable and linked to the protein annotation view page (PUT INTERPAGE LINK TO THAT EXPLANATION)
 \
 
-.. figure:: ../img/blast_hits.png
+.. figure:: ../img/blastp_search.svg
     :figclass: align-center
-    :width: 90%
+    :width: 100%
 
-    **Figure 1:** Blast interface for homology search and list oh hits.
-    The max number of hits displayed is in agreement with the value selected in the settings.
+    **Figure 1:** Blast interface for homology search. Blastp of fliLMNOPQR operon genes (target: all, max number of hits: all). In 'blast input' box amminoacid sequences of all genes introduced by a header.
+
+.. figure:: ../img/Blast_result1_1.svg
+    :figclass: align-center
+    :width: 100%
+.. figure:: ../img/Blast_result1_2.svg
+    :figclass: align-center
+    :width: 100%
+
+
+**Figure 1:** Blast results sep
+
+.. figure:: ../img/blastp_result1.svg
+    :figclass: align-center
+    :width: 100%
+
+    **Figure 1:** Blast all res 1
+
+.. figure:: ../img/blastp_result2.svg
+    :figclass: align-center
+    :width: 100%
+
+    **Figure 1:** Blast all res 2
 
 Additionally the conservation of the homologous sequence along the selected genomes can be observed in the following output.
 
 .. figure:: ../img/blast_phylogeny.png
     :figclass: align-center
-    :width: 90%
+    :width: 100%
 
     **Figure 2:** Phylogenetic distribution and identity of the provided sequence.
 
@@ -190,12 +216,13 @@ C: Locus
 
     Figure 1: Simplified annotation workflow.
 
+In the boxes with annotation of kegg cogs and pfam you will be redirected to the page of one of these annotations (3 ouputs, all similar, with link to external sources, occurences in proteins in the orthologous groups, then list of locus tags with that annot in all the genomes of the database, phylogeny of the dataset annotated with the copis of hits for that annotation and their distribution in the orthologous groups --- MAYBE PUT AN EXAMPLE OF THAT PAGE FOR ONE ANNOTATION  )
 -----------------------------
 Orthogroup annotation summary
 -----------------------------
 
 
-
+A lot of overlapping between the locus tag page and the orthogroups, but one is specific for the locus and the other for the orthogroups, so more general and it could be that some homologs of a locus tag are split in more orthogroups
 
 
 
@@ -402,8 +429,11 @@ Get the list of Pfam domains specific to one or a set of genomes
 ----------
 Metabolism
 ----------
-
-
+Kegg mapsSelect the genome of interest (Soli),
+1)see number if Kegg Orthologs identified for each kegg map
+2) click on one map 
+3)Two ouputs: for each kegg orth its frequency in this genome and in all the genome sof the dataset --> see if it is abundant or unique or rare etc in your genome of interest
+            - second output the phylogenetic tree annotated with all the kegg orthogroups and their frequencies in all genomes (not only one now)
 
 
 
