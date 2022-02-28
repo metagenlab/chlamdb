@@ -6,37 +6,41 @@ Website tutorial
     This page is under construction. Contact Trestan Pillonel (trestan.pillonel@chuv.ch) if you have any question or suggestion regarding the website or its documentation.
 
 This page attempts to provide the user with help to understand and perform the analyses offered in the webinterface.
-The database presented is a collection of Enterobacteriaceae genomes in which a focus on the fliLMNOPQR operon is reserved. This operon is FlhDC-dependent and encodes important regulatory factors and  structural components of the membrane-spammomg basal body. 
+The database presented is a collection of Enterobacteriaceae genomes in which a focus on the fliLMNOPQR operon is reserved in the presented analyses. This operon is FlhDC-dependent and encodes important regulatory factors and structural components of the membrane-spanning basal body. 
+
 --------------------------------
 HOME page
 --------------------------------
-In the HOME page the user can have an overview of the genomes provided and included in the database through the 'Genome' and 'Phylogenetic tree' sections (see the following paragraph). 
-Additionally, to assess the status of the database a summary is reported in the HOME page higlighting which analyses are available, and which have not been included in the generation of the database.
-Direct access to the available analyses is provided in the home page and also in the left menu to facilitate the navigation.
+In the HOME page the user has an overview of the genomes included in the database through the 'Genome' and 'Phylogenetic tree' sections (see the following paragraph) and the status of the database. Indeed, a summary reports which analyses are available, and which have not been included in the generation of the database.
+Note that it is necessary to re-run the pipeline to incude the new analyses if wished (-resume argument - see documentation)
+Direct access to the available analyses is provided:
+    * in the home page
+    * in the left menu to facilitate the navigation
 
 --------------------------------
 Genome table and phylogeny
 --------------------------------
-Through the genome table the user can do the first steps to globally evaluate the content of the database, getting details about the contigs and the loci identified on each (the clickable locus tags redirect to a comprehensive annotation page).
-Instead, in the phylogenetic tree, next to the evolutionary relationships between the genomes, essential data for the quality assessment of the given sequences is also provided.
+Through the genome table the user can move the first steps to globally evaluate the content of the database, getting details about the contigs and the loci identified on each genome (the clickable locus tags redirect to the 'Locus tag overview page').
+The phylogeny shows the evolutionary relationships between the genomes given in input and essential data for the quality assessment of the given sequences.
 
 --------------------------------
 Homology search - Blast
 --------------------------------
-Perform a blast search of one or more sequences of interest against one or more genomes of your database. Either an amino-acid or a nucleotide sequence can be given as input.
+Perform a blast search of one or more sequences of interest against one or more genomes of the database. Either an amino-acid or a nucleotide sequence can be given as input.
 
 Set up:
-    * the type of homology search according to your input file:
+    * the type of homology search according to the input file:
          - blastp, tblastn with an aa sequence
          - blast_ffn, blast_fna, blastx with a nt sequence
     * e-value
     * maximum number of hits to display
     * target genome or all genomes
 
-Note: If the search is performed agianst all, max number of hits should be set tp 'all' to avoid losing high matching hits. 
+Note: If the search is performed agianst all genomes, max number of hits should be set tp 'all' to avoid losing high matching hits. 
 
-In the reported example we blastp the protein sequence of the genes of the fliLMNOPQR operon against all genomes of the database (Fig.1). Through this analysis we can identify if any of these genes is present in the genome and evaluate the number and the identity of alignment of each hits (Fig.2 - Result 1). Additionally, the generated annotated phylogeneny provides a easy visualization to interpret their distribution and conservation along all the genomes (Fig.2 - Result 2). 
-| The locus tags are clickable and linked to the protein annotation view page (PUT INTERPAGE LINK TO THAT EXPLANATION)
+In the reported example the protein sequence of the genes of the fliLMNOPQR operon extracted from Enterobacter soli genome are blasted (blastp) against all genomes of the database (Fig.1).
+Through this analysis it is possible to identify whether any of these genes is present in the genomes and evaluate the number and the identity of the alignment of each hits (Fig.2 - Result 1 - Note that the locus tags are clickable and linked to the 'Locus tag overview page').
+Additionally, the generated annotated phylogeny facilitate the interpretation of their distribution and conservation along all the genomes (Fig.2 - Result 2). 
 \
 
 .. figure:: ../img/blastp_search.svg
@@ -55,12 +59,12 @@ In the reported example we blastp the protein sequence of the genes of the fliLM
     :figclass: align-center
     :width: 100%
 
-    **Figure 2:** Blastp results. Result 1: A. visual identification of hits, B. table with info about hits (genome, contigs/locus_tag, alignment scores and identity), C. Alignment of the query and the sequence of a selected hits in table B. Result 2.  Phylogenetic distribution and identity of the genes of fliLMNOPQR operon. In four genomes the operon is entirely conserved, while in others is incomplete and in fourteen genomes is not present. In green, four genomes of interest are highlighted.
+    **Figure 2:** Blastp results. Result 1: A. visual identification of hits, B. table with info about hits (genome, contigs/locus_tag, alignment scores and identity), C. Alignment of the query and the sequence of a selected hits in table B. Result 2.  Phylogenetic distribution and identity of the genes of fliLMNOPQR operon. In four genomes the operon is entirely conserved, in fourteen genomes it is not present, while in the remaining ones it is incomplete. In green, four genomes of interest are highlighted.
 
 
 TIPS:
-- If you are interest in a specific gene expected to be present in one of the genomes included in the database, you can either retrive the sequence in a public database, such as SwissProt, or use the search bar in the menu on the left side of the web interface to identify which loci have been annotated with that gene and directly retrieve both the nucleotide and amino acid sequence of the gene through the protein annotation view page (View point 2 of this tutorial).
-- Compare the genomic regions around a protein of interest in selected genomes throught the 'Genome alignments' section/'Plot region' analysis. Below the ouput generated focusing on the fliL gene of the FliLMNOPQR operon.
+- If you are interest in a specific gene expected to be present in one of the genomes included in the database, you can either retrive the sequence in a public database, such as SwissProt, or use the search bar in the menu on the left side of the web interface to identify which loci have been annotated with that gene and directly retrieve both the nucleotide and amino acid sequence of the gene through the 'Locus tag overview page'.
+- Compare the genomic regions around a protein of interest in selected genomes accessing 'MENU/Genome alignments/Plot region' analysis. Below the ouput generated focusing on the fliL gene of the FliLMNOPQR operon.
 
 --------------------------------
 Comparisons
@@ -71,32 +75,35 @@ Differently, the user can optionally identify KEGG, COG, and PFAM domains along 
 
 **Overview of Orthogroups analyses**
 The following example refers to the Orthogroups analyses, however the same outputs are generated also when KEGG, COG and PFAM domain are considered (check the end of the paragraph to discover the extra outputs generated with some of these annotations).
+The following genomes are considered: Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola.
 
 List of analyses:
-1. Detailed comparison: you can identify those orthogroups commonly present in a set of genomes of interest and excluded in other ones, for example. Flexibility can be given to include orthogroups that, although present in some of the selected genomes, are not uniformly present in all and are missing in some ('Missing data' parameter).
+1. Detailed comparison: identify those orthogroups uniformly present in a set of genomes of interest and, optionally absent in others. Flexibility can be given to include orthogroups that, although present in some of the selected genomes, are not uniformly present in all and are missing in some ('Missing data' parameter).
 
 1A.Summary of the selected settings for the comparative analysis.
 1B.List of identified orthogroups, description and distribution in the selected genomes.
-1C.List of locus tag per each orthogroups and genomes of origin.
+1C.List of locus tags per each orthogroup and genome.
 
 .. figure:: ../img/OverviewOrt_r1_r2.svg
     :figclass: align-center
 
     **Figure 3:** Orthogroups comparison overview.
 
-2. Venn diagram: select a maximum of 6 genomes to visualise the distribution of their Orthologs. Easy representation to visualise similarity or dissimilarity in Orthogroups between a few genomes.
-3. Compare Orthogroup sie: Visualise the number of entries of each Orthogroup in commong between a selected set of genomes. This representation higliths which orthogroups are enriched or poorly represented in the genomes of interest.
-4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely scared by a subset of interest and which genome differentiate from the others. 
+2. Venn diagram: select a maximum of 6 genomes to visualize the distribution of their Orthogroups. This representation simplifies the identification of similarity/dissimilarity of Orthogroups between a few genomes.
+3. Compare Orthogroup size: Visualize the number of entries of each Orthogroup in common between a selected set of genomes. This representation higlights which orthogroups are enriched or poorly represented in the genomes of interest.
+4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely shared by a subset of interest and which genome differentiate from the others. 
 
 .. figure:: ../img/Ort_venSize_heat.svg
     :figclass: align-center
 
     **Figure 4.**
-5.Pan/Core genome plot: Graphical rapresentation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
+
+5.Pan/Core genome plot: Graphical representation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
 This analysis generates three plots that display the content and conservation of Orthologous groups in selected genomes of interest.
-A: this plot shows the number of all Orthologous groups present in a set of genomes. If the green curve reaches a plateau we can talk about a closed pangenome since no new Orthogroups are carried by additional genomes, on the contrary the increment of the curve is proportional to the new Orthogroups introduced when looking at other genomes.
-B: The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
-C: the blue curve represents the number of Orthologous groups present in exactly the n genomes displayed in the x-axis. This representation is useful to appreciate how many Orthologous groups are present in the totality of the genomes of interest, for example, or the diversity brought by single genomes. For example if tot-1 is low it means that there are not specific genomes that bring a unique Orthologous groups, opposite would be the contrary.
+
+A.: this plot shows the number of all Orthologous groups present in a set of genomes. If the green curve reaches a plateau we can talk about 'closed pangenome' since no new Orthogroups are carried by additional genomes, on the contrary if the increment of the curve grows when looking at other genomes we can talk about 'open pangenome'.
+B.: The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
+C.: the blue curve represents the number of Orthologous groups present in exactly n genomes displayed in the x-axis. This representation is useful to appreciate how many Orthologous groups are present in the totality of the genomes of interest, for example, or the diversity brought by single genomes. For example, if tot-1 is low it means that there are no specific genomes that bring a unique Orthologous groups.
 
 
 .. figure:: ../img/Core_pan_Ort_three.svg
@@ -105,13 +112,14 @@ C: the blue curve represents the number of Orthologous groups present in exactly
     **Figure 5.** Accumulation/rarefaction plot. X-axis: number of selected genomes, y-axis (left): pangenome sise, y-axis (right): shared orthologs.
 
 **Additional plots for Kegg Orthologs and Cluster of Orthologous Groups (COGs)**
-As anticipated, the comparative anlyses of Kegg and COGs comes with additional plots. 
+
+As anticipated, the comparative analyses of Kegg and COGs come with additional plots. 
 1.  Barchart of the distribution of the entries annotated with a COG/KEGG category of selected genomes. Evaluation of potential increment or descrement of entries known to be relevant for a certain function in genomes of interest.
 
 .. figure:: ../img/COGs_overview_bar_o.svg
     :figclass: align-center
 
-    **Figure 6.** COGs comparison page. Barchart for each COG categories representing the number of entries identified in each genome. The 'Cell motility' category is highligthed in green to strees the differences between the four selected genomes, ineed Klebsiella variicola shows a lower number of entries compared to the other Enterobacter genomes.
+    **Figure 6.** COGs comparison page. Barchart for each COG category representing the number of entries identified in each genome. The 'Cell motility' category is highligthed in green to strees the differences between the four selected genomes: Klebsiella variicola shows a lower number of entries compared to the other Enterobacter genomes.
 
 2 and 3. Heatmaps of the COGs along all the genomes expressed as fequency or number of identified entries. (This is available only for COGs)
 
@@ -124,6 +132,8 @@ As anticipated, the comparative anlyses of Kegg and COGs comes with additional p
 --------------------------------
 Genome alignments
 --------------------------------
+Align the genomes and check the conservation of specific regions of interest. Again, a focus on the fliLMNOPQR operon in Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola is reserved.
+The operon is conserved among all genomes except in Klebsiella variicola, as already noticed in the phylogeny obtained with the blastp search. Due to its lack it is not reported in the 'Plot region' analysis, however a high identity conservation is mantained for this operon among the other three genomes.
 
 Plot region
 =============
@@ -135,24 +145,55 @@ Circos
 Visualize genomes alignment in a circular layout. Following the help box it is possible to recognize which regions encode for genes or tRNA, additionally, the identity percentages helped the identification of conconserved genes.
 This visualization favorites the identification of regions which are conserved or absent compared to the reference genome. It is possible to appreciate if any region is conserved or missed among a group of genomes of interest, for example, and looking at the GC content speculate that it is the product of an HGT event. However, please note that regions present in one of the compared genomes but in the reference, will not be visualized. A new plot inverting the genome given as reference will give this info.
 When the user clicks on a gene of interest the protein annotation view page will be displayed and provide the user with all the information about function, distribution and conservation of this protein. 
-    HIGHLIGTH CONSERVED REGIONS, DIFFERENT GC CONTENT REGIONS
 
-.. figure:: ../img/Plot_region_ENTAS_RS13815_ fliL_Soli_and_circos_o.svg
+
+.. figure:: ../img/Plot_region_ENTAS_RS13815_fliL_Soli_and_circos_o.svg
     :figclass: align-center
+    :width: 130%
 
-    **Figure 8.** A. Circos plot of four genomes of interest and B. focus on the genomics region (20000 bp) around fliL gene (fliLMNOPQR operon). The operon is conserved among Enterobacter soli, Enterobacter asburiae and Enterobacter ludwigii, but as noticed in the phylogeny obtained with the blastp search, it is not present in Klebsiella variicola. In red the gene encoded in the locus tag provided, in green CDs, in black the pseudogenes, and in yellow rRNAs and tRNAs.
+    **Figure 8.** A. Circos plot of four genomes of interest and B. focus on the genomics region (20000 bp) around fliL gene (fliLMNOPQR operon). The operon is conserved among Enterobacter soli, Enterobacter asburiae and Enterobacter ludwigii. In red the gene encoded in the locus tag provided, in green CDs, in black the pseudogenes, and in yellow rRNAs and tRNAs.
 
 --------------------------------
 Metabolism
 --------------------------------
+This section provides the user with a set of analyses useful to discover the metabolism of the given genomes based on the KEGG Orthology database.
+The focus is on the functional orthologs of the KO database which are identified and included in molecular interaction, reaction and relation networks, named KEGG pathays maps, and functional units of gene sets, named Kegg modules associated to metabolism.
+The two proposed analyses let the user discover the composition of Kegg maps and modules of a metabolic category of interest of a single genome or a set of them.
+
 Kegg maps
 =============
+With this analysis it is possible to discover the Kegg pathways of a genome of interest, which Kegg orthologs of the pathway are present and compare their distribution in the other genomes.
+In the following example, the Kegg pathways present in the Enterobacter Soli genome are listed and a heatpat of the Ko of the flagellar pathways is shown. In this page a direct link to the official Kegg page is provided and in red are reported the Ko present in the genome of interest.
+.. figure:: ../img/Metab_kegg_maps_o.svg
+    :figclass: align-center
 
-Put together a sequence of actions you can do in this page and also specify the external links
+    **Figure 9.** Metabolism/kegg maps analysis. Steps to identify the completeness of a Kegg pathway for a genome of interest. The flagellar assembly pathways of Enterobacter soli is shown.
+
 
 Kegg modules
 =============
-Same here - check
+With this analysis it is possible to discover the KO of Kegg modules, organized in categories and sub categories, of a genome of interest or a subset of them.
+Three types of search are available:
+Category heatmap: discover a Kegg category of interest, such as Energy metabolism and get an overview of the presence/absence of the kegg modules part of this category in the whole set of genomes. In Fig. 10 A, the KO entry M00175 that refers to 'Nitrogen fixation, nitrogen --> ammonia is present only in a few genomes, and one of them is Klebsiella variicola.
+Sub category heatmap: similar output than the 'Category heatmap' search, but considering subcategories - for example ATP synthesis.
+Compare strains: this search let the user focus on a selected set of genomes to compare all the Kegg modules carried by them and better appreciated their distribution within the genomes. In figure 10 B, the four genomes are compared.
+
+
+.. figure:: ../img/Metab_kegg_modules_o.svg
+    :figclass: align-center
+
+    **Figure 10.** Metabolism/kegg module analysis. A 'Category heatmap' output, B: 'Compare strains' output.
+
+Search 1 and 3 come with a link to the Kegg module overview page (see below).
+   
+Kegg module overview page
+=============
+This page, accessible clicking on the Kegg module entry from the 'Metabolism/Kegg module' analysis or from the 'Locus tag overview page', gives access to the list of Ko entries that form the Kegg module of interest and provides an indication of the completeness of the Kegg module within the genomes of the database.
+
+.. figure:: ../img/kegg_overview_page_ammonia_CI_m_o.svg
+    :figclass: align-center
+
+    **Figure 11.** Phylogeny annotatedd with presence/absence of KO entries of kegg module M00175.
 
 --------------------------------
 Search for a protein of interest
@@ -178,7 +219,7 @@ UniProtKB-ID 	                D6YS95_WADCW_
 
 \
 
-It's also possible to seach for a gene or product name:
+It's also possible to search for a gene or product name:
 
     * mreb_
     * `mreb Waddlia`_
@@ -207,92 +248,56 @@ It's also possible to browse genomes tables from links listed in the `zDB home p
 ------------------------
 Protein annotation view
 ------------------------
-This page provides a complete overview of a selectd locus (check if only CDS or also RNAs).
-A: A summary of the locus tag name, its size, the gene name if annotated and gene product are reported.
-B: The Orthologous group in which the locus tag has been reported, the number of homologs, the number of genomes there have been found, and the Orthologous group in which all the homologs have been assigned are displayed.
-C: Locus
-.. figure:: ../img/locus_page.svg
+This page provides a complete overview of a selected locus of interest.
+In the example reported, the page displays the locus tag ENTAS_RS13815 of Enterobacter soli annotated with the fliL gene. The following info can be retrieved from the 'Overview' page:
+1: A summary of the locus tag name, its size, the gene name if annotated and gene product are reported.
+2: The Orthologous group in which the locus tag has been reported, the number of homologs, the number of genomes there have been found, and the Orthologous group in which all the homologs have been assigned are displayed.
+3: the genomic region around the locus tag of interest. This plot provides an interactive way to discover of the flancking region of the target.
+4: Box with useful functional and metabolic annotations (adatpted to the requested annotations in the config file) 
+
+.. figure:: ../img/Locus_tag_filL_overview_m_o.svg
     :figclass: align-center
 
-    Figure 1: Simplified annotation workflow.
+    Figure 11: Locus tag page overview. Overview of the locus tag ENTAS_RS13815 of Enterobacter soli encoding fliL gene.
+
+In the further sections it is possible to observe the phylogenetic distribution of the locus tag orthogroup and the phylogeny of the homologs with a dedicated attention to the Pfam domains composing them. Additionally, SwissProt and RefSeq annotations are listed to further evaluate the best homologs according to their databases and the best RefSeq hits are included in the homologs phylogeny. These analyses result to be useful to better characterize the locus, whether the other annotations are not consistent for example, or to infer horizontal gene transfer occurences, and additionally, to observe potential dissimilarities/similarities in terms of Pfam domains between members of the same orthogroup. 
+
+.. figure:: ../img/Locus_tag_filL_plots_m_o.svg
+    :figclass: align-center
+
+    Figure 12: Locus tag page overview. A: phylogenetic distribution of the orthogroup; B: Homologs of ENTAS_RS13815 locus tag identified in RefSeq; C: Homologs of ENTAS_RS13815 locus tag identified in SwissProt; D: Orthogroup phylogeny of group_2742 with Pfam domains annotation; E: Phylogeny of the orthogroup identified in the set of genomes plus the addition of the three best RefSeq hits of locus tag ENTAS_RS13815.
+
 
 In the boxes with annotation of kegg cogs and pfam you will be redirected to the page of one of these annotations (3 ouputs, all similar, with link to external sources, occurences in proteins in the orthologous groups, then list of locus tags with that annot in all the genomes of the database, phylogeny of the dataset annotated with the copis of hits for that annotation and their distribution in the orthologous groups --- MAYBE PUT AN EXAMPLE OF THAT PAGE FOR ONE ANNOTATION  )
+
 -----------------------------
 Orthogroup annotation summary
 -----------------------------
 
+This page represents several overlaps with the locus tag page, however this is focused on the orthogroup whether on a single member and its homologs. Indeed, it may occur that the homologs of a locus tag are split within more orthogroups.   
+Of interest, in this page the alignment between the members of the orthogroup is available and amino acid substitutions can be easily observed (Fig.13 A)
 
-A lot of overlapping between the locus tag page and the orthogroups, but one is specific for the locus and the other for the orthogroups, so more general and it could be that some homologs of a locus tag are split in more orthogroups
-
-
-
-
---------------------------------
-Search for a protein of interest
---------------------------------
-
-The following protein accessions are recognised:
-
-=============================   =================
-Name 	                        Example
-=============================   =================
-Genbank locus tag 	            wcw_1594_
-Genbank protein accession 	    ADI38940.1_
-RefSeq locus tag 	            WCW_RS07680_
-RefSeq protein accession 	    WP_013182646.1_
-UniParc accession 	            UPI0001D5C1DD_
-UniProtKB-Accession 	        D6YS95_
-UniProtKB-ID 	                D6YS95_WADCW_
-=============================   =================
-
-
-
-\
-
-\
-
-It's also possible to seach for a gene or product name:
-
-    * mreb_
-    * `mreb Waddlia`_
-    * `secretion system`_
-
-\
-
-Please note that the search is performed in coding sequence annotations but also in ``EC``, ``Kegg Orthologs``, ``Interpro`` and ``Kegg 
-Pathways/Modules`` description fields. The results (if matches were found) are reported in separate tabs (Figure 1).
-
-\
-
-.. figure:: ../img/search.png
+.. figure:: ../img/Orthogroup_page_overview_align_m_o.svg
     :figclass: align-center
-    :width: 90%
 
-    **Figure 1:** Search result for ``secretion system``. Note the presence of multiple tabs with search results in 
-    coding sequence annotations ("**locus** tab"), but also in **EC**, **Kegg Orthologs** (KO), 
-    **Interpro** and **Kegg Pathways**/**Modules** descriptions.
+Figure 13: Overview of orthogroup 2742 of fliL gene of Enterobacter Soli and protein alignment of its members.
 
+-----------------------------
+COG/Pfam annotation summary
+-----------------------------
+Overview of COG and Orthogroups annotations --> how many proteins have that COG annotations and in how many and which Orthogroups they are present. List with each locus tag with that COG annotation and phylogeny annotated with heatmap of the entries with that COG and the distribution into Orthogroups (potential errors)
 
-It's also possible to browse genomes tables from links listed in the `zDB home page`_ (column: Browse online)
-
-
-
------------------
-Species phylogeny
------------------
-
-----------------------
-Orthogroup phylogenies
-----------------------
-
-“Putative interactors were predicted in-house from genomic data alone using phylogenetic profiling and investigation of conserved gene neighborhood (see online methods). Phylogenetic profile similarity (pattern of presence/absence of orthologs within the PVC superphylum) was calculated using Euclidean and Jaccard distances. Conserved neighbors were identified by identifying orthologs encoded less than 20 kilobases apart in genomes from different species of the PVC superphylum (Figure 1.H). See (19) and (20) for the rationale justifying use of those two approaches.”
+-----------------------------
+Pfam annotation summary
+-----------------------------
+Exactly the same of COG but with pfam domains
 
 
 ---------------------------------------------------
 Search using COG, Pfam, Interpro or KEGG accessions
 ---------------------------------------------------
 
-Accessions from ``KEGG``, ``COG``, ``Pfam`` and ``InterPro`` can also be searched. 
+Accessions from ``KEGG``, ``COG``, and ``Pfam`` can also be searched. 
 The result page will report a summary of the entry,  the list of proteins annotated 
 with this entry as well as a figure showing the presence/absence of this annotation 
 in all genomes included in the database (Figure 2).
@@ -328,37 +333,16 @@ Kegg pathways 	    map00400_ 	Phenylalanine, tyrosine and tryptophan biosynthesi
     :figclass: align-center
     :width: 90%
 
-------------------------------------------
-Taxonomic profile of COGs and Pfam domains
-------------------------------------------
 
-.. figure:: ../img/PF08486_phylum_profile.svg
-    :figclass: align-center
-    :width: 600 px
 
-----------------
-BLAST interface
-----------------
 
-A BLAST interface is also available for homology search:
 
-.. figure:: ../img/screenshot_blast.png
-    :figclass: align-center
 
-    Figure 1: Simplified annotation workflow.
 
-------------------------
-Protein annotation view
-------------------------
 
-.. figure:: ../img/locus_page.svg
-    :figclass: align-center
 
-    Figure 1: Simplified annotation workflow.
 
------------------------------
-Orthogroup annotation summary
------------------------------
+
 
 
 
@@ -404,25 +388,6 @@ Identification of the largest protein families in one or multiple genomes
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-++++++++++++++++++
-Proteomes heatmaps
-++++++++++++++++++
-
-
-++++++++++++++++++++++
-Pan/Core genome plots
-++++++++++++++++++++++
-
-
--------------------------------------------------------------------------
-Comparison of COG, Pfam, KO and InterPro annotations at the genome scale
--------------------------------------------------------------------------
-
- * identification of conserved or clade specific domains/COGs,EC numbers
-
-----------------------------------------------------------------
-Get the list of Pfam domains specific to one or a set of genomes
-----------------------------------------------------------------
 
 
 
