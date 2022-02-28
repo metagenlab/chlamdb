@@ -40,7 +40,7 @@ Note: If the search is performed agianst all genomes, max number of hits should 
 
 In the reported example the protein sequence of the genes of the fliLMNOPQR operon extracted from Enterobacter soli genome are blasted (blastp) against all genomes of the database (Fig.1).
 Through this analysis it is possible to identify whether any of these genes is present in the genomes and evaluate the number and the identity of the alignment of each hits (Fig.2 - Result 1 - Note that the locus tags are clickable and linked to the 'Locus tag overview page').
-Additionally, the generated annotated phylogeny facilitate the interpretation of their distribution and conservation along all the genomes (Fig.2 - Result 2). 
+Additionally, the generated annotated phylogeny facilitate the interpretation of their distribution and conservation along all the genomes (**Fig.2 - Result 2**). 
 \
 
 .. figure:: ../img/blastp_search.svg
@@ -62,7 +62,8 @@ Additionally, the generated annotated phylogeny facilitate the interpretation of
     **Figure 2:** Blastp results. Result 1: A. visual identification of hits, B. table with info about hits (genome, contigs/locus_tag, alignment scores and identity), C. Alignment of the query and the sequence of a selected hits in table B. Result 2.  Phylogenetic distribution and identity of the genes of fliLMNOPQR operon. In four genomes the operon is entirely conserved, in fourteen genomes it is not present, while in the remaining ones it is incomplete. In green, four genomes of interest are highlighted.
 
 
-TIPS:
+**TIPS**:
+
 - If you are interest in a specific gene expected to be present in one of the genomes included in the database, you can either retrive the sequence in a public database, such as SwissProt, or use the search bar in the menu on the left side of the web interface to identify which loci have been annotated with that gene and directly retrieve both the nucleotide and amino acid sequence of the gene through the 'Locus tag overview page'.
 - Compare the genomic regions around a protein of interest in selected genomes accessing 'MENU/Genome alignments/Plot region' analysis. Below the ouput generated focusing on the fliL gene of the FliLMNOPQR operon.
 
@@ -74,36 +75,37 @@ Orthogroups are identified by default and the annotations are automatically retr
 Differently, the user can optionally identify KEGG, COG, and PFAM domains along the genomes during the database generation and perform comparative analyses for each annotation.
 
 **Overview of Orthogroups analyses**
+
 The following example refers to the Orthogroups analyses, however the same outputs are generated also when KEGG, COG and PFAM domain are considered (check the end of the paragraph to discover the extra outputs generated with some of these annotations).
 The following genomes are considered: Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola.
 
 List of analyses:
-1. Detailed comparison: identify those orthogroups uniformly present in a set of genomes of interest and, optionally absent in others. Flexibility can be given to include orthogroups that, although present in some of the selected genomes, are not uniformly present in all and are missing in some ('Missing data' parameter).
+**1**. Detailed comparison: identify those orthogroups uniformly present in a set of genomes of interest and, optionally absent in others. Flexibility can be given to include orthogroups that, although present in some of the selected genomes, are not uniformly present in all and are missing in some ('Missing data' parameter).
 
-1A.Summary of the selected settings for the comparative analysis.
-1B.List of identified orthogroups, description and distribution in the selected genomes.
-1C.List of locus tags per each orthogroup and genome.
+**1A**.Summary of the selected settings for the comparative analysis.
+**1B**.List of identified orthogroups, description and distribution in the selected genomes.
+**1C**.List of locus tags per each orthogroup and genome.
 
 .. figure:: ../img/OverviewOrt_r1_r2.svg
     :figclass: align-center
 
     **Figure 3:** Orthogroups comparison overview.
 
-2. Venn diagram: select a maximum of 6 genomes to visualize the distribution of their Orthogroups. This representation simplifies the identification of similarity/dissimilarity of Orthogroups between a few genomes.
-3. Compare Orthogroup size: Visualize the number of entries of each Orthogroup in common between a selected set of genomes. This representation higlights which orthogroups are enriched or poorly represented in the genomes of interest.
-4. Whole proteome heatmaps: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely shared by a subset of interest and which genome differentiate from the others. 
+**2. Venn diagram**: select a maximum of 6 genomes to visualize the distribution of their Orthogroups. This representation simplifies the identification of similarity/dissimilarity of Orthogroups between a few genomes.
+**3. Compare Orthogroup size**: Visualize the number of entries of each Orthogroup in common between a selected set of genomes. This representation higlights which orthogroups are enriched or poorly represented in the genomes of interest.
+**4. Whole proteome heatmaps**: Heatmap of presence/absence of the pool of Orthogroups present in the selected genomes. Discover which Orthogroups are widely shared by a subset of interest and which genome differentiate from the others. 
 
 .. figure:: ../img/Ort_venSize_heat.svg
     :figclass: align-center
 
     **Figure 4.**
 
-5.Pan/Core genome plot: Graphical representation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
+**5.Pan/Core genome plot**: Graphical representation of the pan- and core- genome of a subset of genomes or of the uploaded dataset.
 This analysis generates three plots that display the content and conservation of Orthologous groups in selected genomes of interest.
 
-A.: this plot shows the number of all Orthologous groups present in a set of genomes. If the green curve reaches a plateau we can talk about 'closed pangenome' since no new Orthogroups are carried by additional genomes, on the contrary if the increment of the curve grows when looking at other genomes we can talk about 'open pangenome'.
-B.: The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
-C.: the blue curve represents the number of Orthologous groups present in exactly n genomes displayed in the x-axis. This representation is useful to appreciate how many Orthologous groups are present in the totality of the genomes of interest, for example, or the diversity brought by single genomes. For example, if tot-1 is low it means that there are no specific genomes that bring a unique Orthologous groups.
+**A**.: this plot shows the number of all Orthologous groups present in a set of genomes. If the green curve reaches a plateau we can talk about 'closed pangenome' since no new Orthogroups are carried by additional genomes, on the contrary if the increment of the curve grows when looking at other genomes we can talk about 'open pangenome'.
+**B**.: The red curve represents the core Orthogroups shared by the genomes and it tends to decrease as much as the compared genomes are different.
+**C**.: the blue curve represents the number of Orthologous groups present in exactly n genomes displayed in the x-axis. This representation is useful to appreciate how many Orthologous groups are present in the totality of the genomes of interest, for example, or the diversity brought by single genomes. For example, if tot-1 is low it means that there are no specific genomes that bring a unique Orthologous groups.
 
 
 .. figure:: ../img/Core_pan_Ort_three.svg
@@ -111,7 +113,8 @@ C.: the blue curve represents the number of Orthologous groups present in exactl
 
     **Figure 5.** Accumulation/rarefaction plot. X-axis: number of selected genomes, y-axis (left): pangenome sise, y-axis (right): shared orthologs.
 
-**Additional plots for Kegg Orthologs and Cluster of Orthologous Groups (COGs)**
+Additional plots for Kegg Orthologs and Cluster of Orthologous Groups (COGs)
+=============
 
 As anticipated, the comparative analyses of Kegg and COGs come with additional plots. 
 1.  Barchart of the distribution of the entries annotated with a COG/KEGG category of selected genomes. Evaluation of potential increment or descrement of entries known to be relevant for a certain function in genomes of interest.
@@ -174,9 +177,9 @@ Kegg modules
 =============
 With this analysis it is possible to discover the KO of Kegg modules, organized in categories and sub categories, of a genome of interest or a subset of them.
 Three types of search are available:
-Category heatmap: discover a Kegg category of interest, such as Energy metabolism and get an overview of the presence/absence of the kegg modules part of this category in the whole set of genomes. In Fig. 10 A, the KO entry M00175 that refers to 'Nitrogen fixation, nitrogen --> ammonia is present only in a few genomes, and one of them is Klebsiella variicola.
+Category heatmap: discover a Kegg category of interest, such as Energy metabolism and get an overview of the presence/absence of the kegg modules part of this category in the whole set of genomes. In **Fig. 10 A**, the KO entry M00175 that refers to 'Nitrogen fixation, nitrogen --> ammonia is present only in a few genomes, and one of them is Klebsiella variicola.
 Sub category heatmap: similar output than the 'Category heatmap' search, but considering subcategories - for example ATP synthesis.
-Compare strains: this search let the user focus on a selected set of genomes to compare all the Kegg modules carried by them and better appreciated their distribution within the genomes. In figure 10 B, the four genomes are compared.
+Compare strains: this search let the user focus on a selected set of genomes to compare all the Kegg modules carried by them and better appreciated their distribution within the genomes. In **Fig. 10 B**, the four genomes are compared.
 
 
 .. figure:: ../img/Metab_kegg_modules_o.svg
