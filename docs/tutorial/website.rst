@@ -100,7 +100,7 @@ Before proceeding here a brief summary of the mentioned annotations and the link
 
 | The following example in **Fig. 3** refers to the Orthogroups analyses, however the same outputs are generated also when KEGG, COG and PFAM domain are considered (check the help paragraph entitled '*Additional plots for Kegg Orthologs and Cluster of Orthologous Groups (COGs)*' to discover the extra outputs generated with some of these annotations).
 
-**Overview of Orthogroups analyses**
+``**Overview of Orthogroups analyses**``
 
 Orthogroups are identified with 'Orthofinder'_, an accurate platform that cluster <<set of genes that are descended from a single gene in the last common ancestor of all the species being considered >> as reported in its 'publication'_.
 | In the reported example the orthogroup content is compared between *Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola*. 
@@ -173,22 +173,21 @@ The focus on the fliLMNOPQR operon in *Enterobacter soli, Enterobacter ausbriae,
 
 Circos
 =============
-Visualize genomes alignment in a circular layout. This plot can trigger the identification of differentially distributed genomic regions in the genomes of interest, the presence of a potential plasmid, or the products of other HGT events looking at the GC composition, for example.  Following the help box it is possible to recognize which regions encode for genes or tRNA and evaluate the conservation of the sequence checking the identity percentages
-In **Figure 8. A ** *Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola* are mapped against 'Enterobacter soli'. The genomes seems to be similar in terms of genetic content, however the plasmid  if it cleall missing a big portion corrisponding to the plasmid of Enterobacter soli
+Visualize genomes alignment in a circular layout. This plot can trigger the identification of differentially distributed genomic regions in the genomes of interest, the presence of a potential plasmid, or the products of other HGT events looking at the GC composition, for example.
+Following the help box it is possible to recognize which regions encode for genes or tRNA and evaluate the conservation of the sequence checking the identity percentages.
+
+In **Figure 8. A **, *Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola* are mapped against 'Enterobacter soli'. The genomes appears similar in terms of gene content, however *Enterobacter soli* carries a plasmid which is absent in the other genomes.
 When the user clicks on a gene of interest the ``Protein annotation view`` page will be displayed and provide the user with all the information about function, distribution and conservation of this protein. 
 
-Note that regions present in one of the compared genomes but in the reference, will not be visualized. A new plot inverting the genome given as reference will give this info.
+**NOTE**: the regions present in one of the compared genomes but in the reference, will not be visualized. A new plot inverting the genome given as reference will give this info.
 
 
 Plot region
 =============
-'Plot region' analysis let the user discover a specific genomic region of interest. It plott the genomic features located in the neighborhood of a provided target locus. This plot displays the conservation of the protein of interest and the flanking region among selected genomes (max 20000 bp).
-The conservation of a single protein, or of an operon, for example, as reported here, can be evaluated and compared (**Fig. 8 B**) 
+'Plot region' analysis allow the user to discover a specific genomic region of interest. It plots the genomic features located in the neighborhood of a provided target locus, it displays the conservation of the protein of interest and the genes present in the flanking region among selected genomes (max 20000 bp).
 
-In **Fig. 8**, the focus is on the fliLMNOPQR operon in *Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola*.
-| The operon is present in the Enterobacter genomes, but not in *Klebsiella variicola*, which is indeed absent in the plot (Fig. 8 B). (Note that the phylogeny obtained in *Homology search - Blast*, in the reported blastp search, the lack of these genes is also displayed).
-Fro the region plot we see that the oper, the majority of the genes are highly conserved, 
-the fliLMNOPQR operon in 
+In **Fig. 8 B**, the focus is on the fliL gene of the fliLMNOPQR operon in *Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola*.
+The operon is present in the Enterobacter genomes and highly conserved, but not in *Klebsiella variicola*, which is indeed absent in the plot (Fig. 8 B). (Note that the phylogeny obtained in *Homology search - Blast*, in the reported blastp search, the lack of these genes is also displayed).
 
 .. figure:: ../img/Plot_region_ENTAS_RS13815_fliL_Soli_and_circos_o_vertical.svg
     :figclass: align-center
