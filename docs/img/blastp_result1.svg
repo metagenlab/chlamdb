@@ -8,7 +8,7 @@
    height="718"
    viewBox="0 0 510 718"
    sodipodi:docname="blastp_result1.svg"
-   inkscape:version="1.1.2 (b8e25be833, 2022-02-05)"
+   inkscape:version="1.1.1 (1:1.1+202109281949+c3084ef5ed)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -27,11 +27,11 @@
      showgrid="false"
      inkscape:zoom="1.8220149"
      inkscape:cx="254.93754"
-     inkscape:cy="243.68626"
-     inkscape:window-width="1920"
-     inkscape:window-height="986"
-     inkscape:window-x="-11"
-     inkscape:window-y="-11"
+     inkscape:cy="419.04158"
+     inkscape:window-width="1848"
+     inkscape:window-height="1016"
+     inkscape:window-x="72"
+     inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:current-layer="g15" />
   <g
@@ -65,35 +65,35 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-       x="14.818759"
-       y="69.95372"
+       x="22.405548"
+       y="64.180405"
        id="text3157"><tspan
          sodipodi:role="line"
          id="tspan3155"
-         x="14.818759"
-         y="69.95372"
+         x="22.405548"
+         y="64.180405"
          style="font-size:16px">A</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-       x="19.415398"
-       y="657.17371"
+       x="20.889374"
+       y="640.07324"
        id="text3157-06"><tspan
          sodipodi:role="line"
          id="tspan3155-9"
-         x="19.415398"
-         y="657.17371"
+         x="20.889374"
+         y="640.07324"
          style="font-size:16px">C</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-       x="15.024655"
-       y="356.64944"
+       x="21.278194"
+       y="343.76593"
        id="text3157-0"><tspan
          sodipodi:role="line"
          id="tspan3155-6"
-         x="15.024655"
-         y="356.64944"
+         x="21.278194"
+         y="343.76593"
          style="font-size:16px">B</tspan></text>
     <text
        xml:space="preserve"
@@ -106,5 +106,31 @@
          x="6.037272"
          y="24.697933"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold'">Result 1 - Details</tspan></text>
+    <path
+       style="fill:none;stroke:#008000;stroke-width:1.41942;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:8.51653, 1.41942;stroke-dashoffset:0;stroke-opacity:1"
+       d="m 39.460214,354.17823 c -25.388779,0 -25.388779,0 -25.388779,0 l 0.786716,334.69356 -0.293399,-0.80534"
+       id="path1651" />
+    <path
+       sodipodi:type="star"
+       style="fill:#008000;stroke:#008000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:6, 1;stroke-dashoffset:0;stroke-opacity:1;fill-opacity:1"
+       id="path4345"
+       inkscape:flatsided="true"
+       sodipodi:sides="3"
+       sodipodi:cx="30.615129"
+       sodipodi:cy="690.84351"
+       sodipodi:r1="8.5096188"
+       sodipodi:r2="4.2548094"
+       sodipodi:arg1="-2.0081128"
+       sodipodi:arg2="-0.96091525"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 27.011221,683.13472 12.081871,8.4421 -13.352017,6.24216 z"
+       inkscape:transform-center-x="-1.1230043"
+       inkscape:transform-center-y="-0.28037032"
+       transform="matrix(0.62321441,0,0,0.76466094,9.058491,162.6202)" />
+    <path
+       style="fill:none;stroke:#008000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:6,1;stroke-dashoffset:0"
+       d="M 14.454339,689.81036 C 25.1007,690.21512 25.1007,690.21512 25.1007,690.21512"
+       id="path4642" />
   </g>
 </svg>
