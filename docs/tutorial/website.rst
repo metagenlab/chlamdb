@@ -40,10 +40,15 @@ Set up:
 Note: If the search is performed against all genomes, max number of hits should be set up to 'all' to avoid losing high identity matching hits. 
 
 In the reported example the protein sequence of the genes of fliLMNOPQR operon extracted from *Enterobacter soli* genome are blasted (blastp) against all genomes of the database (**Fig.1**).
-| Through this analysis it is possible to identify whether any of these genes is present in the genomes and evaluate the number and the identity of the alignment of each hit (**Fig.2 - Result 1**):
+
+Through this analysis it is possible to identify whether any of these genes is present in the genomes and evaluate the number and the identity of the alignment of each hit (**Fig.2 - Result 1**):
+
 | A. visual identification of hits for fliL gene
+
 | B. info table about the hits (genome, contig/locus_tag, alignment scores and identity - Note that the locus tags are clickable and linked to the 'Protein annotation view'),
+
 | C. Alignment of the query and the sequence of a hit selected in table B.
+
 | Additionally, the generated annotated phylogeny facilitate the interpretation of their distribution and conservation along all the genomes. As shown in **Fig.2 - Result 2**, 
 four genomes carry all the investigated genes, fourteen genomes do not carry them, while the remaining ones have an incomplete set. 
 
@@ -92,6 +97,7 @@ Orthogroups are identified with 'Orthofinder'_, an accurate platform that cluste
 | In the reported example the following genomes are considered: *Enterobacter soli, Enterobacter ausbriae, Enterobacter ludvigii, and Klebsiella variicola*.
 
 List of analyses:
+
 | **1. Detailed comparison**: identify those orthogroups uniformly present in a set of genomes of interest and, optionally absent in others. Flexibility can be given to include orthogroups that, although present in some of the selected genomes, are not uniformly present in all and are missing in some ('Missing data' parameter).
 
 | **1A.** Summary of the selected settings for the comparative analysis.
