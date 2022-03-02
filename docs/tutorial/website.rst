@@ -6,7 +6,8 @@ Website tutorial
     This page is under construction. Contact Trestan Pillonel (trestan.pillonel@chuv.ch) if you have any question or suggestion regarding the website or its documentation.
 
 This page attempts to provide the user with help to understand and perform the analyses offered in the webinterface.
-| In this tutorial a database composed of a collection of *Enterobacteriaceae* genomes is presented and a focus on the fliLMNOPQR operon and specifically on FliL is reserved to display the available analyses. This operon is FlhDC-dependent and encodes important regulatory factors and structural components of the membrane-spanning basal body of the flagellum.
+
+In this tutorial a database composed of a collection of *Enterobacteriaceae* genomes is presented and a focus on the fliLMNOPQR operon and specifically on FliL is reserved to display the available analyses. This operon is FlhDC-dependent and encodes important regulatory factors and structural components of the membrane-spanning basal body of the flagellum.
 
 --------------------------------
 HOME page
