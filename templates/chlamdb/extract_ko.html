@@ -9,6 +9,7 @@
         {% load static %}
         {% load custom_tags %}
         {% load crispy_forms_tags %}
+        
         <script type="text/javascript" id="js">
             $(document).ready(function() {
             // call the tablesorter plugin
@@ -42,17 +43,7 @@
               <div class="row">
                 <div class="col-lg-12">
                    {% include "chlamdb/menu.html" %}
-
-                    <nav>
-                        <ul id="tabs_main" class="nav nav-tabs">
-                            <li class="active"><a href="{% url 'extract_ko' %}">Detailed comparison</a></li>
-                            <li><a href="{% url 'ko_comparison' %}">Compare KO counts</a></li>
-                            <li><a href="{% url 'module_barchart' %}">KO categories barchart</a></li>
-                            <li><a href="{% url 'venn_ko' %}">Venn KO</a></li>
-                            <li><a href="{% url 'plot_heatmap' 'ko' %}">Whole proteomes heatmaps</a></li>
-                            <li><a href="{% url 'pan_genome' 'COG' %}">Pan/Core genome plots</a></li>
-                        </ul>
-                    </nav>
+                   {% include "chlamdb/extract_nav_tabs_template.html" with type="ko" active_tab="det" %}  
 
                      <div id="extract_form">
 

@@ -23,16 +23,7 @@
             <div class="row">
               <div class="col-lg-12">
                  {% include "chlamdb/menu.html" %}
-                  <nav>
-                      <ul id="tabs_main" class="nav nav-tabs">
-                          <li><a href="{% url 'extract_orthogroup'  %}">Detailed comparison</a></li>
-                          <li><a href="{% url 'venn_orthogroup'  %}">Venn diagram</a></li>
-                          <li class="active"><a href="{% url 'orthogroup_comparison'  %}">Compare Orthogroups size</a></li>
-                          <li><a href="{% url 'plot_heatmap'  'orthology' %}">Whole proteomes heatmaps</a></li>
-                          <li><a href="{% url 'pan_genome'  'orthology' %}">Pan/Core genome plots</a></li>
-
-                      </ul>
-                  </nav>
+                 {% include "chlamdb/extract_nav_tabs_template.html" with type="orthology" active_tab="comp" %}
 
                       <div class="panel panel-success" style="width:80% ; top: 200px; margin: 10px 10px 10px 10px">
                           <div class="panel-heading" style="width:100%">

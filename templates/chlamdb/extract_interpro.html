@@ -17,16 +17,8 @@
               <div class="row">
                 <div class="col-lg-12">
                    {% include "chlamdb/menu.html" %}
+                   {% include "chlamdb/extract_nav_tabs_template.html" with type="interpro" active_tab="det" %} 
 
-                    <nav>
-                        <ul id="tabs_main" class="nav nav-tabs">
-                            <li class="active"><a href="{% url 'extract_interpro' %}">Detailed comparison</a></li>
-                            <li><a href="{% url 'venn_interpro' %}">Venn diagram</a></li>
-                            <li><a href="{% url 'plot_heatmap' 'interpro' %}">Whole proteomes heatmaps</a></li>
-                            <li><a href="{% url 'pan_genome' 'interpro' %}">Pan/Core genome plots</a></li>
-                            <li><a href="{% url 'interpro_taxonomy' %}">Interpro taxonomy</a></li>
-                        </ul>
-                    </nav>
 
                      <div id="extract_form">
                         <div class="panel panel-success" style="width:80% ; top: 200px; margin: 10px 10px 10px 10px">

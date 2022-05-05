@@ -35,16 +35,7 @@
                  {% include "chlamdb/menu.html" %}
 
                   {% if display_form %}
-                  <nav>
-                  <ul id="tabs" class="nav nav-tabs">
-                              <li><a href="{% url 'extract_ko' %}">Detailed comparison</a></li>
-                              <li><a href="{% url 'ko_comparison' %}">Compare KO counts</a></li>
-                              <li><a href="{% url 'module_barchart' %}">KO categories barchart</a></li>
-                              <li class="active"><a href="{% url 'venn_ko' %}">Venn KO</a></li>
-                              <li><a href="{% url 'plot_heatmap' 'ko' %}">Whole proteomes heatmaps</a></li>
-                              <li><a href="{% url 'pan_genome' 'ko' %}">Pan/Core genome plots</a></li>
-                  </ul>
-                  </nav>
+                  {% include "chlamdb/extract_nav_tabs_template.html" with type="ko" active_tab="venn" %}
 
 
                           <div id="extract_form">

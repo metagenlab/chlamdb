@@ -86,12 +86,13 @@
                     </a>
                     <div class="sidebar-submenu" style="display:block;">
                       <ul id="submenu-3" class="panel-collapse collapse panel-switch in" role="menu">
-                          <li class="item"><a href="{% url 'extract_orthogroup' %}">Orthogroups</a></li>
-                          <li class="item"><a href="{% url 'extract_cog' %}">COGs</a></li>
-                          <li class="item"><a href="{% url 'extract_pfam' %}">Pfam domains</a></li>
-                          <li class="item"><a href="{% url 'extract_interpro' %}">Interpro entries</a></li>
+                          <li class="item" ><a   href="{% url 'index_comp' 'orthology' %}">Orthogroups</a></li>
+                          <li class="item" ><a   href="{% url 'index_comp' 'COG' %}">COGs</a></li>
+                          <li class="item" ><a   href="{% url 'index_comp' 'Pfam' %}">Pfam domains</a></li>
+                          <li class="item" ><a   href="{% url 'index_comp' 'interpro' %}">Interpro entries</a></li>
+                          <li class="item" ><a   href="{% url 'index_comp' 'ko' %}">Kegg Orthologs</a></li>
                           <!--<li class="item"><a href="{% url 'extract_EC' %}">EC numbers</a></li>-->
-                          <li class="item"><a href="{% url 'extract_ko' %}">Kegg Orthologs</a></li>
+
                       </ul>
                     </div>
                 </li>
