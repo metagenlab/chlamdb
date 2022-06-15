@@ -84,8 +84,9 @@ def get_swissprot_annotation(accession_list):
     import urllib
     from urllib.error import URLError
 
-    link = "http://www.uniprot.org/uniprot/?query=id:%s&columns=id,taxon,annotation score,protein names,genes,organism&format=tab" % (','.join(accession_list))
+    link = "http://www.uniprot.org/uniprot/?query=id:%s&columns=id,taxon,annotation score,protein names,genes,organism&format=tab" % ('+OR+'.join(accession_list))
     link = link.replace(' ', '%20')
+
     req = urllib.request.Request(link)
     try:
         page = urllib.request.urlopen(req)
@@ -131,12 +132,10 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
     n_file = 0
     for one_blast_file in input_blast_files:
         n_file +=1
-        conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                               user=mysql_user, # your username
-                               passwd=mysql_pwd, # your password
-                               db=mysql_db) # name of the data base
-        cursor = conn.cursor()
 
+        server, db = manipulate_biosqldb.load_db(biodb)
+        conn = server.adaptor.conn
+        cursor = server.adaptor.cursor
 
         with open(one_blast_file, 'r') as f:
             print ('Loading', n_file, one_blast_file, '...')
@@ -177,7 +176,7 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
 
             all_taxid = [str(accession2annotation[i][0]) for i in accession2annotation]
 
-            sql = 'select taxon_id from blastnr.blastnr_taxonomy;'
+            sql = 'select taxon_id from blastnr_blastnr_taxonomy;'
             taxid_in_db = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql,)]
             missing_taxons = list(set(all_taxid)-set(taxid_in_db))
 
@@ -185,12 +184,12 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
             plastnr2sqltable.insert_taxons_into_sqldb(missing_taxons, mysql_pwd=mysql_pwd)
 
             print ("getting taxid2superkingdom")
-            sql = 'select taxon_id,superkingdom from blastnr.blastnr_taxonomy'
+            sql = 'select taxon_id,superkingdom from blastnr_blastnr_taxonomy'
             cursor.execute(sql,)
             taxon_id2superkingdom = manipulate_biosqldb.to_dict(cursor.fetchall())
 
             print ("getting locus2protein_length")
-            sql = 'select locus_tag,char_length(translation) from biosqldb.orthology_detail_%s' % biodb
+            sql = 'select locus_tag,char_length(translation) from orthology_detail' % biodb
             cursor.execute(sql,)
             locus_tag2protein_length = manipulate_biosqldb.to_dict(cursor.fetchall())
 
@@ -292,13 +291,11 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
                     print (sql)
 
 def create_sql_blast_swissprot_tables(db_name, mysql_host, mysql_user, mysql_pwd, mysql_db='blastnr'):
-    import MySQLdb
+    from chlamdb.biosqldb import manipulate_biosqldb
 
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
+    server, db = manipulate_biosqldb.load_db(db_name)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     '''
     1 query_taxon_id int
@@ -423,12 +420,12 @@ def blastswiss2biosql( locus_tag2seqfeature_id,
     server.adaptor.execute(sql,)
 
     print ('get locus2taxon_id')
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % db_name
+    sql = 'select locus_tag, taxon_id from orthology_detail' % db_name
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     print ('get locus2bioentry')
     sql2 = 'select locus_tag,bioentry_id from biodatabase t1 ' \
            ' inner join bioentry as t2 on t1.biodatabase_id=t2.biodatabase_id' \
-           ' inner join orthology_detail_%s t3 on t2.accession=t3.accession where t1.name="%s"' % (db_name,db_name)
+           ' inner join orthology_detail t3 on t2.accession=t3.accession where t1.name="%s"' % (db_name,db_name)
 
     locus_tag2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
 

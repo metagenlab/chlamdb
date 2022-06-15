@@ -24,7 +24,7 @@ def parse_orthofinder_blast_files(biodb,
     else:
         server, db = manipulate_biosqldb.load_db(biodb, sqlite3)
 
-    sql = 'select locus_tag, taxon_id from annotation.seqfeature_id2locus_%s' % biodb
+    sql = 'select locus_tag, taxon_id from annotation_seqfeature_id2locus' % biodb
 
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -89,14 +89,14 @@ def get_parwise_genome_median_identity_table(biodb, sqlite3=False):
           ' where t1.name="%s" group by taxon_id' % biodb
     taxon_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
-    sql = 'CREATE table if not exists comparative_tables.reciprocal_BBH_average_identity_%s (taxon_1 INT, taxon_2 INT, ' \
+    sql = 'CREATE table if not exists comparative_tables_reciprocal_BBH_average_identity (taxon_1 INT, taxon_2 INT, ' \
           ' average_identity FLOAT, median_identity FLOAT, n_pairs INT)' % biodb
     server.adaptor.execute(sql,)
     server.commit()
     for n, taxon_1 in enumerate(taxon_list):
         print ("%s / %s" % (n, len(taxon_list)))
         for taxon_2 in taxon_list[n+1:len(taxon_list)]:
-            sql = 'select blast_identity_a_vs_b from comparative_tables.reciprocal_BBH_%s where taxon_1 =%s ' \
+            sql = 'select blast_identity_a_vs_b from comparative_tables_reciprocal_BBH where taxon_1 =%s ' \
                   'and taxon_2=%s;' % (biodb,
                                 taxon_1,
                                 taxon_2)
@@ -114,7 +114,7 @@ def get_parwise_genome_median_identity_table(biodb, sqlite3=False):
             ''')
             max_density = robjects.r('max_density')
 
-            sql = 'insert into comparative_tables.reciprocal_BBH_average_identity_%s values(%s, %s, %s, %s, %s, %s)' % (biodb,
+            sql = 'insert into comparative_tables_reciprocal_BBH_average_identity values(%s, %s, %s, %s, %s, %s)' % (biodb,
                                                                                                                         taxon_1,
                                                                                                                         taxon_2,
                                                                                                                         round(mean_id, 2),
@@ -139,7 +139,7 @@ def get_reciproval_BBH_table(biodb, locus2taxon2best_hit_id, sqlite3=False):
         server, db = manipulate_biosqldb.load_db(biodb,
                                                  sqlite=sqlite3)
 
-    sql = 'create table if not exists comparative_tables.reciprocal_BBH_%s (taxon_1 INT, taxon_2 INT, seqfeature_id_1 INT, seqfeature_id_2 INT,' \
+    sql = 'create table if not exists comparative_tables_reciprocal_BBH (taxon_1 INT, taxon_2 INT, seqfeature_id_1 INT, seqfeature_id_2 INT,' \
           ' blast_evalue_a_vs_b FLOAT, blast_evalue_b_vs_a FLOAT,' \
           ' blast_score_a_vs_b FLOAT, blast_score_b_vs_a FLOAT, blast_identity_a_vs_b FLOAT, blast_identity_b_vs_a FLOAT, ' \
           ' mean_blast_identity FLOAT, msa_identity FLOAT, orthogroup_1 varchar(400), orthogroup_2 varchar(400))' % biodb
@@ -147,25 +147,25 @@ def get_reciproval_BBH_table(biodb, locus2taxon2best_hit_id, sqlite3=False):
     server.adaptor.execute(sql,)
     server.commit()
 
-    sql = 'select locus_tag, taxon_id from annotation.seqfeature_id2locus_%s' % biodb
+    sql = 'select locus_tag, taxon_id from annotation_seqfeature_id2locus' % biodb
 
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, orthogroup from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, orthogroup from orthology_detail' % biodb
 
     try:
         locus_tag2orthogroup = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     except:
         locus_tag2orthogroup = False
-    sql = 'select locus_tag, seqfeature_id from annotation.seqfeature_id2locus_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus' % biodb
 
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     if not sqlite3:
-        sql = 'select seqfeature_id,char_length(translation) from annotation.seqfeature_id2CDS_annotation_%s' % biodb
+        sql = 'select seqfeature_id,char_length(translation) from annotation_seqfeature_id2CDS_annotation' % biodb
     else:
         # sqlite use LENGTH to return the number of characters (return the size in bite in MySQL)
-        sql = 'select seqfeature_id,LENGTH(translation) from annotation.seqfeature_id2CDS_annotation_%s' % biodb
+        sql = 'select seqfeature_id,LENGTH(translation) from annotation_seqfeature_id2CDS_annotation' % biodb
 
     seqfeature_id2sequence_length = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -240,13 +240,11 @@ def get_reciproval_BBH_table(biodb, locus2taxon2best_hit_id, sqlite3=False):
                     if group_1 != group_2:
                         msa_identity = "NULL"
                     else:
-                        sql = 'select identity from orth_%s.%s where locus_a in ("%s", "%s") ' \
-                                ' and locus_b in ("%s","%s") and locus_a!=locus_b;' % (biodb,
-                                                                                        group_1,
-                                                                                        locus_1,
-                                                                                        locus_2,
-                                                                                        locus_1,
-                                                                                        locus_2)
+                        sql = 'select identity from orthology_identity where locus_a in ("%s", "%s") ' \
+                                ' and locus_b in ("%s","%s") and locus_a!=locus_b;' % (locus_1,
+                                                                                       locus_2,
+                                                                                       locus_1,
+                                                                                       locus_2)
 
                         msa_identity = server.adaptor.execute_and_fetchall(sql,)[0][0]
                 else:
@@ -254,7 +252,7 @@ def get_reciproval_BBH_table(biodb, locus2taxon2best_hit_id, sqlite3=False):
                     group_1 = '-'
                     group_2 = '-'
 
-                sql = 'insert into comparative_tables.reciprocal_BBH_%s values (%s,%s,%s,%s,%s,%s,%s,%s' \
+                sql = 'insert into comparative_tables_reciprocal_BBH values (%s,%s,%s,%s,%s,%s,%s,%s' \
                         ',%s,%s,%s,%s,"%s","%s")' % (biodb,
                                                 taxon_1,
                                                 taxon_2,
@@ -283,9 +281,9 @@ def get_reciproval_BBH_table(biodb, locus2taxon2best_hit_id, sqlite3=False):
             #    print sql
             #    continue
     server.commit()
-    sql2 = 'CREATE INDEX taxid1 ON comparative_tables.reciprocal_BBH_%s (taxon_1);' % (biodb, biodb)
-    sql3 = 'CREATE INDEX taxid2 ON comparative_tables.reciprocal_BBH_%s (taxon_2);' % (biodb, biodb)
-    sql4 = 'CREATE INDEX sfid1 ON comparative_tables.reciprocal_BBH_%s (seqfeature_id_1);' % (biodb, biodb)
+    sql2 = 'CREATE INDEX taxid1 ON comparative_tables_reciprocal_BBH (taxon_1);' % (biodb, biodb)
+    sql3 = 'CREATE INDEX taxid2 ON comparative_tables_reciprocal_BBH (taxon_2);' % (biodb, biodb)
+    sql4 = 'CREATE INDEX sfid1 ON comparative_tables_reciprocal_BBH (seqfeature_id_1);' % (biodb, biodb)
     sql5 = 'CREATE INDEX sfid2 ON reciprocal_BBH_%s (seqfeature_id_2);' % (biodb, biodb)
     server.adaptor.execute(sql2,)
     server.adaptor.execute(sql3,)
@@ -307,7 +305,7 @@ def median_RBBH2species(biodb):
                 ' where t1.name="%s" and t2.description not like "%%%%plasmid%%%%"' % biodb
     taxon_id_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql_taxon,)]
 
-    sql2 = 'select taxon_1,taxon_2,median_identity from comparative_tables.reciprocal_BBH_average_identity_%s;' % biodb
+    sql2 = 'select taxon_1,taxon_2,median_identity from comparative_tables_reciprocal_BBH_average_identity;' % biodb
 
     taxon2taxon2identity = {}
     for row in server.adaptor.execute_and_fetchall(sql2,):
@@ -351,7 +349,7 @@ def seqfeature_id2n_species_chlamydiae_only(biodb, chlamydiae_taxon_list):
 
     server.adaptor.execute(sql0,)
 
-    sql1 ='select locus_tag, orthogroup from orthology_detail_%s' % biodb
+    sql1 ='select locus_tag, orthogroup from orthology_detail' % biodb
 
     orthogroup2locus_list = {}
     for row in server.adaptor.execute_and_fetchall(sql1,):
@@ -360,14 +358,14 @@ def seqfeature_id2n_species_chlamydiae_only(biodb, chlamydiae_taxon_list):
         else:
             orthogroup2locus_list[row[1]].append(row[0])
 
-    sql2 = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql2 = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
 
     sql3 = 'select taxon_id, species_id from species_%s' % biodb
 
     taxon_id2species_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql3,))
 
-    sql4 = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql4 = 'select locus_tag, taxon_id from orthology_detail' % biodb
 
     locus2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql4,))
 
@@ -392,11 +390,11 @@ def seqfeature_id2n_species(biodb):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql0 = 'create table if not exists custom_tables.seqfeature_id2n_species_%s (seqfeature_id INT primary KEY, n_species INT, INDEX n_species(n_species))' % biodb
+    sql0 = 'create table if not exists custom_tables_seqfeature_id2n_species (seqfeature_id INT primary KEY, n_species INT, INDEX n_species(n_species))' % biodb
 
     server.adaptor.execute(sql0,)
 
-    sql1 ='select locus_tag, orthogroup from orthology_detail_%s' % biodb
+    sql1 ='select locus_tag, orthogroup from orthology_detail' % biodb
 
     orthogroup2locus_list = {}
     for row in server.adaptor.execute_and_fetchall(sql1,):
@@ -404,14 +402,14 @@ def seqfeature_id2n_species(biodb):
             orthogroup2locus_list[row[1]] = [row[0]]
         else:
             orthogroup2locus_list[row[1]].append(row[0])
-    sql2 = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql2 = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
 
     sql3 = 'select taxon_id, species_id from species_%s' % biodb
 
     taxon_id2species_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql3,))
 
-    sql4 = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql4 = 'select locus_tag, taxon_id from orthology_detail' % biodb
 
     locus2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql4,))
 
@@ -420,7 +418,7 @@ def seqfeature_id2n_species(biodb):
         print (group, 'n species:', len(species))
         for one_locus in orthogroup2locus_list[group]:
             seqfeature_id = locus_tag2seqfeature_id[one_locus]
-            sql = 'insert into custom_tables.seqfeature_id2n_species_%s values (%s, %s)' % (biodb, seqfeature_id, len(species))
+            sql = 'insert into custom_tables_seqfeature_id2n_species values (%s, %s)' % (biodb, seqfeature_id, len(species))
             server.adaptor.execute(sql,)
         server.commit()
 

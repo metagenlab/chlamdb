@@ -1,30 +1,25 @@
 #!/usr/bin/python
 
 def orthogroup2blast_hits(biodb,
-                            orthogroup,
-                            max_n_hits=10,
-                            exclude_phylum=["Chlamydiae", 'Verrucomicrobia', 'Planctomycetes'],
-                            mysql_host="localhost",
-                            mysql_user="root",
-                            mysql_pwd="baba",
-                            mysql_db="blastnr",
-                            database='blast_swissprot'):
+                          orthogroup,
+                          max_n_hits=10,
+                          exclude_phylum=["Chlamydiae", 'Verrucomicrobia', 'Planctomycetes'],
+                          database='blast_swissprot'):
 
     # get max n hits for each homolog of <orthogroup> from  other phyla
     # remove redundancy
     # return fasta file
-    import MySQLdb
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
+    from chlamdb.biosqldb import manipulate_biosqldb
+    
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     exclude_filter = '"' + '","'.join(exclude_phylum) + '"'
 
 
-    sql = 'select t1.locus_tag,subject_accession from biosqldb.orthology_detail_%s t1 ' \
-              ' inner join custom_tables.locus2seqfeature_id_%s t2 ' \
+    sql = 'select t1.locus_tag,subject_accession from orthology_detail t1 ' \
+              ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
               ' inner join %s_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
               ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
@@ -111,7 +106,7 @@ def orthogroup2locus_and_sequences(biodb,orthogroup):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, translation from orthology_detail_%s where orthogroup="%s"' % (biodb, orthogroup)
+    sql = 'select locus_tag, translation from orthology_detail where orthogroup="%s"' % (biodb, orthogroup)
 
     data = server.adaptor.execute_and_fetchall(sql,)
 
@@ -127,8 +122,7 @@ def orthogroup2alignment_closest(orthogroup,
                                  swissprot=True,
                                  refseq=True):
     from promer2circos import chunks
-    import os
-    sqlpsw = os.environ['SQLPSW']
+
     if swissprot:
         print ('getting swissprot best hits...')
         # get uniprot record of the <max_n_hits_uniprot> best hits of each <orthogroup> locus
@@ -136,8 +130,7 @@ def orthogroup2alignment_closest(orthogroup,
                                                              orthogroup,
                                                              max_n_hits=max_n_hits_uniprot,
                                                              exclude_phylum=exclude_phylum,
-                                                             database='blast_swissprot',
-                                                             mysql_pwd=sqlpsw)
+                                                             database='blast_swissprot')
         if len(locus2uniprot_accession_list) == 0:
             uniprot_sequence_records = []
             swissprot = False
@@ -153,11 +146,10 @@ def orthogroup2alignment_closest(orthogroup,
         print ('getting refseq best hits...')
         # get refseq record of the <max_n_hits_refseq> best hits of each <orthogroup> locus
         locus2refseq_accession_list = orthogroup2blast_hits(biodb,
-                                                               orthogroup,
-                                                               max_n_hits=max_n_hits_refseq,
-                                                               exclude_phylum=exclude_phylum,
-                                                               mysql_pwd=sqlpsw,
-                                                               database='blastnr')
+                                                            orthogroup,
+                                                            max_n_hits=max_n_hits_refseq,
+                                                            exclude_phylum=exclude_phylum,
+                                                            database='blastnr')
         if len(locus2refseq_accession_list) == 0:
             refseq_sequence_records = []
             refseq = False
@@ -203,22 +195,14 @@ def get_spaced_colors(n):
 
 def plot_tree(ete3_tree,
               orthogroup,
-              biodb,
-              mysql_host="localhost",
-              mysql_user="root",
-              mysql_pwd="baba",
-              mysql_db="blastnr"):
+              biodb):
 
-    import MySQLdb
-    from chlamdb.biosqldb import manipulate_biosqldb
     from ete3 import Tree, TreeStyle, faces, AttrFace
-
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                           user=mysql_user, # your username
-                           passwd=mysql_pwd, # your password
-                           db=mysql_db) # name of the data base
-
-    cursor = conn.cursor()
+    from chlamdb.biosqldb import manipulate_biosqldb
+    
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     locus_list = [lf.name for lf in ete3_tree.iter_leaves()]
 
@@ -228,8 +212,8 @@ def plot_tree(ete3_tree,
     sql1 = 'select subject_accession,subject_scientific_name,t2.phylum from blast_swissprot_%s t1 ' \
           ' inner join blastnr_taxonomy as t2 on t1.subject_taxid=t2.taxon_id where subject_accession in (%s);' % (biodb,
                                                                                                                    filter)
-    sql1 = 'select subject_accession,subject_scientific_name,t4.phylum from biosqldb.orthology_detail_%s t1 ' \
-              ' inner join custom_tables.locus2seqfeature_id_%s t2 ' \
+    sql1 = 'select subject_accession,subject_scientific_name,t4.phylum from orthology_detail t1 ' \
+              ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
               ' inner join blast_swissprot_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
               ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
@@ -240,8 +224,8 @@ def plot_tree(ete3_tree,
     print ('get refseq taxonomy')
     cursor.execute(sql1,)
     accession2name_and_phylum = manipulate_biosqldb.to_dict(cursor.fetchall())
-    sql2 = 'select subject_accession,subject_scientific_name,t4.phylum from biosqldb.orthology_detail_%s t1 ' \
-              ' inner join custom_tables.locus2seqfeature_id_%s t2 ' \
+    sql2 = 'select subject_accession,subject_scientific_name,t4.phylum from orthology_detail t1 ' \
+              ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
               ' inner join blastnr_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
               ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
@@ -257,7 +241,7 @@ def plot_tree(ete3_tree,
     print ('plotting tree')
     phylum_list = list(set([accession2name_and_phylum[i][1] for i in accession2name_and_phylum.keys()]))
 
-    sql = 'select locus_tag, organism from biosqldb.orthology_detail_%s' % biodb
+    sql = 'select locus_tag, organism from orthology_detail' % biodb
     cursor.execute(sql,)
     locus2organism = manipulate_biosqldb.to_dict(cursor.fetchall())
 
@@ -381,22 +365,22 @@ if __name__ == '__main__':
         if alignment:
             t = aafasta2phylogeny("%s_swiss_homologs.faa" % grp)
 
-            tree, ts = plot_tree(t, grp,"chlamydia_04_16", mysql_pwd=sqlpsw)
+            tree, ts = plot_tree(t, grp,"chlamydia_04_16")
             out_name = "%s.svg" % grp
             tree.render(out_name, tree_style=ts)
     else:
         server, db = manipulate_biosqldb.load_db(args.biodb)
-        sql = 'select orthogroup, count(*) as n from orthology_detail_%s group by orthogroup' % args.biodb
+        sql = 'select orthogroup, count(*) as n from orthology_detail group by orthogroup' % args.biodb
 
         print ('gettig orthogroup2n_hits refseq')
         orthgroup2orthogroup_size = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
         filter = '"' + '","'.join(exclude) + '"'
         sql2 = 'select orthogroup, count(*) from ' \
-               ' (select locus_tag, count(*) as n from custom_tables.locus2seqfeature_id_%s t1 ' \
-               ' inner join blastnr.blastnr_%s as t2 on t1.seqfeature_id=t2.seqfeature_id ' \
-               ' inner join blastnr.blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
+               ' (select locus_tag, count(*) as n from custom_tables_locus2seqfeature_id t1 ' \
+               ' inner join blastnr_blastnr as t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+               ' inner join blastnr_blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
                ' where t3.phylum not in (%s) group by t1.seqfeature_id) A ' \
-               ' inner join biosqldb.orthology_detail_%s B on A.locus_tag=B.locus_tag ' \
+               ' inner join orthology_detail B on A.locus_tag=B.locus_tag ' \
                ' group by orthogroup;' % (args.biodb,
                                           args.biodb,
                                           filter,
@@ -405,11 +389,11 @@ if __name__ == '__main__':
         group2n_blast_refseq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
         print ('gettig orthogroup2n_hits swissprot')
         sql3 = 'select orthogroup, count(*) from ' \
-               ' (select locus_tag, count(*) as n from custom_tables.locus2seqfeature_id_%s t1 ' \
-               ' inner join blastnr.blast_swissprot_%s as t2 on t1.seqfeature_id=t2.seqfeature_id ' \
-               ' inner join blastnr.blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
+               ' (select locus_tag, count(*) as n from custom_tables_locus2seqfeature_id t1 ' \
+               ' inner join blastnr_blast_swissprot as t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+               ' inner join blastnr_blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
                ' where t3.phylum not in (%s) group by t1.seqfeature_id) A ' \
-               ' inner join biosqldb.orthology_detail_%s B on A.locus_tag=B.locus_tag ' \
+               ' inner join orthology_detail B on A.locus_tag=B.locus_tag ' \
                ' group by orthogroup;' % (args.biodb,
                                           args.biodb,
                                           filter,

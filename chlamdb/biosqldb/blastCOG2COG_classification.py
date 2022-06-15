@@ -69,20 +69,12 @@ def blast2COG(blast_file, coverage_cutoff=50, identity_cutoff=20):
 
 
 def gi2COG(*protein_gi):
-    import MySQLdb
+    from chlamdb.biosqldb import manipulate_biosqldb
     import os
 
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
 
-
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
 
 
 
@@ -105,16 +97,10 @@ def load_locus2cog_into_sqldb(input_blast_files, biodb):
     import MySQLdb
     import os
     from chlamdb.biosqldb import manipulate_biosqldb
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
 
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
     #TODO: add bitscore
     # 0 qgi
     # 1 qacc ok
@@ -138,7 +124,7 @@ def load_locus2cog_into_sqldb(input_blast_files, biodb):
     # 19 stitle
 
     # locus_tag2gi_hit_
-    sql = 'create table COG.seqfeature_id2best_COG_hit_%s (bioentry_id INT, ' \
+    sql = 'create table COG_seqfeature_id2best_COG_hit (bioentry_id INT, ' \
           ' seqfeature_id INT, ' \
           ' hit_cog_id INT,' \
           ' hit_protein_id INT, ' \
@@ -154,12 +140,12 @@ def load_locus2cog_into_sqldb(input_blast_files, biodb):
 
     cursor.execute(sql)
     conn.commit()
-    sql = 'select locus_tag,bioentry_id from biosqldb.orthology_detail_%s t1 ' \
+    sql = 'select locus_tag,bioentry_id from orthology_detail t1 ' \
           ' inner join biosqldb.bioentry as t2 on t1.accession=t2.accession ' \
           ' inner join biosqldb.biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
           ' where t3.name="%s"' % (biodb, biodb)
-    sql2 = 'select protein_id, locus_tag from orthology_detail_%s' % biodb
-    sql3 = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql2 = 'select protein_id, locus_tag from orthology_detail' % biodb
+    sql3 = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     sql4 = 'select protein_id,COG_id from COG.cog_2014'
     server, db = manipulate_biosqldb.load_db(biodb)
     locus2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql))
@@ -206,15 +192,11 @@ def locus2function(input_blast_files, display_print=False,):
 
     import MySQLdb
     import os
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
+    from chlamdb.biosqldb import manipulate_biosqldb
+
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     locus2function_dico = {}
     for input_blast in input_blast_files:

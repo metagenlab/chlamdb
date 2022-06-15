@@ -29,15 +29,15 @@ def import_rnaseq(rnaseq_table, biodb, taxon_id):
     # 20 extracellular_2
     # 21 extracellular_3
 
-    sql = 'select old_locus_tag, operon_id from custom_tables.DOOR2_operons_%s' % biodb
+    sql = 'select old_locus_tag, operon_id from custom_tables_DOOR2_operons' % biodb
 
     old_locus2operon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
 
     locus2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'create table IF NOT EXISTS rnaseq.%s_%s (seqfeature_id INT, ' \
+    sql = 'create table IF NOT EXISTS rnaseq_%s (seqfeature_id INT, ' \
           ' old_locus_tag varchar(400), ' \
           ' operon_id INT,' \
           ' gene_name TEXT,' \
@@ -121,7 +121,7 @@ def import_rnaseq(rnaseq_table, biodb, taxon_id):
                 extracellular_3 = 'NULL'
 
 
-            sql = 'insert into rnaseq.%s_%s values (%s, "%s",%s, "%s", "%s", %s, "%s", "%s", "%s", %s, %s' \
+            sql = 'insert into rnaseq_%s values (%s, "%s",%s, "%s", "%s", %s, "%s", "%s", "%s", %s, %s' \
                   ' , %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);' % (biodb,
                                                                  taxon_id,
                                                                  seqfeature_id,

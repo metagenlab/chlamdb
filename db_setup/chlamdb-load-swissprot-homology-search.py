@@ -139,10 +139,6 @@ def deleted_uniprot2new_identical_sequence(accession_list):
 def load_blastswissprot_file_into_db(locus_tag2taxon_id,
                                 locus_tag2seqfeature_id,
                                 locus_tag2bioentry_id,
-                                mysql_host,
-                                mysql_user,
-                                mysql_pwd,
-                                mysql_db,
                                 input_blast_files,
                                 biodb,
                                 hash2locus_list):
@@ -152,11 +148,10 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
     from chlamdb.biosqldb import manipulate_biosqldb
     import time
 
-    conn = MySQLdb.connect(host=mysql_host,
-                           user=mysql_user,
-                           passwd=mysql_pwd,
-                           db=mysql_db)
-    cursor = conn.cursor()
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
+
 
     n_file = 0
     sp_accessions = []
@@ -201,19 +196,19 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
     all_taxid = [str(accession2annotation[i][0]) for i in accession2annotation]
 
     print ("getting taxid2superkingdom")
-    sql = 'select taxon_id,superkingdom from blastnr.blastnr_taxonomy'
+    sql = 'select taxon_id,superkingdom from blastnr_blastnr_taxonomy'
     cursor.execute(sql,)
     taxon_id2superkingdom = manipulate_biosqldb.to_dict(cursor.fetchall())
 
     print ("getting locus2protein_length")
-    sql = 'select locus_tag,char_length(translation) from biosqldb.orthology_detail_%s' % biodb
+    sql = 'select locus_tag,char_length(translation) from orthology_detail' % biodb
     cursor.execute(sql,)
     locus_tag2protein_length = manipulate_biosqldb.to_dict(cursor.fetchall())
 
     print ('loading blast results into database...')
 
 
-    sql_template = 'insert into blast_swissprot_%s ' % biodb
+    sql_template = 'insert into blastnr_blast_swissprot'
     sql_template += 'values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);'
 
     deleted_accession2annotation = {}
@@ -349,14 +344,13 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
         conn.commit()
 
 
-def create_sql_blast_swissprot_tables(db_name, mysql_host, mysql_user, mysql_pwd, mysql_db='blastnr'):
-    import MySQLdb
+def create_sql_blast_swissprot_tables(db_name):
+    
+    from chlamdb.biosqldb import manipulate_biosqldb
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                                user=mysql_user, # your username
-                                passwd=mysql_pwd, # your password
-                                db=mysql_db) # name of the data base
-    cursor = conn.cursor()
 
     '''
     1 query_taxon_id int
@@ -382,7 +376,7 @@ def create_sql_blast_swissprot_tables(db_name, mysql_host, mysql_user, mysql_pwd
     21 annot score
     '''
 
-    sql_plast = 'CREATE TABLE IF NOT EXISTS blast_swissprot_%s (query_taxon_id INT,' \
+    sql_plast = 'CREATE TABLE IF NOT EXISTS blastnr_blast_swissprot_%s (query_taxon_id INT,' \
                 ' query_bioentry_id INT,' \
                 ' seqfeature_id INT,' \
                 ' hit_number int,' \
@@ -422,39 +416,33 @@ def create_sql_blast_swissprot_tables(db_name, mysql_host, mysql_user, mysql_pwd
 def blastswiss2biosql( locus_tag2seqfeature_id,
                     db_name,
                     n_procs,
-                    mysql_host,
-                    mysql_user,
-                    mysql_pwd,
-                    mysql_db,
                     hash2locus_list,
                     *input_blast_files):
 
     import numpy
     from multiprocessing import Process
+    from chlamdb.biosqldb import manipulate_biosqldb
+    server, db = manipulate_biosqldb.load_db(db_name)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
-    create_sql_blast_swissprot_tables(db_name,
-                                      mysql_host,
-                                      mysql_user,
-                                      mysql_pwd,mysql_db)
+
+    create_sql_blast_swissprot_tables(db_name)
 
 
     print ('get locus2taxon_id')
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % db_name
+    sql = 'select locus_tag, taxon_id from orthology_detail' % db_name
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     print ('get locus2bioentry')
     sql2 = 'select locus_tag,bioentry_id from biodatabase t1 ' \
            ' inner join bioentry as t2 on t1.biodatabase_id=t2.biodatabase_id' \
-           ' inner join orthology_detail_%s t3 on t2.accession=t3.accession where t1.name="%s"' % (db_name,db_name)
+           ' inner join orthology_detail t3 on t2.accession=t3.accession where t1.name="%s"' % (db_name,db_name)
 
     locus_tag2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
 
     load_blastswissprot_file_into_db(locus_tag2taxon_id,
                             locus_tag2seqfeature_id,
                             locus_tag2bioentry_id,
-                            mysql_host,
-                            mysql_user,
-                            mysql_pwd,
-                            mysql_db,
                             input_blast_files,
                             biodb,
                             hash2locus_list)
@@ -489,7 +477,7 @@ if __name__ == '__main__':
     mysql_user = 'root'
 
     mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'blastnr'
+    mysql_db = args.mysql_database
 
     biodb = args.mysql_database
 
@@ -508,9 +496,5 @@ if __name__ == '__main__':
         blastswiss2biosql(locus_tag2seqfeature_id,
                         biodb,
                         args.n_procs,
-                        mysql_host,
-                        mysql_user,
-                        mysql_pwd,
-                        mysql_db,
                         hash2locus_list,
                         *args.input_blast)

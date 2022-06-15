@@ -26,7 +26,7 @@ def get_multiple_set_profiles(biodb,
           ' inner join blast.blast_sets_entry t2 on t1.set_id=t2.set_id ' \
           ' inner join blast.blast_hits_annotated_genome_%s t3 on t2.seq_id=t3.seq_id ' \
           ' inner join blast.blast_db t4 on t2.seq_id=t4.seq_id ' \
-          ' inner join custom_tables.locus2seqfeature_id_%s t5 on t3.seqfeature_id=t5.seqfeature_id' \
+          ' inner join custom_tables_locus2seqfeature_id t5 on t3.seqfeature_id=t5.seqfeature_id' \
           ' where t1.name in (%s) and bitscore>=%s and query_coverage>=%s and hit_coverage>=%s order by bitscore;' % (column,
                                                                             biodb,
                                                                             biodb,
@@ -138,8 +138,8 @@ def get_set_data(biodb,
     data = server.adaptor.execute_and_fetchall(sql,)
 
     if frequency:
-        sql = 'select taxon_id,count(*) as n from COG.locus_tag2gi_hit_%s t1 ' \
-              ' inner join COG.cog_names_2014 t2 on t1.COG_id=t2.COG_id ' \
+        sql = 'select taxon_id,count(*) as n from COG_locus_tag2gi_hit t1 ' \
+              ' inner join COG_cog_names_2014 t2 on t1.COG_id=t2.COG_id ' \
               ' inner join biosqldb.bioentry as t3 on t1.accession=t3.accession ' \
               ' where biodatabase_id=%s group by taxon_id;' % (biodb, db_id)
         taxon_id2count = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))

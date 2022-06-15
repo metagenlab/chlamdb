@@ -225,15 +225,12 @@ def plot_multiple_regions_crosslink(target_protein_list,
     cmap = cm.Blues
     m = cm.ScalarMappable(norm=norm, cmap=cmap)
 
+    from chlamdb.biosqldb import manipulate_biosqldb
 
+    server, db = manipulate_biosqldb.load_db(biodb_name)
 
-    conn = MySQLdb.connect(host="127.0.0.1", # your host, usually localhost
-                                user="root", # your username
-                                passwd=sqlpsw, # your password
-                                db="orth_%s" % biodb_name) # name of the data base
-    cursor = conn.cursor()
-
-
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     gd_diagram = GenomeDiagram.Diagram("geomic_region")
     feature_sets = []
@@ -244,8 +241,6 @@ def plot_multiple_regions_crosslink(target_protein_list,
 
     record_length = [len(record) for record in region_record_list]
 
-
-
     if flip_record_based_on_first:
         region_record_list_flip = [region_record_list[0]]
         region_record_list_flip[0].name = region_record_list_flip[0].description
@@ -255,7 +250,6 @@ def plot_multiple_regions_crosslink(target_protein_list,
             features_X = region_record_list[x].features
             features_Y = region_record_list[x+1].features
             for feature_1 in features_X:
-
 
                 if feature_1.type != "CDS":
                     continue
@@ -308,14 +302,14 @@ def plot_multiple_regions_crosslink(target_protein_list,
         set_X = feature_sets[x]
         set_Y = feature_sets[x+1]
         for feature_1 in features_X:
-
-
+           
             if feature_1.type != "CDS":
                 continue
 
             for feature_2 in features_Y:
                 if feature_2.type != "CDS":
                     continue
+
                 try:
 
                     group1 = feature_1.qualifiers["orthogroup"][0]
@@ -329,14 +323,15 @@ def plot_multiple_regions_crosslink(target_protein_list,
                     border = colors.lightgrey
                     color = colors.lightgrey
                     try:
-                        identity = orthogroup_identity_db.check_identity(cursor, feature_1.qualifiers["orthogroup"][0],
-                                                                     feature_1.qualifiers["locus_tag"][0],
-                                                                     feature_2.qualifiers["locus_tag"][0])
+                        identity = orthogroup_identity_db.check_identity(cursor, 
+                                                                        feature_1.qualifiers["orthogroup"][0],
+                                                                        feature_1.qualifiers["locus_tag"][0],
+                                                                        feature_2.qualifiers["locus_tag"][0])
                     except:
                         identity = 0
                         print ("problem with identity table %s and locus %s %s" % (group1,
                                                                                   feature_1.qualifiers["locus_tag"][0],
-                                                                                  feature_1.qualifiers["locus_tag"][0]))
+                                                                                  feature_2.qualifiers["locus_tag"][0]))
 
 
                     color2 = colors.HexColor(rgb2hex(m.to_rgba(float(identity))))
@@ -585,12 +580,20 @@ def chunks(l, n):
 
 out_q = Queue()
 
-def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, region_size_bp, cache, color_locus_list = [], color_orthogroup_list = []):
+def proteins_id2cossplot(server, 
+                         biodb, 
+                         biodb_name, 
+                         locus_tag_list, 
+                         out_name, 
+                         region_size_bp, 
+                         cache, 
+                         color_locus_list = []):
+    
     plasmid_list = []
     sub_record_list = []
-    print(server, biodb, biodb_name, locus_tag_list, out_name, region_size_bp)
+
     bioentry_id_list, seqfeature_id_list = manipulate_biosqldb.get_bioentry_and_seqfeature_id_from_locus_tag_list(server, locus_tag_list, biodb_name)
-    print(bioentry_id_list, seqfeature_id_list)
+
     #n_cpu = 8
     #n_poc_per_list = math.ceil(len(bioentry_id_list)/float(n_cpu))
     #query_lists = chunks(range(0, len(bioentry_id_list)), int(n_poc_per_list))
@@ -676,7 +679,7 @@ def proteins_id2cossplot(server, biodb, biodb_name, locus_tag_list, out_name, re
 
         #print "seqfeature_id", seqfeature_id
         #print "record OKKKKK"
-        target_feature_start,  target_feature_end, strand = manipulate_biosqldb.seqfeature_id2feature_location(server, seqfeature_id)
+        target_feature_start, target_feature_end, strand = manipulate_biosqldb.seqfeature_id2feature_location(server, seqfeature_id)
         #print "target_feature_start,  target_feature_end strand", target_feature_start,  target_feature_end, strand
         #target = seqfeature_id2seqfeature[seqfeature_id]
         try:

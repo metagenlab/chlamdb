@@ -32,7 +32,7 @@ def extract_interpro_task(biodb,
     from chlamdb.biosqldb import biosql_own_sql_tables
     from chlamdb.views import get_locus_annotations
     
-    server = manipulate_biosqldb.load_db()
+    server, db = manipulate_biosqldb.load_db(biodb)
     
     
     current_task.update_state(state='PROGRESS',
@@ -123,8 +123,8 @@ def extract_interpro_task(biodb,
 
     filter = '"' + '","'.join(match_groups) + '"'
 
-    sql2 = 'select interpro_accession, interpro_description from interpro_%s' \
-    ' where interpro_accession in (%s) group by interpro_accession;' % (biodb, filter)
+    sql2 = 'select interpro_accession, interpro_description from interpro' \
+    ' where interpro_accession in (%s) group by interpro_accession,interpro_description;' % (filter)
 
     raw_data = list(server.adaptor.execute_and_fetchall(sql2,))
 
@@ -150,7 +150,7 @@ def extract_interpro_task(biodb,
 
     columns = 'orthogroup, locus_tag, protein_id, start, stop, ' \
                 'strand, gene, orthogroup_size, n_genomes, TM, SP, product, organism, translation'
-    sql_2 = 'select %s from orthology_detail_%s %s' % (columns, biodb, group_filter)
+    sql_2 = 'select %s from orthology_detail %s' % (columns, group_filter)
 
     raw_data = server.adaptor.execute_and_fetchall(sql_2,)
 
@@ -163,8 +163,8 @@ def extract_interpro_task(biodb,
 
     interpro_list = '"' + '","'.join(match_groups) + '"'
 
-    locus_list_sql = 'select locus_tag from interpro_%s where taxon_id=%s ' \
-                    ' and interpro_accession in (%s)' % (biodb, reference_taxon, interpro_list)
+    locus_list_sql = 'select locus_tag from interpro where taxon_id=%s ' \
+                    ' and interpro_accession in (%s)' % (reference_taxon, interpro_list)
 
     locus_list = [i[0] for i in server.adaptor.execute_and_fetchall(locus_list_sql,)]
 
@@ -186,7 +186,7 @@ def extract_interpro_task(biodb,
 
 
     template = Template('''
-
+            
             {% load static %}
             {% load custom_tags %}
 
@@ -369,7 +369,7 @@ def extract_orthogroup_task(biodb,
     from chlamdb.biosqldb import biosql_own_sql_tables
     from chlamdb.views import get_locus_annotations
     
-    server = manipulate_biosqldb.load_db()
+    server, db = manipulate_biosqldb.load_db(biodb)
     
     
     current_task.update_state(state='PROGRESS',
@@ -496,13 +496,11 @@ def extract_orthogroup_task(biodb,
               'description': "Retrieve reference genome annotation"})
 
         if not accessions:
-            sql = 'select locus_tag from orthology_detail_%s where orthogroup in (%s) and taxon_id=%s' % (biodb,
-                                                                                                        '"' + '","'.join(match_groups) + '"',
+            sql = 'select locus_tag from orthology_detail where orthogroup in (%s) and taxon_id=%s' % ('"' + '","'.join(match_groups) + '"',
                                                                                                         reference_taxon)
         else:
-            sql = 'select locus_tag from orthology_detail_%s where orthogroup in (%s) and accession="%s"' % (biodb,
-                                                                                                        '"' + '","'.join(match_groups) + '"',
-                                                                                                        reference_taxon)
+            sql = 'select locus_tag from orthology_detail where orthogroup in (%s) and accession="%s"' % ('"' + '","'.join(match_groups) + '"',
+                                                                                                          reference_taxon)
         locus_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
 
@@ -779,6 +777,7 @@ def run_circos(reference_taxon, target_taxons):
     from chlamdb.biosqldb import shell_command
     import ete3
     from chlamdb.plots import gbk2circos
+    from tempfile import NamedTemporaryFile
 
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
@@ -810,10 +809,6 @@ def run_circos(reference_taxon, target_taxons):
         else:
             record_list.append(biorecord)
 
-    ref_name = ''
-    for i in reference_accessions:
-        ref_name += i
-    circos_file = "circos/%s.svg" % ref_name
 
     current_task.update_state(state='PROGRESS',
                               meta={'current': 2,
@@ -836,26 +831,25 @@ def run_circos(reference_taxon, target_taxons):
 
     #sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
-    sql_order = 'select A.taxon_1 from (select taxon_1, median_identity from comparative_tables.shared_og_av_id_%s where taxon_2=%s ' \
-                ' union select taxon_2,median_identity from comparative_tables.shared_og_av_id_%s ' \
-                ' where taxon_1=%s order by median_identity DESC) A;' % (biodb, reference_taxon, biodb, reference_taxon)
+    sql_order = 'select A.taxon_1 from (select taxon_1, median_identity from comparative_tables_shared_og_av_id where taxon_2=%s ' \
+                ' union select taxon_2,median_identity from comparative_tables_shared_og_av_id ' \
+                ' where taxon_1=%s order by median_identity DESC) A;' % (reference_taxon,
+                                                                         reference_taxon)
     try:
-        sql_order = 'select taxon_2 from comparative_tables.core_orthogroups_identity_msa_%s where taxon_1=%s order by identity desc;' % (biodb, reference_taxon)
+        sql_order = 'select taxon_2 from comparative_tables_core_orthogroups_identity_msa where taxon_1=%s order by identity desc;' % (reference_taxon)
         ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql_order)]
 
     except:
 
         # median identity
         sql_order = 'select taxon from (select taxon_2 as taxon, median_identity ' \
-                    ' from comparative_tables.shared_og_av_id_%s where taxon_1=%s union ' \
-                    ' select taxon_1, median_identity as taxon from comparative_tables.shared_og_av_id_%s' \
-                    '  where taxon_2=%s) A order by median_identity desc;' % (biodb,
-                                                                              reference_taxon,
-                                                                              biodb,
+                    ' from comparative_tables_shared_og_av_id where taxon_1=%s union ' \
+                    ' select taxon_1, median_identity as taxon from comparative_tables_shared_og_av_id' \
+                    '  where taxon_2=%s) A order by median_identity desc;' % (reference_taxon,
                                                                               reference_taxon)
         '''
         # n shared orthogroups
-        sql_order = 'select taxon_2 from comparative_tables.shared_orthogroups_%s where taxon_1=%s order by n_shared_orthogroups DESC;' % (biodb,
+        sql_order = 'select taxon_2 from comparative_tables_shared_orthogroups where taxon_1=%s order by n_shared_orthogroups DESC;' % (biodb,
                                                                                                                   reference_taxon)
         '''
         ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql_order)]
@@ -875,48 +869,44 @@ def run_circos(reference_taxon, target_taxons):
     ordered_taxons = node_list[reference_index:] + node_list[:reference_index][::-1]
     '''
 
-    highlight_BBH = True
+    # TODO add this option to view
+    highlight_BBH = False
+    
     if highlight_BBH:
           
         sql_phylum = 'select phylum from biodatabase t1 inner join bioentry t2 on t1.biodatabase_id=t2.biodatabase_id ' \
-                     ' inner join taxid2species_%s t3 on t2.taxon_id=t3.taxon_id ' \
-                     ' inner join species_curated_taxonomy_%s t4 on t3.species_id=t4.species_id ' \
-                     ' where t1.name="%s" and t2.taxon_id=%s limit 1; ' % (biodb,
-                                                                           biodb,
-                                                                           biodb, 
+                     ' inner join taxid2species t3 on t2.taxon_id=t3.taxon_id ' \
+                     ' inner join species_curated_taxonomy t4 on t3.species_id=t4.species_id ' \
+                     ' where t1.name="%s" and t2.taxon_id=%s limit 1; ' % (biodb, 
                                                                            reference_taxon)
         reference_phylum = server.adaptor.execute_and_fetchall(sql_phylum,)[0][0]
         
         try:
-            sql = 'select locus_tag from blastnr.blastnr_%s t1 ' \
-              ' inner join biosqldb.bioentry t2 on t1.query_bioentry_id=t2.bioentry_id ' \
-              ' inner join biosqldb.biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
-              ' inner join blastnr.blastnr_taxonomy t4 on t1.subject_taxid=t4.taxon_id ' \
-              ' inner join custom_tables.locus2seqfeature_id_%s t5 ' \
+            sql = 'select locus_tag from blastnr_blastnr t1 ' \
+              ' inner join bioentry t2 on t1.query_bioentry_id=t2.bioentry_id ' \
+              ' inner join biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
+              ' inner join blastnr_blastnr_taxonomy t4 on t1.subject_taxid=t4.taxon_id ' \
+              ' inner join custom_tables_locus2seqfeature_id t5 ' \
               ' on t1.seqfeature_id=t5.seqfeature_id ' \
               ' where t1.hit_number=1 and t3.name="%s" and t4.phylum!="%s" and t1.query_taxon_id=%s;' % (biodb,
-                                                                                                         biodb,
-                                                                                                         biodb,
                                                                                                          reference_phylum,
                                                                                                          reference_taxon)
             BBH_color = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
-            sql2 = 'select locus_tag from custom_tables.locus2seqfeature_id_%s t1 ' \
-                   ' left join blastnr.blastnr_%s t2 on t1.seqfeature_id=t2.seqfeature_id ' \
-                   ' where taxon_id=%s and t2.seqfeature_id is NULL;' % (biodb, biodb, reference_taxon)
+            sql2 = 'select locus_tag from custom_tables_locus2seqfeature_id t1 ' \
+                   ' left join blastnr_blastnr t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+                   ' where taxon_id=%s and t2.seqfeature_id is NULL;' % (reference_taxon)
                    
             no_BBH_hit_color = [i[0] for i in server.adaptor.execute_and_fetchall(sql2,)]
             
             if len(BBH_color) < 20:
-                sql = 'select locus_tag from blastnr.blastnr_%s t1 ' \
-                  ' inner join biosqldb.bioentry t2 on t1.query_bioentry_id=t2.bioentry_id ' \
-                  ' inner join biosqldb.biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
-                  ' inner join blastnr.blastnr_taxonomy t4 on t1.subject_taxid=t4.taxon_id ' \
-                  ' inner join custom_tables.locus2seqfeature_id_%s t5 ' \
+                sql = 'select locus_tag from blastnr_blastnr t1 ' \
+                  ' inner join bioentry t2 on t1.query_bioentry_id=t2.bioentry_id ' \
+                  ' inner join biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
+                  ' inner join blastnr_blastnr_taxonomy t4 on t1.subject_taxid=t4.taxon_id ' \
+                  ' inner join custom_tables_locus2seqfeature_id t5 ' \
                   ' on t1.seqfeature_id=t5.seqfeature_id ' \
                   ' where t1.hit_number=2 and t3.name="%s" and t4.phylum!="%s" and t1.query_taxon_id=%s;' % (biodb,
-                                                                                                             biodb,
-                                                                                                             biodb,
                                                                                                              reference_phylum,
                                                                                                              reference_taxon)
                 BBH_color = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
@@ -935,6 +925,21 @@ def run_circos(reference_taxon, target_taxons):
                                     'percent': 75,
                                     'description': "Plotting with circos..."})
 
+
+    temp_location = os.path.join(settings.BASE_DIR, "assets/circos/")
+    temp_file = NamedTemporaryFile(delete=False, dir=temp_location, suffix=".svg")
+    circos_file = 'circos/' + os.path.basename(temp_file.name)
+    base_file_name = os.path.basename(temp_file.name).split(".svg")[0]
+
+    circos_svg_file = "circos/%s.svg" % base_file_name
+    circos_png_file = "circos/%s.png" % base_file_name
+    original_map_file_svg = settings.BASE_DIR + "/assets/circos/%s.svg" % base_file_name
+    map_file = "circos/%s.html" % base_file_name
+    svg_file = "circos/%s.svg" % base_file_name
+    map_name = base_file_name
+
+    original_map_file = settings.BASE_DIR + "/assets/circos/%s.html" % base_file_name
+
     myplot = circos.CircosAccession2multiplot(server,
                                               db,
                                               biodb,
@@ -945,9 +950,12 @@ def run_circos(reference_taxon, target_taxons):
                                               out_directory=temp_location,
                                               draft_fasta=draft_data,
                                               href="/chlamdb/locusx/",
-                                              ordered_taxons=ordered_taxons)
+                                              ordered_taxons=ordered_taxons,
+                                              outfile_prefix=base_file_name)
 
-    original_map_file = settings.BASE_DIR + "/assets/circos/%s.html" % ref_name
+    
+    
+    
     with open(original_map_file, "r") as f:
         map_string = ''.join([line for line in f.readlines()])
 
@@ -955,11 +963,11 @@ def run_circos(reference_taxon, target_taxons):
                   ' <html>\n' \
                   ' <body>\n' \
                   ' %s\n' \
-                  ' <img src="%s.svg" usemap="#%s">' \
+                  ' <img src="%s" usemap="#%s">' \
                   ' </body>\n' \
-                  ' </html>\n' % (map_string, ref_name, ref_name)
+                  ' </html>\n' % (map_string, os.path.basename(temp_file.name), base_file_name)
 
-    circos_new_file = '/assets/circos/circos_clic.html'
+    circos_new_file = '/assets/circos/circos_clic_%s.html' % base_file_name
 
 
     current_task.update_state(state='PROGRESS',
@@ -971,15 +979,9 @@ def run_circos(reference_taxon, target_taxons):
     with open(settings.BASE_DIR + circos_new_file, "w") as f:
         f.write(circos_html)
 
-    circos_svg_file = "circos/%s.svg" % ref_name
-    circos_png_file = "circos/%s.png" % ref_name
-    original_map_file_svg = settings.BASE_DIR + "/assets/circos/%s.svg" % ref_name
-    map_file = "circos/%s.html" % ref_name
-    svg_file = "circos/%s.svg" % ref_name
-    map_name = ref_name
 
     template = Template('''
-
+            
             {% load static %}
             <div class="row">
               <a download="circos.svg" class="btn" href="{% static circos_svg_file %}"><i class="fa fa-download"></i> Download SVG</a>
@@ -1018,6 +1020,7 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
     from chlamdb.biosqldb import shell_command
     import ete3
     from chlamdb.plots import gbk2circos
+    from tempfile import NamedTemporaryFile
 
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
@@ -1081,15 +1084,16 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
 
     #sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
-    sql_order1 = 'select A.taxon_1 from (select taxon_1,median_identity from comparative_tables.shared_og_av_id_%s where taxon_2=%s ' \
-                ' union select taxon_2,median_identity from comparative_tables.shared_og_av_id_%s ' \
-                ' where taxon_1=%s order by median_identity DESC) A;' % (biodb, reference_taxon, biodb, reference_taxon)
+    sql_order1 = 'select A.taxon_1 from (select taxon_1,median_identity from comparative_tables_shared_og_av_id where taxon_2=%s ' \
+                ' union select taxon_2,median_identity from comparative_tables_shared_og_av_id ' \
+                ' where taxon_1=%s order by median_identity DESC) A;' % (reference_taxon, 
+                                                                         reference_taxon)
     try:
-        sql_order = 'select taxon_2 from comparative_tables.core_orthogroups_identity_msa_%s where taxon_1=%s order by identity desc;' % (biodb, reference_taxon)
+        sql_order = 'select taxon_2 from comparative_tables_core_orthogroups_identity_msa where taxon_1=%s order by identity desc;' % (reference_taxon)
 
         ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql_order)]
     except:
-        sql_order2 = 'select taxon_2 from comparative_tables.shared_og_av_id_%s where taxon_1=%s order by median_identity desc;' % (biodb, reference_taxon)
+        sql_order2 = 'select taxon_2 from comparative_tables_shared_og_av_id where taxon_1=%s order by median_identity desc;' % (reference_taxon)
 
         ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql_order1)]
 
@@ -1099,6 +1103,19 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
                                     'percent': 75,
                                     'description': "Plotting with circos..."})
 
+
+    temp_location = os.path.join(settings.BASE_DIR, "assets/circos/")
+    temp_file = NamedTemporaryFile(delete=False, dir=temp_location, suffix=".svg")
+    
+    circos_file = 'circos/' + os.path.basename(temp_file.name)
+    base_file_name = os.path.basename(temp_file.name).split(".svg")[0]
+    original_map_file = settings.BASE_DIR + "/assets/circos/%s.html" % base_file_name
+    #original_map_file_svg = settings.BASE_DIR + "/assets/circos/%s.svg" % base_file_name
+    #map_file = "circos/%s.html" % base_file_name
+    circos_svg_file = "circos/%s.svg" % base_file_name
+    circos_png_file = "circos/%s.png" % base_file_name
+    #map_name = ref_name
+        
     myplot = circos.CircosAccession2multiplot(server,
                               db,
                               biodb,
@@ -1108,11 +1125,11 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
                               out_directory=temp_location,
                               draft_fasta=draft_data,
                               href="/chlamdb/locusx/",
-                              ordered_taxons = ordered_taxons)
+                              ordered_taxons = ordered_taxons,
+                              outfile_prefix=base_file_name)
 
 
-
-    original_map_file = settings.BASE_DIR + "/assets/circos/%s.html" % ref_name
+    # read original map file generated by circos
     with open(original_map_file, "r") as f:
         map_string = ''.join([line for line in f.readlines()])
 
@@ -1122,23 +1139,15 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
                   ' %s\n' \
                   ' <img src="%s.svg" usemap="#%s">' \
                   ' </body>\n' \
-                  ' </html>\n' % (map_string, ref_name, ref_name)
+                  ' </html>\n' % (map_string, base_file_name, base_file_name)
 
-
-    circos_new_file = '/assets/circos/circos_clic.html'
+    # write a new html file including svg + mapping data
+    circos_new_file = '/assets/circos/_%s.html' % base_file_name
     with open(settings.BASE_DIR + circos_new_file, "w") as f:
         f.write(circos_html)
 
-    #target_map_file = settings.BASE_DIR + "/templates/circos/%s.html" % ref_name
-    original_map_file_svg = settings.BASE_DIR + "/assets/circos/%s.svg" % ref_name
-    #target_map_file_svg = settings.BASE_DIR + "/templates/circos/%s.svg" % ref_name
-    map_file = "circos/%s.html" % ref_name
-    svg_file = "circos/%s.svg" % ref_name
-    #a, b, c = shell_command.shell_command("mv %s %s" % (original_map_file, target_map_file))
-    #a, b, c = shell_command.shell_command("cp %s %s" % (original_map_file_svg, target_map_file_svg))
-    map_name = ref_name
-
     template = Template('''
+            
             {% load static %}
             <div class="row">
               <a download="circos.svg" class="btn" href="{% static circos_svg_file %}"><i class="fa fa-download"></i> Download SVG</a>
@@ -1182,7 +1191,7 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
  
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql2 = 'select orthogroup, taxon_id from orthology_detail_%s where locus_tag = "%s"' % (biodb, target_locus)
+    sql2 = 'select orthogroup, taxon_id from orthology_detail where locus_tag = "%s"' % (target_locus)
 
     reference_orthogroup = server.adaptor.execute_and_fetchall(sql2, )[0]
     reference_taxid = reference_orthogroup[1]
@@ -1199,36 +1208,30 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
         temp_file = NamedTemporaryFile(delete=False, dir=temp_location, suffix=".svg")
         name = 'temp/' + os.path.basename(temp_file.name)
 
-        sql10 = 'select operon_id from custom_tables.locus2seqfeature_id_%s t1 ' \
-                ' inner join custom_tables.DOOR2_operons_%s t2 on t1.seqfeature_id=t2.seqfeature_id' \
-                ' where t1.locus_tag="%s"' % (biodb,
-                                                biodb,
-                                                target_locus)
+        sql10 = 'select operon_id from custom_tables_locus2seqfeature_id t1 ' \
+                ' inner join custom_tables_DOOR2_operons t2 on t1.seqfeature_id=t2.seqfeature_id' \
+                ' where t1.locus_tag="%s"' % (target_locus)
         try:
             operon_id = server.adaptor.execute_and_fetchall(sql10, )[0][0]
-            sqlo = 'select operon_id,gi,locus_tag,old_locus_tag,COG_number,product from custom_tables.DOOR2_operons_%s t1 ' \
-                    ' left join custom_tables.locus2seqfeature_id_%s t2 on t1.seqfeature_id=t2.seqfeature_id ' \
-                    ' where operon_id=%s;' % (biodb, biodb, operon_id)
+            sqlo = 'select operon_id,gi,locus_tag,old_locus_tag,COG_number,product from custom_tables_DOOR2_operons t1 ' \
+                    ' left join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+                    ' where operon_id=%s;' % (operon_id)
+                    
             operon = server.adaptor.execute_and_fetchall(sqlo, )
             operon_locus = [i[2] for i in operon]
-        except IndexError:
+        except:
             try:
                 sqlo = 'select C.locus_tag' \
-                        ' from (select operon_id from custom_tables.locus2seqfeature_id_%s t1 ' \
-                        ' inner join custom_tables.ofs_operons_%s t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+                        ' from (select operon_id from custom_tables_locus2seqfeature_id t1 ' \
+                        ' inner join custom_tables_ofs_operons t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                         ' where t1.locus_tag="%s") A ' \
-                        ' inner join custom_tables.ofs_operons_%s B on A.operon_id=B.operon_id ' \
-                        ' inner join custom_tables.locus2seqfeature_id_%s C on B.seqfeature_id=C.seqfeature_id' % (biodb,
-                                                                                            biodb,
-                                                                                            target_locus,
-                                                                                            biodb,
-                                                                                            biodb)
-
-
-
+                        ' inner join custom_tables_ofs_operons B on A.operon_id=B.operon_id ' \
+                        ' inner join custom_tables_locus2seqfeature_id C on B.seqfeature_id=C.seqfeature_id' % (target_locus)
+                        
                 operon_ofs = server.adaptor.execute_and_fetchall(sqlo, )
                 operon_locus = [i[0] for i in operon_ofs]
-
+            # case when no operon
+            # or no operon table
             except:
                 operon_locus = []
                 operon_ofs = False
@@ -1287,6 +1290,7 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
  
  
     template = Template('''
+            
             {% load static %}
 
 
@@ -1340,13 +1344,28 @@ def basic_tree_task(biodb,
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql_tree = 'select phylogeny from biosqldb_phylogenies.%s where orthogroup="%s"' % (biodb, orthogroup)
-    tree = server.adaptor.execute_and_fetchall(sql_tree,)[0][0]
+    sql_tree = 'select phylogeny from phylogenies where orthogroup="%s"' % (orthogroup)
+    
+    try:
+        tree = server.adaptor.execute_and_fetchall(sql_tree,)[0][0]
+    except IndexError:
+        template = Template('''
+        
+        {% load static %}
+        <div class="panel panel-danger" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
+            <div class="panel-heading" style="width:100%">
+                <h3 class="panel-title">Warning</h3>
+            </div>
+            <p style="margin: 10px 10px 10px 10px">No tree</p>
+        </div>
+        ''')
+        html = template.render(Context(locals()))#render_to_string(template, context=locals())
+        return html
 
-    sql = f'select distinct locus_tag,t4.description from orthology.orthogroup_{biodb} t1 ' \
-          f' inner join orthology.seqfeature_id2orthogroup_{biodb} t2 on t1.orthogroup_id=t2.orthogroup_id ' \
-          f' inner join annotation.seqfeature_id2locus_{biodb} t3 on t2.seqfeature_id=t3.seqfeature_id ' \
-          f' inner join biosqldb.bioentry t4 on t3.bioentry_id=t4.bioentry_id where orthogroup_name="{orthogroup}";'
+    sql = f'select distinct locus_tag,t4.description from orthology_orthogroup t1 ' \
+          f' inner join orthology_seqfeature_id2orthogroup t2 on t1.orthogroup_id=t2.orthogroup_id ' \
+          f' inner join annotation_seqfeature_id2locus t3 on t2.seqfeature_id=t3.seqfeature_id ' \
+          f' inner join bioentry t4 on t3.bioentry_id=t4.bioentry_id where orthogroup_name="{orthogroup}";'
     
     locus2organism = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql, ))
 
@@ -1360,6 +1379,7 @@ def basic_tree_task(biodb,
 
 
     template = Template('''
+            
             {% load static %}
 
             {% if not no_tree %}     
@@ -1426,8 +1446,23 @@ def TM_tree_task(biodb,
         locus2TM_data = ete_motifs.get_TM_data(biodb, orthogroup, aa_alignment=False, signal_peptide=True)
     else:
         locus2TM_data = ete_motifs.get_TM_data(biodb, orthogroup, aa_alignment=False, signal_peptide=True)
-    sql_tree = 'select phylogeny from biosqldb_phylogenies.%s where orthogroup="%s"' % (biodb, orthogroup)
-    tree = server.adaptor.execute_and_fetchall(sql_tree,)[0][0]
+    sql_tree = 'select phylogeny from phylogenies where orthogroup="%s"' % (orthogroup)
+    
+    try:
+        tree = server.adaptor.execute_and_fetchall(sql_tree,)[0][0]
+    except IndexError:
+        template = Template('''
+        
+        {% load static %}
+        <div class="panel panel-danger" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
+            <div class="panel-heading" style="width:100%">
+                <h3 class="panel-title">Warning</h3>
+            </div>
+            <p style="margin: 10px 10px 10px 10px">No tree</p>
+        </div>
+        ''')
+        html = template.render(Context(locals()))#render_to_string(template, context=locals())
+        return html
 
     t, ts, leaf_number = ete_motifs.draw_TM_tree(tree, locus2TM_data)
     path = settings.BASE_DIR + '/assets/temp/TM_tree.svg'
@@ -1439,6 +1474,7 @@ def TM_tree_task(biodb,
 
 
     template = Template('''
+            
             {% load static %}
 
             {% if not no_tree %}    
@@ -1481,7 +1517,7 @@ def TM_tree_task(biodb,
 
 @shared_task
 def pfam_tree_task(biodb, 
-                 orthogroup):
+                   orthogroup):
 
     from chlamdb.phylo_tree_display import ete_motifs
     from tempfile import NamedTemporaryFile
@@ -1497,7 +1533,7 @@ def pfam_tree_task(biodb,
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    #sql_locus2protein_id = 'select locus_tag, protein_id from orthology_detail_%s where orthogroup="%s"' % (biodb, orthogroup)
+    #sql_locus2protein_id = 'select locus_tag, protein_id from orthology_detail where orthogroup="%s"' % (biodb, orthogroup)
 
     #locus2protein_id= manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql_locus2protein_id,))
 
@@ -1525,14 +1561,24 @@ def pfam_tree_task(biodb,
             except:
                 print ("motif", motif)
 
-    sql_tree = 'select phylogeny from biosqldb_phylogenies.%s where orthogroup="%s"' % (biodb, orthogroup)
+    sql_tree = 'select phylogeny from phylogenies where orthogroup="%s"' % (orthogroup)
 
     try:
         tree = server.adaptor.execute_and_fetchall(sql_tree,)[0][0]
     except IndexError:
         no_tree = True
-        return render(request, 'chlamdb/pfam_tree.html', locals())
-
+        template = Template('''
+        
+        {% load static %}
+        <div class="panel panel-danger" style="width:500px ; top: 200px; margin: 10px 10px 10px 10px">
+            <div class="panel-heading" style="width:100%">
+                <h3 class="panel-title">Warning</h3>
+            </div>
+            <p style="margin: 10px 10px 10px 10px">No tree</p>
+        </div>
+        ''')
+        html = template.render(Context(locals()))#render_to_string(template, context=locals())
+        return html
 
     #sql = 'select taxon_id, family from genomes_classification;'
 
@@ -1548,6 +1594,7 @@ def pfam_tree_task(biodb,
 
 
     template = Template('''
+            
             {% load static %}
 
             {% if not no_tree %}
@@ -1631,7 +1678,7 @@ def phylogeny_task(biodb,
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select phylogeny from biosqldb_phylogenies.BBH_%s where orthogroup="%s";' % (biodb, orthogroup)
+    sql = 'select phylogeny from phylogenies_BBH where orthogroup="%s";' % (orthogroup)
 
     ete3_tree = Tree(server.adaptor.execute_and_fetchall(sql,)[0][0])
 
@@ -1646,6 +1693,7 @@ def phylogeny_task(biodb,
 
 
     template = Template('''
+            
             {% load static %}
             {% if not no_tree %}
             <h3>Phylogeny including best RefSeq hits</h3>
@@ -1768,7 +1816,7 @@ def plot_heatmap_task(biodb,
     timestamp = time.strftime("%H%M%S", named_tuple)
     
     template = Template('''
-
+            
             {% load static %}
             {% if not no_tree %}
             <h3>Heatmap</h3>
@@ -1808,9 +1856,9 @@ def KEGG_map_ko_task(biodb,
     server, db = manipulate_biosqldb.load_db(biodb)
 
     sql = 'select pathway_name,pathway_category,description,C.EC, C.ko_accession, D.definition, A.pathway_id from ' \
-            ' (select * from enzyme.kegg_pathway where pathway_name="%s") A inner join enzyme.pathway2ko as B ' \
-            ' on A.pathway_id=B.pathway_id inner join enzyme.ko_annotation as C on B.ko_id=C.ko_id ' \
-            ' inner join enzyme.ko_annotation as D on B.ko_id=D.ko_id;' % (map_name)
+            ' (select * from enzyme_kegg_pathway where pathway_name="%s") A inner join enzyme_pathway2ko as B ' \
+            ' on A.pathway_id=B.pathway_id inner join enzyme_ko_annotation as C on B.ko_id=C.ko_id ' \
+            ' inner join enzyme_ko_annotation as D on B.ko_id=D.ko_id;' % (map_name)
 
     map_data = server.adaptor.execute_and_fetchall(sql,)
     try:
@@ -1839,22 +1887,19 @@ def KEGG_map_ko_task(biodb,
     ko_list = [i[4] for i in map_data]
 
     # fetch ko pylogenetic profiles
-    sql = 'select id from comparative_tables.ko_%s where id in (%s);' % (biodb,
-                                                        '"' + '","'.join(ko_list) + '"')
+    sql = 'select id from comparative_tables_ko where id in (%s);' % ('"' + '","'.join(ko_list) + '"')
 
     ko_list_found_in_db = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
     # get list of all orthogroups with corresponding KO
     sql = 'select distinct aa.ko_accession, bb.orthogroup from ' \
             ' (select C.ko_accession, E.seqfeature_id from   ' \
-            ' (select * from enzyme.kegg_pathway  where pathway_id=%s) A ' \
-            ' inner join enzyme.pathway2ko as B  on A.pathway_id=B.pathway_id  ' \
-            ' inner join enzyme.ko_annotation as C on B.ko_id=C.ko_id  ' \
-            ' inner join enzyme.seqfeature_id2ko_%s E on B.ko_id=E.ko_id ' \
+            ' (select * from enzyme_kegg_pathway  where pathway_id=%s) A ' \
+            ' inner join enzyme_pathway2ko as B  on A.pathway_id=B.pathway_id  ' \
+            ' inner join enzyme_ko_annotation as C on B.ko_id=C.ko_id  ' \
+            ' inner join enzyme_seqfeature_id2ko E on B.ko_id=E.ko_id ' \
             ' group by B.ko_id, E.seqfeature_id) aa ' \
-            ' inner join biosqldb.orthology_detail_%s bb on aa.seqfeature_id=bb.seqfeature_id;' % (pathway_id,
-                                                                                                    biodb,
-                                                                                                    biodb)
+            ' inner join orthology_detail bb on aa.seqfeature_id=bb.seqfeature_id;' % (pathway_id)
 
     orthogroup_data = server.adaptor.execute_and_fetchall(sql,)
     ko2orthogroups = {}
@@ -1901,11 +1946,11 @@ def KEGG_map_ko_task(biodb,
         tree2.render(path2, dpi=800, tree_style=style2)
 
     sql = 'select bb.ko_accession, count(*) from (select C.ko_accession, E.seqfeature_id from  ' \
-            ' (select * from enzyme.kegg_pathway  where pathway_name="%s") A ' \
-            ' inner join enzyme.pathway2ko as B  on A.pathway_id=B.pathway_id ' \
-            ' inner join enzyme.ko_annotation as C on B.ko_id=C.ko_id ' \
-            ' inner join enzyme.seqfeature_id2ko_%s E on B.ko_id=E.ko_id ' \
-            ' group by B.ko_id,seqfeature_id) bb group by ko_accession;' % (map_name, biodb)
+            ' (select * from enzyme_kegg_pathway  where pathway_name="%s") A ' \
+            ' inner join enzyme_pathway2ko as B  on A.pathway_id=B.pathway_id ' \
+            ' inner join enzyme_ko_annotation as C on B.ko_id=C.ko_id ' \
+            ' inner join enzyme_seqfeature_id2ko E on B.ko_id=E.ko_id ' \
+            ' group by B.ko_id,seqfeature_id) bb group by ko_accession;' % (map_name)
 
     ko2freq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -1917,7 +1962,7 @@ def KEGG_map_ko_task(biodb,
     kegg_maps.map2highlighted_map(map_name, ko_list_found_in_db, ko2freq, biodb, path_map_freq+'.pdf')
 
     template = Template('''
-          
+                      
                       {% load static %}
                       {% load custom_tags %}
 
@@ -1962,7 +2007,7 @@ def KEGG_map_ko_task(biodb,
                                   <tbody>
                                   {% for values in map_data%}
                                       <tr>
-                                          {%if not ' ' in values.3 and not '-' in values.3 %}
+                                          {%if not ' ' in values.3 and not '-' in values.3 and not ',' in values.3 %}
                                               <td><a href="{% url 'fam'  values.3 'EC' %}" target="_top">{{values.3}}</a></td>
                                           {% else %}
                                               <td>{{values.3}}</td>
@@ -2095,22 +2140,22 @@ def KEGG_map_ko_organism_task(biodb,
     server, db = manipulate_biosqldb.load_db(biodb)
 
     sql = 'select pathway_name,pathway_category,description,C.EC, C.ko_accession, D.definition, A.pathway_id from ' \
-            ' (select * from enzyme.kegg_pathway where pathway_name="%s") A inner join enzyme.pathway2ko as B ' \
-            ' on A.pathway_id=B.pathway_id inner join enzyme.ko_annotation as C on B.ko_id=C.ko_id ' \
-            ' inner join enzyme.ko_annotation as D on B.ko_id=D.ko_id;' % (map_name)
+            ' (select * from enzyme_kegg_pathway where pathway_name="%s") A inner join enzyme_pathway2ko as B ' \
+            ' on A.pathway_id=B.pathway_id inner join enzyme_ko_annotation as C on B.ko_id=C.ko_id ' \
+            ' inner join enzyme_ko_annotation as D on B.ko_id=D.ko_id;' % (map_name)
 
     map_data = server.adaptor.execute_and_fetchall(sql,)
 
     ko_list = [i[4] for i in map_data]
 
-    sql = 'select id from comparative_tables.ko_%s where id in (%s);' % (biodb,
-                                                        '"' + '","'.join(ko_list) + '"')
+    sql = 'select id from comparative_tables_ko where id in (%s);' % ('"' + '","'.join(ko_list) + '"')
+    
     ko_list_found_in_db = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
     # get list of all orthogroups with corresponding KO
-    sql = 'select distinct ko_id,orthogroup from enzyme.locus2ko_%s as t1 ' \
-            ' where ko_id in (%s);' % (biodb,
-                                        '"' + '","'.join(ko_list_found_in_db) + '"')
+    sql = 'select distinct ko_id,orthogroup from enzyme_locus2ko as t1 ' \
+            ' where ko_id in (%s);' % ( '"' + '","'.join(ko_list_found_in_db) + '"')
+            
     orthogroup_data = server.adaptor.execute_and_fetchall(sql,)
     ko2orthogroups = {}
     orthogroup_list = []
@@ -2152,23 +2197,21 @@ def KEGG_map_ko_organism_task(biodb,
         tree2.render(path2, dpi=800, tree_style=style2)
 
     sql = 'select bb.ko_accession, count(*) from (select C.ko_accession, E.seqfeature_id from  ' \
-            ' (select * from enzyme.kegg_pathway  where pathway_name="%s") A ' \
-            ' inner join enzyme.pathway2ko as B  on A.pathway_id=B.pathway_id ' \
-            ' inner join enzyme.ko_annotation as C on B.ko_id=C.ko_id ' \
-            ' inner join enzyme.seqfeature_id2ko_%s E on B.ko_id=E.ko_id ' \
-            ' group by B.ko_id,seqfeature_id) bb group by ko_accession;' % (map_name, biodb)
+            ' (select * from enzyme_kegg_pathway  where pathway_name="%s") A ' \
+            ' inner join enzyme_pathway2ko as B  on A.pathway_id=B.pathway_id ' \
+            ' inner join enzyme_ko_annotation as C on B.ko_id=C.ko_id ' \
+            ' inner join enzyme_seqfeature_id2ko E on B.ko_id=E.ko_id ' \
+            ' group by B.ko_id,seqfeature_id) bb group by ko_accession;' % (map_name)
 
     ko2freq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select ko_accession from enzyme.seqfeature_id2ko_%s t1 ' \
-            ' inner join enzyme.pathway2ko t2 on t1.ko_id=t2.ko_id ' \
-            ' inner join enzyme.kegg_pathway t3 on t2.pathway_id=t3.pathway_id ' \
-            ' inner join biosqldb.orthology_detail_%s t4 on t1.seqfeature_id=t4.seqfeature_id ' \
-            ' inner join enzyme.ko_annotation t5 on t1.ko_id=t5.ko_id' \
-            ' where taxon_id=%s and pathway_name="%s";' % (biodb,
-                                                            biodb,
-                                                            taxon_id,
-                                                            map_name)
+    sql = 'select ko_accession from enzyme_seqfeature_id2ko t1 ' \
+            ' inner join enzyme_pathway2ko t2 on t1.ko_id=t2.ko_id ' \
+            ' inner join enzyme_kegg_pathway t3 on t2.pathway_id=t3.pathway_id ' \
+            ' inner join orthology_detail t4 on t1.seqfeature_id=t4.seqfeature_id ' \
+            ' inner join enzyme_ko_annotation t5 on t1.ko_id=t5.ko_id' \
+            ' where taxon_id=%s and pathway_name="%s";' % (taxon_id,
+                                                           map_name)
 
     ko_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
     path_map_freq = settings.BASE_DIR + '/assets/temp/KEGG_map_freq_%s' % map_name
@@ -2186,7 +2229,7 @@ def KEGG_map_ko_organism_task(biodb,
 
 
     template = Template('''
-        
+                    
                     {% load static %}
                     {% load custom_tags %}
 
@@ -2231,7 +2274,7 @@ def KEGG_map_ko_organism_task(biodb,
                                 <tbody>
                                 {% for values in map_data%}
                                     <tr>
-                                        {%if not ' ' in values.3 and not '-' in values.3 %}
+                                        {%if not ' ' in values.3 and not '-' in values.3 and not ',' in values.3 %}
                                             <td><a href="{% url 'fam'  values.3 'EC' %}" target="_top">{{values.3}}</a></td>
                                         {% else %}
                                             <td>{{values.3}}</td>

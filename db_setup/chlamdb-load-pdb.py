@@ -2,9 +2,9 @@
 
 
 def retrieve_pdb_data():
-    
+
     import urllib.request
-    
+
     '''
     0 IDCODE, 
     1 HEADER, 
@@ -37,8 +37,8 @@ def retrieve_pdb_data():
         pdb2data[data[0]]["RESOLUTION"] = data[6]
         pdb2data[data[0]]["METHOD"] = data[7]
     return pdb2data
-    
-    
+
+
 def load_pdb_data(blast_output_files,
                   db_name,
                   hash2locus_list):
@@ -48,16 +48,16 @@ def load_pdb_data(blast_output_files,
     print("db conn:", db_name)
     server, db = manipulate_biosqldb.load_db(db_name)
     
-    sql = f'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_{db_name}'
+    sql = f'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id'
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     
-    sql = f'create table if not exists custom_tables.seqfeature_id2pdb_BBH_{db_name} (seqfeature_id INT, pdb_accession varchar(200), header TEXT, compound TEXT, source TEXT, resolution FLOAT, method TEXT, identity FLOAT, score FLOAT, evalue FLOAT)'
+    sql = f'create table if not exists custom_tables_seqfeature_id2pdb_BBH (seqfeature_id INT, pdb_accession varchar(200), header TEXT, compound TEXT, source TEXT, resolution FLOAT, method TEXT, identity FLOAT, score FLOAT, evalue FLOAT)'
     server.adaptor.execute(sql,)
     
-    sql_template = f'insert into custom_tables.seqfeature_id2pdb_BBH_{db_name} values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-    
+    sql_template = f'insert into custom_tables_seqfeature_id2pdb_BBH values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+
     pdb2data = retrieve_pdb_data()
-    
+
     problem_list = []
     
     for blast_file in blast_output_files:
@@ -101,17 +101,17 @@ def load_pdb_data(blast_output_files,
                 
                 for locus in hash2locus_list[query_hash]:
                     server.adaptor.execute(sql_template, (locus_tag2seqfeature_id[locus],
-                                                 hit_accession,
-                                                 header,
-                                                 compound,
-                                                 source,
-                                                 resolution,
-                                                 method,
-                                                 identity,
-                                                 score,
-                                                 e_value))
+                                                          hit_accession,
+                                                          header,
+                                                          compound,
+                                                          source,
+                                                          resolution,
+                                                          method,
+                                                          identity,
+                                                          score,
+                                                          e_value))
                     
-    sql = f'create index sfp on custom_tables.seqfeature_id2pdb_BBH_{db_name}(seqfeature_id)'                 
+    sql = f'create index ctsipsid on custom_tables_seqfeature_id2pdb_BBH (seqfeature_id)'                 
     server.adaptor.execute(sql,)
     server.commit()
     print(len(problem_list), problem_list)
@@ -136,3 +136,5 @@ if __name__ == '__main__':
     load_pdb_data(args.blast_output, 
                     args.db_name,
                     hash2locus_list)
+    
+    manipulate_biosqldb.update_config_table(args.db_name, "PDB_data")

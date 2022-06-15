@@ -84,37 +84,6 @@ def blast2COG(blast_file,
         return locus2data
 
 
-def gi2COG(*protein_gi):
-    import MySQLdb
-    import os
-
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
-
-    conn = MySQLdb.connect(host=mysql_host, # your host, usually localhost
-                           user=mysql_user, # your username
-                           passwd=mysql_pwd, # your password
-                           db=mysql_db) # name of the data base
-    cursor = conn.cursor()
-
-    if len(protein_gi)>1:
-        prot_id_filter='where protein_id in (%s' % protein_gi[0]
-        for i in range(1,len(protein_gi)):
-            prot_id_filter+=',%s' % protein_gi[i]
-        prot_id_filter+=')'
-    else:
-        prot_id_filter = 'where protein_id="%s"' % protein_gi[0]
-
-    sql ='select cog_2014.protein_id,cog_names_2014.COG_id,cog_names_2014.function, cog_names_2014.name ' \
-         ' from cog_2014 inner join cog_names_2014 on cog_2014.COG_id=cog_names_2014.COG_id %s' % prot_id_filter
-
-    cursor.execute(sql)
-
-    return cursor.fetchall()
-
-
 def load_locus2cog_into_sqldb(input_blast_files,
                               biodb,
                               hash2locus_tag_list,
@@ -123,15 +92,9 @@ def load_locus2cog_into_sqldb(input_blast_files,
     import MySQLdb
     import os
     from chlamdb.biosqldb import manipulate_biosqldb
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
-    conn = MySQLdb.connect(host=mysql_host,
-                                user=mysql_user,
-                                passwd=mysql_pwd,
-                                db=mysql_db)
-    cursor = conn.cursor()
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
     '''
     locus2data[locus]["hit_cdd_id"] = hit_cdd_id
@@ -147,7 +110,7 @@ def load_locus2cog_into_sqldb(input_blast_files,
     locus2data[locus]["hit_coverage"] = hit_coverage
     '''
     # locus_tag2gi_hit_
-    sql = 'create table COG.seqfeature_id2best_COG_hit_%s (bioentry_id INT, ' \
+    sql = 'create table COG_seqfeature_id2best_COG_hit (bioentry_id INT, ' \
           ' seqfeature_id INT, ' \
           ' hit_cog_id INT,' \
           ' cdd_id varchar(200), ' \
@@ -159,23 +122,19 @@ def load_locus2cog_into_sqldb(input_blast_files,
           ' hit_coverage FLOAT,' \
           ' identity FLOAT,' \
           ' evalue FLOAT,' \
-          ' bitscore FLOAT,' \
-          ' index seqfeature_id (seqfeature_id), ' \
-          ' index bioentry_id (bioentry_id),' \
-          ' index cdd_id(cdd_id),' \
-          ' index hit_cog_id(hit_cog_id))' % biodb
-
+          ' bitscore FLOAT)'
+    
     cursor.execute(sql)
     conn.commit()
 
-    sql = 'select locus_tag,bioentry_id from biosqldb.orthology_detail_%s t1 ' \
-          ' inner join biosqldb.bioentry as t2 on t1.accession=t2.accession ' \
-          ' inner join biosqldb.biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
-          ' where t3.name="%s"' % (biodb, biodb)
-    sql2 = 'select protein_id, locus_tag from orthology_detail_%s' % biodb
-    sql3 = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
-    sql4 = 'select COG_name,COG_id from COG.cog_names_2014'
-    sql5 = 'select locus_tag,length(translation) from orthology_detail_%s;' % biodb
+    sql = 'select locus_tag,bioentry_id from orthology_detail t1 ' \
+          ' inner join bioentry as t2 on t1.accession=t2.accession ' \
+          ' inner join biodatabase t3 on t2.biodatabase_id=t3.biodatabase_id ' \
+          ' where t3.name="%s"' % (biodb)
+    sql2 = 'select protein_id, locus_tag from orthology_detail'
+    sql3 = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id'
+    sql4 = 'select COG_name,COG_id from COG_cog_names_2014'
+    sql5 = 'select locus_tag,length(translation) from orthology_detail;'
 
     server, db = manipulate_biosqldb.load_db(biodb)
     locus2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql))
@@ -197,7 +156,7 @@ def load_locus2cog_into_sqldb(input_blast_files,
             if locus2data[locus]["cog_id"] not in COG_name2COG_id:
                 print("COG %s not in COG_name2COG_id, probably removed..." % locus2data[locus]["cog_id"])
             else:
-                sql = 'INSERT into seqfeature_id2best_COG_hit_%s (bioentry_id, ' \
+                sql = 'INSERT into COG_seqfeature_id2best_COG_hit (bioentry_id, ' \
                       ' seqfeature_id, ' \
                       ' hit_cog_id,' \
                       ' cdd_id, ' \
@@ -209,22 +168,31 @@ def load_locus2cog_into_sqldb(input_blast_files,
                       ' hit_coverage,' \
                       ' identity,' \
                       ' evalue,' \
-                      ' bitscore) VALUES (%s, %s, %s, "%s", %s, %s, %s, %s, %s, %s, %s, %s, %s)' % (biodb,
-                                                                                     locus2bioentry_id[locus],
-                                                                                     locus_tag2seqfeature_id[locus],
-                                                                                     COG_name2COG_id[locus2data[locus]["cog_id"]],
-                                                                                     locus2data[locus]["cdd_id"],
-                                                                                     locus2data[locus]["query_start"],
-                                                                                     locus2data[locus]["query_end"],
-                                                                                     locus2data[locus]["hit_start"],
-                                                                                     locus2data[locus]["hit_end"],
-                                                                                     locus2data[locus]["query_coverage"],
-                                                                                     locus2data[locus]["hit_coverage"],
-                                                                                     locus2data[locus]["identity"],
-                                                                                     locus2data[locus]["evalue"],
-                                                                                     locus2data[locus]["bitscore"])
+                      ' bitscore) VALUES (%s, %s, %s, "%s", %s, %s, %s, %s, %s, %s, %s, %s, %s)' % (locus2bioentry_id[locus],
+                                                                                                    locus_tag2seqfeature_id[locus],
+                                                                                                    COG_name2COG_id[locus2data[locus]["cog_id"]],
+                                                                                                    locus2data[locus]["cdd_id"],
+                                                                                                    locus2data[locus]["query_start"],
+                                                                                                    locus2data[locus]["query_end"],
+                                                                                                    locus2data[locus]["hit_start"],
+                                                                                                    locus2data[locus]["hit_end"],
+                                                                                                    locus2data[locus]["query_coverage"],
+                                                                                                    locus2data[locus]["hit_coverage"],
+                                                                                                    locus2data[locus]["identity"],
+                                                                                                    locus2data[locus]["evalue"],
+                                                                                                    locus2data[locus]["bitscore"])
 
             cursor.execute(sql)
+    conn.commit()
+    sql_index1 = 'create index csidbchs on COG_seqfeature_id2best_COG_hit(seqfeature_id)'
+    sql_index2 = 'create index csidbchb on COG_seqfeature_id2best_COG_hit(bioentry_id)'
+    sql_index3 = 'create index csidbchc on COG_seqfeature_id2best_COG_hit(cdd_id)'
+    sql_index4 = 'create index csidbchh on COG_seqfeature_id2best_COG_hit(hit_cog_id)'
+
+    cursor.execute(sql_index1)
+    cursor.execute(sql_index2)
+    cursor.execute(sql_index3)
+    cursor.execute(sql_index4)
     conn.commit()
 
 
@@ -235,31 +203,21 @@ def load_locus2cog_into_sqldb_legacy(input_blast_files,
     import MySQLdb
     import os
     from chlamdb.biosqldb import manipulate_biosqldb
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
-    mysql_host = 'localhost'
-    mysql_user = 'root'
-    mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'COG'
-    conn = MySQLdb.connect(host=mysql_host,
-                           user=mysql_user,
-                           passwd=mysql_pwd,
-                           db=mysql_db)
-    cursor = conn.cursor()
-
-    sql = 'create table COG.locus_tag2gi_hit_%s (accession varchar(100), locus_tag varchar(100), gi INT, COG_id varchar(100),' \
-          'index locus_tag (locus_tag), index accession (accession))' % biodb
-
+    sql = 'create table COG_locus_tag2gi_hit (accession varchar(100), locus_tag varchar(100), gi INT, COG_id varchar(100))'
+    
     cursor.execute(sql)
     conn.commit()
-    sql = 'select locus_tag, accession from orthology_detail_%s' % biodb
-    sql3 = 'select protein_id, COG_id from COG.cog_2014;'
-    sql2 = 'select protein_id, locus_tag from orthology_detail_%s' % biodb
-    sql5 = 'select locus_tag,length(translation) from orthology_detail_%s;' % biodb
+    sql = 'select locus_tag, accession from orthology_detail'
+    sql2 = 'select protein_id, locus_tag from orthology_detail'
+    sql5 = 'select locus_tag,length(translation) from orthology_detail;'
 
     server, db = manipulate_biosqldb.load_db(biodb)
     locus2genome_accession = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql))
     protein_id2locus_tag = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2))
-    protein_id2COG = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql3))
     locus_tag2protein_length = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql5))
 
     for input_blast in input_blast_files:
@@ -271,14 +229,18 @@ def load_locus2cog_into_sqldb_legacy(input_blast_files,
                                locus_tag2protein_length)
 
         for locus in locus2data:
-            sql = 'INSERT into locus_tag2gi_hit_%s (accession, locus_tag, gi, COG_id) VALUES ("%s", "%s", %s, "%s")' % (biodb,
-                                                                                                                        locus2genome_accession[locus],
-                                                                                                                        locus,
-                                                                                                                        0, # no gi anymore
-                                                                                                                        locus2data[locus]["cog_id"])
+            sql = 'INSERT into COG_locus_tag2gi_hit (accession, locus_tag, gi, COG_id) VALUES ("%s", "%s", %s, "%s")' % (locus2genome_accession[locus],
+                                                                                                                         locus,
+                                                                                                                         0, # no gi anymore
+                                                                                                                         locus2data[locus]["cog_id"])
             cursor.execute(sql)
     conn.commit()
-
+    sql_index1 = 'create index cltghlt on COG_locus_tag2gi_hit(locus_tag)'
+    sql_index2 = 'create index cltgha on COG_locus_tag2gi_hit(accession)'
+    cursor.execute(sql_index1)
+    cursor.execute(sql_index2)
+    conn.commit()
+    
 
 if __name__ == '__main__':
     import argparse
@@ -291,7 +253,6 @@ if __name__ == '__main__':
     parser.add_argument("-u", '--hash2locus_tag', type=str, help="Tab separated file with correspondance between sequence hashes and locus tags")
     parser.add_argument("-cc", '--cog2cdd', type=str, help="cog2cdd")
     parser.add_argument("-cl", '--cdd2length', type=str, help="cdd2length")
-    parser.add_argument("-l", '--legacy', action='store_true', help="Setup legacy table")
 
     args = parser.parse_args()
 
@@ -315,9 +276,9 @@ if __name__ == '__main__':
                               cdd_id2cog_id,
                               cog_id2length)
 
-    if args.legacy:
-        print("Legacy table")
-        load_locus2cog_into_sqldb_legacy(args.input_blast,
-                                         args.database_name,
-                                         cdd_id2cog_id,
-                                         hash2locus_list)
+    load_locus2cog_into_sqldb_legacy(args.input_blast,
+                                        args.database_name,
+                                        cdd_id2cog_id,
+                                        hash2locus_list)
+
+    manipulate_biosqldb.update_config_table(args.database_name, "COG_data")

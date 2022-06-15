@@ -15,9 +15,9 @@ def biodb2aa_usage(biodb):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql1 = 'select locus_tag, translation from orthology_detail_%s' % biodb
-    sql2 = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
-    sql3 = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql1 = 'select locus_tag, translation from orthology_detail' % biodb
+    sql2 = 'select locus_tag, taxon_id from orthology_detail' % biodb
+    sql3 = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
 
     locus2translation = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql1,))
     locus2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
@@ -31,7 +31,7 @@ def biodb2aa_usage(biodb):
     print len(all_aa), all_aa
 
 
-    sql_head = 'create table IF NOT EXISTS custom_tables.aa_usage_count_%s (taxon_id INT, ' \
+    sql_head = 'create table IF NOT EXISTS custom_tables_aa_usage_count (taxon_id INT, ' \
           ' seqfeature_id INT,' \
           ' seq_length INT,' % biodb
     for aa in all_aa:
@@ -53,7 +53,7 @@ def biodb2aa_usage(biodb):
         values = ','.join([str(aa_percent[i]) for i in aa_list])
 
 
-        sql = 'insert into  custom_tables.aa_usage_count_%s (taxon_id, seqfeature_id, seq_length, %s' \
+        sql = 'insert into  custom_tables_aa_usage_count (taxon_id, seqfeature_id, seq_length, %s' \
               ' ) values (%s, %s, %s, %s);' % (biodb,
                                                columns,
                                                locus2taxon_id[locus],

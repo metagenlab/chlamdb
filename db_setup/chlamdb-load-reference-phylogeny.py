@@ -9,7 +9,8 @@ def gbk2taxid(gbk_files, db_name):
 
     for gbk in gbk_files:
         records = [i for i in SeqIO.parse(gbk, 'genbank')]
-        sql = 'select taxon_id from biosqldb.bioentry t1 inner join biosqldb.biodatabase t2 on t1.biodatabase_id=t2.biodatabase_id where t1.accession="%s" and t2.name="%s";' % (records[0].name, db_name)
+        sql = 'select taxon_id from bioentry t1 ' \
+              ' inner join biodatabase t2 on t1.biodatabase_id=t2.biodatabase_id where t1.accession="%s" and t2.name="%s";' % (records[0].name, db_name)
         print(sql)
         file_name2taxid[gbk.split("/")[-1].split(".")[0]] = int(server.adaptor.execute_and_fetchall(sql,)[0][0])
     return file_name2taxid
@@ -28,7 +29,7 @@ def load_reference_phylogeny(db_name, newick_file, gbk_files):
 
     db_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
 
-    sql = 'create table if not exists reference_phylogeny (biodatabase_id INT, tree TEXT)'
+    sql = 'create table if not exists reference_phylogeny (biodatabase_id INTEGER, tree TEXT)'
 
     server.adaptor.execute(sql,)
 
@@ -55,3 +56,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     load_reference_phylogeny(args.database_name, args.reference_phylogeny, args.gbk_files)
+    
+    
+    manipulate_biosqldb.update_config_table(args.database_name, "reference_phylogeny")

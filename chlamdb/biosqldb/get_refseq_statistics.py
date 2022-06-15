@@ -7,7 +7,7 @@ def get_best_non_top_phylum_hit(biodb):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr.blastnr_majority_phylum_%s' \
+    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr_blastnr_majority_phylum' \
           ' group by taxon_id,best_hit_phylum order by taxon_id,n DESC;' % biodb
 
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -17,7 +17,7 @@ def get_best_non_top_phylum_hit(biodb):
         if row[0] not in taxon2most_freq_phylum:
             taxon2most_freq_phylum[row[0]] = row[2]
 
-    sql = 'create table blastnr.blastnr_best_non_self_phylum_%s (query_taxon_id INT, ' \
+    sql = 'create table blastnr_blastnr_best_non_self_phylum (query_taxon_id INT, ' \
           ' seqfeature_id INT, ' \
           ' hit_number INT, ' \
           ' superkingdom varchar(200),' \
@@ -41,8 +41,8 @@ def get_best_non_top_phylum_hit(biodb):
         phylum_filter = taxon2most_freq_phylum[taxon]
 
         sql = 'select t1.query_taxon_id, t1.seqfeature_id, t1.hit_number, t2.superkingdom, t1.subject_scientific_name, ' \
-              ' t1.percent_identity, t2.taxon_id,kingdom,phylum,class,subject_title, subject_accession from blastnr.blastnr_%s t1 ' \
-              ' inner join blastnr.blastnr_taxonomy t2 on t1.subject_taxid=t2.taxon_id ' \
+              ' t1.percent_identity, t2.taxon_id,kingdom,phylum,class,subject_title, subject_accession from blastnr_blastnr t1 ' \
+              ' inner join blastnr_blastnr_taxonomy t2 on t1.subject_taxid=t2.taxon_id ' \
               ' where (t1.query_taxon_id=%s and t2.phylum != "%s") order by seqfeature_id' % (biodb,
                                                                                         taxon,
                                                                                         phylum_filter)
@@ -64,7 +64,7 @@ def get_best_non_top_phylum_hit(biodb):
                 print "%s / %s" % (n, len(data))
             if n == 0:
 
-                sql = 'insert into blastnr.blastnr_best_non_self_phylum_%s values (%s, %s, %s, "%s", %s, %s, "%s", "%s")' % (biodb,
+                sql = 'insert into blastnr_blastnr_best_non_self_phylum values (%s, %s, %s, "%s", %s, %s, "%s", "%s")' % (biodb,
                                                                                                                  query_taxon_id,
                                                                                                                 seqfeature_id,
                                                                                                                 hit_number,
@@ -80,7 +80,7 @@ def get_best_non_top_phylum_hit(biodb):
             else:
                 # if new feature
                 if row[1] != data[n-1][1]:
-                    sql = 'insert into blastnr.blastnr_best_non_self_phylum_%s values (%s, %s, %s, "%s", %s, %s, "%s", "%s")' % (biodb,
+                    sql = 'insert into blastnr_blastnr_best_non_self_phylum values (%s, %s, %s, "%s", %s, %s, "%s", "%s")' % (biodb,
                                                                                                                      query_taxon_id,
                                                                                                                     seqfeature_id,
                                                                                                                     hit_number,
@@ -120,13 +120,13 @@ def best_blast_hit_majority_species(biodb):
     server.adaptor.execute(sql,)
     server.commit()
 
-    sql = 'select taxon_id, count(*) as n from biosqldb.orthology_detail_%s group by taxon_id' % (biodb)
+    sql = 'select taxon_id, count(*) as n from orthology_detail group by taxon_id' % (biodb)
     taxon_id2n_CDS = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     for one_taxon in taxon_list:
         print one_taxon
 
-        sql2 = 'select A.subject_taxid, count(*) from blastnr.blastnr_%s A ' \
+        sql2 = 'select A.subject_taxid, count(*) from blastnr_blastnr A ' \
                ' where A.query_taxon_id=%s and hit_number=1 group by A.subject_taxid;' % (biodb, one_taxon)
 
         taxon_id2count = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
@@ -170,20 +170,20 @@ def majority_phylum(biodb, n_hits):
     taxon_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
     print taxon_list
-    sql = 'CREATE table blastnr.blastnr_majority_phylum_%s (taxon_id INT, seqfeature_id INT, best_hit_phylum varchar(400), majority_phylum varchar(400))' % biodb
+    sql = 'CREATE table blastnr_blastnr_majority_phylum (taxon_id INT, seqfeature_id INT, best_hit_phylum varchar(400), majority_phylum varchar(400))' % biodb
 
     server.adaptor.execute(sql,)
     server.commit()
 
     for one_taxon in taxon_list:
         print one_taxon
-        sql = 'select seqfeature_id,phylum, count(*) as n from blastnr.blastnr_%s A ' \
-              ' inner join blastnr.blastnr_taxonomy B on A.subject_taxid=B.taxon_id ' \
+        sql = 'select seqfeature_id,phylum, count(*) as n from blastnr_blastnr A ' \
+              ' inner join blastnr_blastnr_taxonomy B on A.subject_taxid=B.taxon_id ' \
               ' where A.query_taxon_id=%s and hit_number<=%s group by seqfeature_id,phylum order by seqfeature_id, n DESC;' % (biodb,
                                                                                                                        one_taxon,
                                                                                                                        n_hits)
-        sql2 = 'select seqfeature_id,phylum from blastnr.blastnr_%s A ' \
-               ' inner join blastnr.blastnr_taxonomy B on A.subject_taxid=B.taxon_id  ' \
+        sql2 = 'select seqfeature_id,phylum from blastnr_blastnr A ' \
+               ' inner join blastnr_blastnr_taxonomy B on A.subject_taxid=B.taxon_id  ' \
                ' where A.query_taxon_id=%s and hit_number=1;' % (biodb, one_taxon)
 
         print sql2
@@ -198,7 +198,7 @@ def majority_phylum(biodb, n_hits):
                         if row[2] == data_majority[n+1][0]:
                             print 'equality!!!!!!!!!!!!!!!!!!!!'
                         seqfeature2phylum[row[0]] = row[1]
-                        sql = 'insert into blastnr.blastnr_majority_phylum_%s values(%s,%s,"%s", "%s")' % (biodb,
+                        sql = 'insert into blastnr_blastnr_majority_phylum values(%s,%s,"%s", "%s")' % (biodb,
                                                                                                            one_taxon,
                                                                                                            row[0],
                                                                                                            seqfeature2best_hit_phylum[str(row[0])],
@@ -224,11 +224,11 @@ def count_less_than_n_hits(biodb, cutoff=100):
     # n 1-99 hits
     # n 100 hits
 
-    sql = 'CREATE TABLE blastnr.count_n_blast_%s (taxon_id INT, total INT, n_no_hits INT, n_100_hits INT, n_less_100_hits INT)' % biodb
+    sql = 'CREATE TABLE blastnr_count_n_blast (taxon_id INT, total INT, n_no_hits INT, n_100_hits INT, n_less_100_hits INT)' % biodb
 
     server.adaptor.execute(sql)
 
-    sql = 'select query_taxon_id, seqfeature_id, count(*) as n from blastnr.blastnr_%s group by query_taxon_id, seqfeature_id;' % biodb
+    sql = 'select query_taxon_id, seqfeature_id, count(*) as n from blastnr_blastnr group by query_taxon_id, seqfeature_id;' % biodb
     taxon2n_100 = {}
     taxon2n_less_than_100 = {}
 
@@ -242,7 +242,7 @@ def count_less_than_n_hits(biodb, cutoff=100):
         else:
             taxon2n_less_than_100[row[0]]+=1
 
-    sql = 'select taxon_id, count(*) from orthology_detail_%s group by taxon_id' % biodb
+    sql = 'select taxon_id, count(*) from orthology_detail group by taxon_id' % biodb
 
     taxon2n_proteins = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -250,7 +250,7 @@ def count_less_than_n_hits(biodb, cutoff=100):
         total = taxon2n_proteins[taxon]
         n_100 = taxon2n_100[int(taxon)]
         n_less_than_100 = taxon2n_less_than_100[int(taxon)]
-        sql = 'insert into blastnr.count_n_blast_%s values (%s,%s,%s,%s, %s)' % (biodb,
+        sql = 'insert into blastnr_count_n_blast values (%s,%s,%s,%s, %s)' % (biodb,
                                                                                taxon,
                                                                                total,
                                                                                total-n_100-n_less_than_100,
@@ -279,7 +279,7 @@ def count_majority_phylum(biodb, hit_number=1):
     server.adaptor.execute(sql,)
     server.commit()
 
-    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr.blastnr_majority_phylum_%s' \
+    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr_blastnr_majority_phylum' \
           ' group by taxon_id,best_hit_phylum order by taxon_id,n DESC;' % biodb
     print sql
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -298,7 +298,7 @@ def count_majority_phylum(biodb, hit_number=1):
         print 'taxon id, most freq!', taxon_id, taxon2most_freq_phylum[taxon_id]
 
         # for best hit and for majority rule
-        sql_bacteria_chlamydiae = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_bacteria_chlamydiae = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                                   ' on t1.subject_taxid=t2.taxon_id ' \
                                   ' where t1.hit_number=%s and t1.query_taxon_id=%s and t2.superkingdom="Bacteria" ' \
                                   ' and t2.phylum="%s" group by t1.query_taxon_id;' % (biodb,
@@ -307,7 +307,7 @@ def count_majority_phylum(biodb, hit_number=1):
                                                                                        taxon2most_freq_phylum[taxon_id]
                                                                                        )
 
-        sql_bacteria_non_chlamydia = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_bacteria_non_chlamydia = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                                   ' on t1.subject_taxid=t2.taxon_id ' \
                                   ' where t1.hit_number=%s and t1.query_taxon_id=%s and t2.superkingdom="Bacteria" ' \
                                   ' and t2.phylum!="%s" group by t1.query_taxon_id;' % (biodb,
@@ -315,25 +315,25 @@ def count_majority_phylum(biodb, hit_number=1):
                                                                                         taxon_id,
                                                                                         taxon2most_freq_phylum[taxon_id])
 
-        sql_euk = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_euk = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                   ' on t1.subject_taxid=t2.taxon_id where t1.hit_number=%s and t1.query_taxon_id=%s' \
                   ' and t2.superkingdom="Eukaryota" group by t1.query_taxon_id;' % (biodb,
                                                                                     hit_number,
                                                                                     taxon_id)
 
-        sql_archae = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_archae = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                   ' on t1.subject_taxid=t2.taxon_id where t1.hit_number=%s and t1.query_taxon_id=%s' \
                   ' and t2.superkingdom="Archaea" group by t1.query_taxon_id;' % (biodb,
                                                                                   hit_number,
                                                                                   taxon_id)
 
-        sql_viruses = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_viruses = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                   ' on t1.subject_taxid=t2.taxon_id where t1.hit_number=%s and t1.query_taxon_id=%s' \
                   ' and t2.superkingdom="Viruses" group by t1.query_taxon_id;' % (biodb,
                                                                                   hit_number,
                                                                                   taxon_id)
 
-        sql_undefined = 'select t1.query_taxon_id, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_undefined = 'select t1.query_taxon_id, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                   ' on t1.subject_taxid=t2.taxon_id where t1.hit_number=%s and t1.query_taxon_id=%s' \
                   ' and t2.superkingdom="-" group by t1.query_taxon_id;' % (biodb,
                                                                             hit_number,
@@ -410,7 +410,7 @@ def count_majority_excluding_self_species(biodb):
     server.adaptor.execute(sql,)
     server.commit()
 
-    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr.blastnr_majority_phylum_%s' \
+    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr_blastnr_majority_phylum' \
           ' group by taxon_id,best_hit_phylum order by taxon_id,n DESC;' % biodb
 
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -431,10 +431,10 @@ def count_majority_excluding_self_species(biodb):
         # for best hit and for majority rule
         sql_bacteria_chlamydiae = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.phylum="%s" group by query_taxon_id;' % (biodb,
                                                                                        taxon_id,
                                                                                        taxon2most_freq_phylum[taxon_id]
@@ -442,47 +442,47 @@ def count_majority_excluding_self_species(biodb):
 
         sql_bacteria_non_chlamydia = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.phylum!="%s" and C.superkingdom="Bacteria" group by query_taxon_id;' % (biodb,
                                                                                         taxon_id,
                                                                                         taxon2most_freq_phylum[taxon_id])
 
         sql_euk = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Eukaryota" group by query_taxon_id;' % (biodb,
                                                                                     taxon_id)
 
         sql_archae = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Archaea" group by query_taxon_id;' % (biodb,
                                                                                     taxon_id)
 
         sql_viruses = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Viruses" group by query_taxon_id;' % (biodb,
                                                                                   taxon_id)
 
         sql_undefined = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=100 and query_taxon_id=%s ' \
                                   ' group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="-" group by query_taxon_id;' % (biodb,
                                                                                   taxon_id)
 
@@ -560,7 +560,7 @@ def count_majority_phylum_non_identical(biodb, accession2expluded_taxon_id):
     taxon_id2genome_accession = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql),)
     print taxon_id2genome_accession
 
-    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr.blastnr_majority_phylum_%s' \
+    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr_blastnr_majority_phylum' \
           ' group by taxon_id,best_hit_phylum order by taxon_id,n DESC;' % biodb
 
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -590,10 +590,10 @@ def count_majority_phylum_non_identical(biodb, accession2expluded_taxon_id):
             # for best hit and for majority rule
         sql_bacteria_chlamydiae = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.phylum="%s" group by query_taxon_id;' % (biodb,
                                                                                      taxon_id,
                                                                                      excluded_taxid_filter,
@@ -602,10 +602,10 @@ def count_majority_phylum_non_identical(biodb, accession2expluded_taxon_id):
 
         sql_bacteria_non_chlamydia = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.phylum!="%s" and C.superkingdom="Bacteria" group by query_taxon_id;' % (biodb,
                                                                                         taxon_id,
                                                                                         excluded_taxid_filter,
@@ -613,40 +613,40 @@ def count_majority_phylum_non_identical(biodb, accession2expluded_taxon_id):
 
         sql_euk = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Eukaryota" group by query_taxon_id;' % (biodb,
                                                                                     taxon_id,
                                                                                     excluded_taxid_filter,)
 
         sql_archae = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Archaea" group by query_taxon_id;' % (biodb,
                                                                                                 taxon_id,
                                                                                                 excluded_taxid_filter,)
 
         sql_viruses = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="Viruses" group by query_taxon_id;' % (biodb,
                                                                                                 taxon_id,
                                                                                                 excluded_taxid_filter)
 
         sql_undefined = 'select query_taxon_id,count(*) from ' \
                                   ' (select query_taxon_id,seqfeature_id,hit_number,subject_taxid from ' \
-                                  ' (select * from blastnr.blastnr_%s ' \
+                                  ' (select * from blastnr_blastnr ' \
                                   ' where percent_identity!=0 and query_taxon_id=%s ' \
                                   ' %s group by seqfeature_id) A )B ' \
-                                  ' inner join blastnr.blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
+                                  ' inner join blastnr_blastnr_taxonomy C on B.subject_taxid=C.taxon_id ' \
                                   ' where C.superkingdom="-" group by query_taxon_id;' % (biodb,
                                                                                           taxon_id,
                                                                                           excluded_taxid_filter)
@@ -719,7 +719,7 @@ def count_majority_phylum_consensus(biodb):
     server.adaptor.execute(sql,)
     server.commit()
 
-    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr.blastnr_majority_phylum_%s' \
+    sql = 'select taxon_id, count(*) as n, best_hit_phylum from blastnr_blastnr_majority_phylum' \
           ' group by taxon_id,best_hit_phylum order by taxon_id,n DESC;' % biodb
     print sql
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -738,7 +738,7 @@ def count_majority_phylum_consensus(biodb):
         print 'taxon id, most freq!', taxon_id, taxon2most_freq_phylum[taxon_id]
 
         # for best hit and for majority rule
-        sql_phylum = 'select t1.seqfeature_id, t2.phylum, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_phylum = 'select t1.seqfeature_id, t2.phylum, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                                   ' on t1.subject_taxid=t2.taxon_id ' \
                                   ' where t1.query_taxon_id=%s and t2.superkingdom="Bacteria" ' \
                                   ' and t2.phylum="%s" group by t1.seqfeature_id,t2.phylum order by t1.seqfeature_id,n DESC;' % (biodb,
@@ -746,7 +746,7 @@ def count_majority_phylum_consensus(biodb):
                                                                                        taxon2most_freq_phylum[taxon_id]
                                                                                        )
         print sql_phylum
-        sql_superkingdom = 'select t1.seqfeature_id, t2.superkingdom, count(*) as n from blastnr.blastnr_%s t1 inner join blastnr.blastnr_taxonomy t2 ' \
+        sql_superkingdom = 'select t1.seqfeature_id, t2.superkingdom, count(*) as n from blastnr_blastnr t1 inner join blastnr_blastnr_taxonomy t2 ' \
                                   ' on t1.subject_taxid=t2.taxon_id ' \
                                   ' where t1.hit_number=1 and t1.query_taxon_id=%s and t2.superkingdom!="Bacteria" ' \
                                   ' and t2.phylum!="%s" group by t1.query_taxon_id;' % (biodb,

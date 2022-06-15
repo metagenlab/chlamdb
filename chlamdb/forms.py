@@ -9,7 +9,11 @@ from django.forms import ModelForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, MultiField, Div, Fieldset
 from crispy_forms.bootstrap import AppendedText
-server = load_db()
+from django.conf import settings
+
+biodb = settings.BIODB
+
+server,db = load_db(biodb)
 
 sql ="select accession from bioentry where biodatabase_id = 22"
 result = server.adaptor.execute_and_fetchall(sql, )
@@ -27,7 +31,7 @@ class GenerateRandomUserForm(forms.Form):
 def get_accessions(database_name, all=False, plasmid=False):
 
     from chlamdb.biosqldb import manipulate_biosqldb
-    server = manipulate_biosqldb.load_db()
+    server, db = manipulate_biosqldb.load_db(biodb)
     if not plasmid:
         #print "no plasmid"
         sql ='SELECT bioentry.taxon_id, bioentry.description FROM bioentry ' \
@@ -40,6 +44,7 @@ def get_accessions(database_name, all=False, plasmid=False):
              'inner join biodatabase on bioentry.biodatabase_id = biodatabase.biodatabase_id ' \
              'where biodatabase.name ="%s"' \
              'order by bioentry.description' % database_name
+             
     result = server.adaptor.execute_and_fetchall(sql, )
     accession_list = [i for i in result]
     #print "acc", accession_list
@@ -318,7 +323,7 @@ def make_species_curation_form(database_name, species_id):
     
     server, db = load_db(database_name)
     
-    sql = 'select phylum, `order`, family, genus, species from species_curated_taxonomy_%s where species_id=%s;' % (database_name, species_id)
+    sql = 'select phylum, `order`, family, genus, species from species_curated_taxonomy where species_id=%s;' % (species_id)
     print(sql)
     data = server.adaptor.execute_and_fetchall(sql,)[0]
     print(data)
@@ -422,17 +427,17 @@ def make_kegg_form(database_name):
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(database_name)
 
-    sql_pathways = 'select description,description from enzyme.locus2ko_%s t1 ' \
-                   ' inner join  enzyme.pathway2ko t2 ' \
+    sql_pathways = 'select description,description from enzyme_locus2ko t1 ' \
+                   ' inner join  enzyme_pathway2ko t2 ' \
                    ' on t1.ko_id = t2.ko_id ' \
-                   ' inner join  enzyme.kegg_pathway t3 ' \
-                   ' on t3.pathway_id=t2.pathway_id group by description;' % (database_name)
+                   ' inner join  enzyme_kegg_pathway t3 ' \
+                   ' on t3.pathway_id=t2.pathway_id group by description;'
 
     pathway_choices = server.adaptor.execute_and_fetchall(sql_pathways,)
 
-    sql_modules = 'select description,description from  enzyme.locus2ko_%s t1 ' \
-                  ' inner join  enzyme.module2ko t2 on t1.ko_id = t2.ko_id ' \
-                  ' inner join  enzyme.kegg_module t3 on t3.module_id=t2.module_id group by description;' % database_name
+    sql_modules = 'select description,description from  enzyme_locus2ko t1 ' \
+                  ' inner join  enzyme_module2ko t2 on t1.ko_id = t2.ko_id ' \
+                  ' inner join  enzyme_kegg_module t3 on t3.module_id=t2.module_id group by description;'
 
     module_choices = server.adaptor.execute_and_fetchall(sql_modules,)
 
@@ -444,7 +449,9 @@ def make_kegg_form(database_name):
     return KeggForm
 
 
-def make_extract_form(database_name, plasmid=False, label="Orthologs"):
+def make_extract_form(database_name, 
+                      plasmid=False, 
+                      label="Orthologs"):
 
     if not plasmid:
         accession_choices = get_accessions(database_name)
@@ -492,7 +499,7 @@ def locus_int_form(database_name):
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(database_name)
 
-    sql = 'select distinct category from custom_tables.annot_table_%s;' % database_name
+    sql = 'select distinct category from custom_tables_annot_table;'
     categories = server.adaptor.execute_and_fetchall(sql,)
     CHOICES = [(i[0],i[0]) for i in categories]
     CHOICES.append(("all","all"))
@@ -653,9 +660,9 @@ def make_module_overview_form(database_name, sub_sub_cat=False):
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(database_name)
     if not sub_sub_cat:
-        sql = 'select distinct module_sub_cat from enzyme.kegg_module;'
+        sql = 'select distinct module_sub_cat from enzyme_kegg_module;'
     else:
-        sql = 'select distinct module_sub_sub_cat from enzyme.kegg_module;'
+        sql = 'select distinct module_sub_sub_cat from enzyme_kegg_module;'
     categories = server.adaptor.execute_and_fetchall(sql,)
     CHOICES = [(i[0],i[0]) for i in categories]
     CHOICES.append(('microbial_metabolism', 'microbial_metabolism'))
@@ -667,7 +674,7 @@ def make_module_overview_form(database_name, sub_sub_cat=False):
 def make_pathway_overview_form(database_name):
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(database_name)
-    sql = 'select distinct pathway_category from enzyme.kegg_pathway where pathway_category_short not in ("drug","disease","organismal") ' \
+    sql = 'select distinct pathway_category from enzyme_kegg_pathway where pathway_category_short not in ("drug","disease","organismal") ' \
           ' order by pathway_category;'
 
     categories = server.adaptor.execute_and_fetchall(sql,)
@@ -729,11 +736,11 @@ def make_blastnr_form(biodb):
     for accession in accession_list:
         accession_choices.append((accession[0], accession[1]))
 
-    sql = 'show columns from blastnr.blastnr_taxonomy;'
+    sql = 'show columns from blastnr_blastnr_taxonomy;'
     ranks = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
     rank_choices = []
 
-    sql2 = 'select max(hit_number) from blastnr.blastnr_%s;' % biodb
+    sql2 = 'select max(hit_number) from blastnr_blastnr ;' % biodb
 
     max_nr_hits = server.adaptor.execute_and_fetchall(sql2,)[0][0]
 

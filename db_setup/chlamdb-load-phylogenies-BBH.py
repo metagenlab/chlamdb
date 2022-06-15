@@ -16,7 +16,7 @@ def import_phylo(phylo_list, biodb):
     import re
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'create table IF NOT EXISTS biosqldb_phylogenies.BBH_%s (orthogroup varchar(100), phylogeny text, INDEX orthogroup (orthogroup));' % biodb
+    sql = 'create table IF NOT EXISTS phylogenies_BBH (orthogroup varchar(100), phylogeny text, INDEX orthogroup (orthogroup));'
     server.adaptor.execute(sql,)
 
     locuslag2orthogroup = biosql_own_sql_tables.locus_tag2orthogroup(biodb)
@@ -31,15 +31,21 @@ def import_phylo(phylo_list, biodb):
                 break
             except:
                 continue
-        sql = 'insert into biosqldb_phylogenies.BBH_%s values ("%s", "%s");' % (biodb, orthogroup, t.write())
+        sql = 'insert into phylogenies_BBH values ("%s", "%s");' % (orthogroup, t.write())
         try:
             server.adaptor.execute(sql,)
         except:
             print (phylo)
     server.commit()
+    sql_index1 = 'create index pbbh on phylogenies_BBH(orthogroup)'
+    server.adaptor.execute(sql_index1,)
+    server.commit()
+
 
 if __name__ == '__main__':
     import argparse
+    from chlamdb.biosqldb import manipulate_biosqldb
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", '--trees', type=str, help="tree files", nargs='+')
     parser.add_argument("-d", '--db_name', type=str, help="db name", required=True)
@@ -47,3 +53,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     import_phylo(args.trees, args.db_name)
+
+    manipulate_biosqldb.update_config_table(args.db_name, "BBH_phylogenies")
+

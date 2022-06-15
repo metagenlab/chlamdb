@@ -8,7 +8,9 @@ from ete3 import Tree, SeqMotifFace, TreeStyle, add_face_to_node, TextFace
 import numpy as np
 import colorsys
 import matplotlib.colors as pcolors
+from django.conf import settings
 
+db_driver = settings.DB_DRIVER
 
 def _get_colors(num_colors):
     colors=[]
@@ -44,10 +46,10 @@ def get_interpro2taxon_id2count(biodb,
     id_filter = '"' + '","'.join(id_list)+ '"'
     sql = f'select taxon_id,signature_accession, count(*) as n from' \
           f' (select distinct t1.seqfeature_id,taxon_id,signature_accession,signature_description ' \
-          f' from interpro.interpro_{biodb} t1 ' \
-          f' inner join interpro.signature t2 on t1.signature_id=t2.signature_id ' \
-          f' inner join interpro.analysis t3 on t2.analysis_id=t3.analysis_id ' \
-          f' inner join annotation.seqfeature_id2locus_{biodb} t4 on t1.seqfeature_id=t4.seqfeature_id' \
+          f' from interpro_interpro t1 ' \
+          f' inner join interpro_signature t2 on t1.signature_id=t2.signature_id ' \
+          f' inner join interpro_analysis t3 on t2.analysis_id=t3.analysis_id ' \
+          f' inner join annotation_seqfeature_id2locus t4 on t1.seqfeature_id=t4.seqfeature_id' \
           f' where analysis_name="{analysis}" and signature_accession in ({id_filter})) A ' \
           f' group by taxon_id,signature_accession,signature_description;'
 
@@ -67,7 +69,10 @@ def get_interpro2taxon_id2count(biodb,
 
 
 
-def get_taxon2name2count(biodb, id_list, type="COG", taxon_filter=False):
+def get_taxon2name2count(biodb, 
+                         id_list, 
+                         type="COG", 
+                         taxon_filter=False):
 
     '''
     get presence/absence of pfam domain(s) in all organisms of database "biodb"
@@ -90,18 +95,26 @@ def get_taxon2name2count(biodb, id_list, type="COG", taxon_filter=False):
             ordered_taxons = taxon_filter
         else:
             col_filter = '*'
-            sql = 'show columns from comparative_tables.%s_%s' % (type, biodb)
+            if db_driver == 'mysql':
+                sql = 'show columns from comparative_tables_%s' % (type)
+            elif db_driver == 'sqlite':
+                sql = 'PRAGMA table_info(comparative_tables_%s)' % (type)
+            
             ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
-        sql = 'select %s from comparative_tables.%s_%s where id in (%s)' % (col_filter, type, biodb, ortho_sql)
+        sql = 'select %s from comparative_tables_%s where id in (%s)' % (col_filter, type, ortho_sql)
     else:
         if taxon_filter:
             col_filter = 'orthogroup,`' + '`,`'.join(taxon_filter) + '`'
             ordered_taxons = taxon_filter
         else:
             col_filter = '*'
-            sql = 'show columns from comparative_tables.orthology_%s' % (biodb)
+            sql = 'show columns from comparative_tables_orthology'
+            if db_driver == 'mysql':
+                sql = 'show columns from comparative_tables_orthology'
+            elif db_driver == 'sqlite':
+                sql = 'PRAGMA table_info(comparative_tables_orthology)'
             ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
-        sql = 'select %s from comparative_tables.orthology_%s where orthogroup in (%s)' % (col_filter, biodb, ortho_sql)
+        sql = 'select %s from comparative_tables_orthology where orthogroup in (%s)' % (col_filter, ortho_sql)
     #print sql
     profile_tuples = list(server.adaptor.execute_and_fetchall(sql,))
 
@@ -109,7 +122,7 @@ def get_taxon2name2count(biodb, id_list, type="COG", taxon_filter=False):
     for i, tuple in enumerate(profile_tuples):
         taxon2group2n_homologs[tuple[0]] = {}
         for i, taxon in enumerate(ordered_taxons):
-            taxon2group2n_homologs[tuple[0]][taxon] = tuple[i+1]
+            taxon2group2n_homologs[tuple[0]][str(taxon)] = tuple[i+1]
 
     return taxon2group2n_homologs
 
@@ -129,15 +142,18 @@ def get_taxon2orthogroup2count(biodb, orthogroup_id_list):
 
     server, db =manipulate_biosqldb.load_db(biodb)
 
-    #print "orthogroup_id_list", orthogroup_id_list
-
-    sql = 'show columns from comparative_tables.orthology_%s' % (biodb)
+    if db_driver == 'mysql':
+        sql = 'show columns from comparative_tables_orthology'
+    elif db_driver == 'sqlite':
+        sql = 'PRAGMA table_info(comparative_tables_orthology);'
+    else:
+        raise IOError("Unknown db driver %s" % db_driver)
 
     ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
 
     ortho_sql = '"' + '","'.join(orthogroup_id_list) + '"'
 
-    sql = 'select * from comparative_tables.orthology_%s where orthogroup in (%s)' % (biodb, ortho_sql)
+    sql = 'select * from comparative_tables_orthology where orthogroup in (%s)' % (ortho_sql)
 
     profile_tuples = list(server.adaptor.execute_and_fetchall(sql,))
 
@@ -145,12 +161,13 @@ def get_taxon2orthogroup2count(biodb, orthogroup_id_list):
     for i, tuple in enumerate(profile_tuples):
         taxon2group2n_homologs[tuple[0]] = {}
         for i, taxon in enumerate(ordered_taxons):
-            taxon2group2n_homologs[tuple[0]][taxon] = tuple[i+1]
+            taxon2group2n_homologs[tuple[0]][str(taxon)] = tuple[i+1]
 
     return taxon2group2n_homologs
 
 
 def get_locus2taxon2identity(biodb, locus_tag_list):
+
 
     '''
     get presence/absence of pfam domain(s) in all organisms of database "biodb"
@@ -162,12 +179,18 @@ def get_locus2taxon2identity(biodb, locus_tag_list):
     '''
 
     from chlamdb.biosqldb import manipulate_biosqldb
+    from django.conf import settings
+    
+    db_driver = settings.DB_DRIVER
 
     server, db =manipulate_biosqldb.load_db(biodb)
 
-
-
-    sql = 'show columns from comparative_tables.orthology_%s' % (biodb)
+    if db_driver == 'mysql':
+        sql = 'show columns from comparative_tables_orthology'
+    elif db_driver == 'sqlite':
+        sql = 'PRAGMA table_info(comparative_tables_orthology);'
+    else:
+        raise IOError("Unknown db driver %s" % db_driver)
 
     ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
 
@@ -179,14 +202,14 @@ def get_locus2taxon2identity(biodb, locus_tag_list):
     select B.locus_tag,C.locus_tag,identity from (select * from comparative_tables.identity_closest_homolog2_chlamydia_04_16 where locus_1 in (17323786,17275213,17295471,17323784,17129361,17219096,17194936,17100717,17219094,17129363,17100715,17222853,17067094,17335066,17047317,17215018,17176196,17294883,17047319,17013495)) A left join custom_tables.locus2seqfeature_id_chlamydia_04_16 B on A.locus_1=B.seqfeature_id left join custom_tables.locus2seqfeature_id_chlamydia_04_16 C on A.locus_2=C.seqfeature_id;
     '''
     #print 'getting dico'
-    sql = 'select seqfeature_id,locus_tag from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select seqfeature_id,locus_tag from custom_tables_locus2seqfeature_id'
 
     seqfeature_id2locus = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     #print 'ok'
     all_id = []
     for locus in locus_tag_list:
         #print 'locus', locus
-        seqfeatre_id_sql = 'select seqfeature_id from custom_tables.locus2seqfeature_id_%s where locus_tag="%s";' % (biodb,locus)
+        seqfeatre_id_sql = 'select seqfeature_id from custom_tables_locus2seqfeature_id where locus_tag="%s";' % (locus)
         #print seqfeatre_id_sql
         try:
             seqfeatre_id = server.adaptor.execute_and_fetchall(seqfeatre_id_sql,)[0][0]
@@ -195,8 +218,7 @@ def get_locus2taxon2identity(biodb, locus_tag_list):
             # pseudogene
             continue
     filter = ','.join(all_id)
-    sql = 'select taxon_2,locus_1,identity from comparative_tables.identity_closest_homolog2_%s where locus_1 in (%s) ;' % (biodb,
-                                                                                                                      filter)
+    sql = 'select taxon_2,locus_1,identity from comparative_tables_identity_closest_homolog2 where locus_1 in (%s) ;' % (filter)
 
     identity_data = server.adaptor.execute_and_fetchall(sql, )
     taxon2identity_closest = {}
@@ -232,7 +254,10 @@ def get_locus2taxon2n_paralogs(biodb, locus_tag_list):
 
     #print 'get_locus2taxon2n_paralogs!!!!!!!!!!!!!!!!'
 
-    sql = 'show columns from comparative_tables.orthology_%s' % (biodb)
+    if db_driver == 'mysql':
+        sql = 'show columns from comparative_tables_orthology'
+    elif db_driver == 'sqlite':
+        sql = 'PRAGMA table_info(comparative_tables_orthology);'
 
     ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
 
@@ -243,13 +268,11 @@ def get_locus2taxon2n_paralogs(biodb, locus_tag_list):
 
     for locus in locus_tag_list:
 
-        orthogroup_sql = 'select orthogroup from orthology_detail_%s where locus_tag="%s";' % (biodb,locus)
+        orthogroup_sql = 'select orthogroup from chlamdb.orthology_detail where locus_tag="%s";' % (biodb,locus)
 
         orthogroup = server.adaptor.execute_and_fetchall(orthogroup_sql,)[0][0]
 
-        sql = 'select taxon_id,count(*) from orthology_detail_%s where orthogroup="%s" group by taxon_id;' % (biodb,
-                                                                                                              orthogroup)
-        print(sql)
+        sql = 'select taxon_id,count(*) from chlamdb.orthology_detail where orthogroup="%s" group by taxon_id;' % (orthogroup)
         taxon_id2count = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
         for taxon in ordered_taxons:
@@ -914,7 +937,7 @@ def multiple_profiles_heatmap(biodb,
             else:
                 column2max[column] = max(values)
 
-    server, db = manipulate_biosqldb.load_db(biodb, sqlite=sqlite3)
+    server, db = manipulate_biosqldb.load_db(biodb)
     if not tree:
         sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
@@ -1881,14 +1904,18 @@ def multiple_orthogroup_heatmap(biodb, reference_orthogroup, max_distance=2.2):
             raise 'Error: unexpected combination of groups'
     ordered_distances = sorted(distances)
 
-    sql = 'show columns from comparative_tables.orthology_%s' % biodb
+    if db_driver == 'mysql':
+        sql = 'show columns from comparative_tables_orthology'
+    elif db_driver == 'sqlite':
+        sql = 'PRAGMA table_info(comparative_tables_orthology);'
+        
     ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
 
     #print 'taxons!', ordered_taxons
 
     ortho_sql = '"' + '","'.join(orthogroup2distance.keys()) + '"' + ',"%s"' % reference_orthogroup
 
-    sql = 'select * from comparative_tables.orthology_%s where orthogroup in (%s)' % (biodb, ortho_sql)
+    sql = 'select * from comparative_tables_orthology where orthogroup in (%s)' % (biodb, ortho_sql)
 
     profile_tuples = list(server.adaptor.execute_and_fetchall(sql,))
     #print "profile_tuples", profile_tuples
@@ -1905,7 +1932,7 @@ def multiple_orthogroup_heatmap(biodb, reference_orthogroup, max_distance=2.2):
         # get colum of taxon i
         taxon2group2n_homologs[tuple[0]] = {}
         for i, taxon in enumerate(ordered_taxons):
-            taxon2group2n_homologs[tuple[0]][taxon] = tuple[i+1]
+            taxon2group2n_homologs[tuple[0]][str(taxon)] = tuple[i+1]
     #print taxon2group2n_homologs
     # and set it as tree outgroup
     head = True
@@ -1983,16 +2010,16 @@ def get_pfam_data(orthogroup, biodb, aa_alignment=False):
     # inefficient query
     '''
     sql = 'select A.locus_tag, B.start, B.stop, A.organism, A.sequence_length, B.signature_accession, B.signature_description, A.taxon_id ' \
-          ' from (select taxon_id, orthogroup,locus_tag, protein_id, organism, length(translation) as sequence_length from orthology_detail_%s ' \
+          ' from (select taxon_id, orthogroup,locus_tag, protein_id, organism, length(translation) as sequence_length from orthology_detail ' \
           ' where orthogroup="%s" ) A ' \
-          ' left join (select * from interpro_%s where orthogroup="%s" and analysis="Pfam") B ' \
+          ' left join (select * from interpro where orthogroup="%s" and analysis="Pfam") B ' \
           ' on A.locus_tag=B.locus_tag;' % (biodb, orthogroup, biodb, orthogroup)
     '''
     # correct with filter on join
     sql = 'select t1.locus_tag,t2.start,t2.stop,t1.organism,length(t1.translation),t2.signature_accession,t2.signature_description,t1.taxon_id ' \
-          ' from orthology_detail_%s t1 ' \
-          ' left join interpro_%s t2 on t1.seqfeature_id=t2.seqfeature_id and t2.orthogroup="%s" and t2.analysis="Pfam" ' \
-          ' where t1.orthogroup="%s";' % (biodb, biodb, orthogroup, orthogroup)
+          ' from orthology_detail t1 ' \
+          ' left join interpro t2 on t1.seqfeature_id=t2.seqfeature_id and t2.orthogroup="%s" and t2.analysis="Pfam" ' \
+          ' where t1.orthogroup="%s";' % (orthogroup, orthogroup)
 
     #print(sql)
     data = server.adaptor.execute_and_fetchall(sql,)
@@ -2029,23 +2056,24 @@ def get_TM_data(biodb,
     if orthogroup:
         #print("orthogroup!")
         sql = 'select locus_tag, start, stop, organism, sequence_length, signature_accession, signature_description  ' \
-          ' from interpro_%s as t2 where orthogroup="%s" and analysis="Phobius" and signature_accession="TRANSMEMBRANE"' % (biodb, orthogroup)
-
-        sql2 = 'select locus_tag, char_length(translation), organism from orthology_detail_%s where orthogroup="%s";' % (biodb, orthogroup)
-
+          ' from interpro as t2 where orthogroup="%s" and analysis="Phobius" and signature_accession="TRANSMEMBRANE"' % (orthogroup)
+        if db_driver == 'mysql':
+            sql2 = 'select locus_tag, char_length(translation), organism from orthology_detail where orthogroup="%s";' % (orthogroup)
+        if db_driver == 'sqlite':
+            sql2 = 'select locus_tag, length(translation), organism from orthology_detail where orthogroup="%s";' % (orthogroup)
         sql_signalp = 'select locus_tag, t2.start, t2.stop, t6.description, sequence_length, signature_accession, signature_description' \
-                       ' from annotation.seqfeature_id2locus_%s t1' \
-                       ' inner join interpro.interpro_%s t2 on t1.seqfeature_id=t2.seqfeature_id' \
-                       ' inner join interpro.signature t3 on t2.signature_id=t3.signature_id' \
-                       ' inner join orthology.seqfeature_id2orthogroup_%s t4 on t1.seqfeature_id=t4.seqfeature_id' \
-                       ' inner join orthology.orthogroup_%s t5 on t4.orthogroup_id=t5.orthogroup_id' \
-                       ' inner join biosqldb.bioentry t6 on t1.bioentry_id=t6.bioentry_id' \
-                       ' where t5.orthogroup_name="%s" and signature_description="Signal peptide region";' % (biodb,biodb,biodb,biodb,orthogroup)
+                       ' from annotation_seqfeature_id2locus t1' \
+                       ' inner join interpro_interpro t2 on t1.seqfeature_id=t2.seqfeature_id' \
+                       ' inner join interpro_signature t3 on t2.signature_id=t3.signature_id' \
+                       ' inner join orthology_seqfeature_id2orthogroup t4 on t1.seqfeature_id=t4.seqfeature_id' \
+                       ' inner join orthology_orthogroup t5 on t4.orthogroup_id=t5.orthogroup_id' \
+                       ' inner join bioentry t6 on t1.bioentry_id=t6.bioentry_id' \
+                       ' where t5.orthogroup_name="%s" and signature_description="Signal peptide region";' % (orthogroup)
 
         locus2seq_length = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
     else:
         sql = 'select locus_tag, start, stop, organism, sequence_length, signature_accession, signature_description  ' \
-          ' from interpro_%s as t2 where analysis="Phobius" and signature_accession="TRANSMEMBRANE"' % (biodb)
+          ' from interpro as t2 where analysis="Phobius" and signature_accession="TRANSMEMBRANE"'
     #print(sql)
     data = server.adaptor.execute_and_fetchall(sql,)
 

@@ -69,15 +69,14 @@ def load_sport_data(psortdb_output_files,
     hash2psort_results = {}
     for psortdb_output in psortdb_output_files:
         hash2psort_results.update(parse_psort_results(psortdb_output))
-    
-    
-    sql = f'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_{db_name}'
+
+    sql = f'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id'
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     
-    sql = f'create table if not exists custom_tables.seqfeature_id2psortb_{db_name} (seqfeature_id INT, final_prediction varchar(200), score FLOAT)'
+    sql = f'create table if not exists custom_tables_seqfeature_id2psortb (seqfeature_id INT, final_prediction varchar(200), score FLOAT)'
     server.adaptor.execute(sql,)
     
-    sql_template = f'insert into custom_tables.seqfeature_id2psortb_{db_name} values (%s, %s, %s)'
+    sql_template = f'insert into custom_tables_seqfeature_id2psortb values (%s, %s, %s)'
     
     for hash in hash2psort_results:
         for locus in hash2locus_list[hash]:
@@ -90,7 +89,7 @@ def load_sport_data(psortdb_output_files,
                                                   final_pred,
                                                   score))
     
-    sql = f'create index sfp on custom_tables.seqfeature_id2psortb_{db_name}(seqfeature_id)'                 
+    sql = f'create index ctsipsid on custom_tables_seqfeature_id2psortb (seqfeature_id)'                 
     server.adaptor.execute(sql,)
     server.commit()
 
@@ -98,6 +97,7 @@ def load_sport_data(psortdb_output_files,
 if __name__ == '__main__':
     import argparse
     import chlamdb_setup_utils
+    from chlamdb.biosqldb import manipulate_biosqldb
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", '--psortdb_output', type=str, help="BLAST output file(s)", required=True, nargs="+")
@@ -110,7 +110,8 @@ if __name__ == '__main__':
     
     hash2locus_list = chlamdb_setup_utils.get_hash2locus_list(args.corresp_table)
 
-
     load_sport_data(args.psortdb_output, 
                     args.db_name,
                     hash2locus_list)
+    
+    manipulate_biosqldb.update_config_table(args.db_name, "psortb_data")

@@ -18,11 +18,11 @@ def locus2ko_table(locus_tag2ko_dico,
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(biodatabase)
 
-    sql2 = 'select locus_tag, seqfeature_id from annotation.seqfeature_id2locus_%s' % biodatabase
+    sql2 = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus' % biodatabase
 
     locus2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2))
 
-    sql2 = 'CREATE TABLE IF NOT EXISTS enzyme.seqfeature_id2ko_%s (seqfeature_id INT,' \
+    sql2 = 'CREATE TABLE IF NOT EXISTS enzyme_seqfeature_id2ko (seqfeature_id INT,' \
            ' ko_id INT, ' \
            ' index ko_id (ko_id),' \
            ' index seqid (seqfeature_id));' % (biodatabase)
@@ -34,7 +34,7 @@ def locus2ko_table(locus_tag2ko_dico,
         ko_id = ko_accession2ko_id[ko]
         seqfeature_id = locus2seqfeature_id[locus]
 
-        sql = 'insert into enzyme.seqfeature_id2ko_%s (seqfeature_id, ko_id) values (%s, %s)' % (biodatabase,
+        sql = 'insert into enzyme_seqfeature_id2ko (seqfeature_id, ko_id) values (%s, %s)' % (biodatabase,
                                                                                                  seqfeature_id,
                                                                                                  ko_id)
 
@@ -66,8 +66,8 @@ def locus2ec_table(locus_tag2ec_dico, biodatabase):
 
     server, db = manipulate_biosqldb.load_db(biodatabase)
 
-    #sql = 'select locus_tag, accession from orthology_detail_%s' % biodatabase
-    #sql2 = 'select locus_tag, orthogroup from orthology_detail_%s' % biodatabase
+    #sql = 'select locus_tag, accession from orthology_detail' % biodatabase
+    #sql2 = 'select locus_tag, orthogroup from orthology_detail' % biodatabase
     #locus2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql))
     #locus2orthogroup = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2))
 
@@ -78,14 +78,14 @@ def locus2ec_table(locus_tag2ec_dico, biodatabase):
 
     server.adaptor.execute_and_fetchall(sql2,)
 
-    sql = 'select locus_tag, seqfeature_id from annotation.seqfeature_id2locus_%s' % biodatabase
+    sql = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus' % biodatabase
 
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     for locus in locus_tag2ec_dico:
         for ec_data in locus_tag2ec_dico[locus]:
 
-            sql = 'select enzyme_id from enzyme.enzymes where ec="%s"' % ec_data[0]
+            sql = 'select enzyme_id from enzyme_enzymes where ec="%s"' % ec_data[0]
             ec_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
             seqfeature_id = locus_tag2seqfeature_id[locus]
             sql = 'insert into enzyme.seqfeature_id2ec_%s (seqfeature_id, ec_id) values (%s, %s)' % (biodatabase,
@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
     if args.ko_table:
         server, db = manipulate_biosqldb.load_db(args.database_name)
-        sql = 'select ko_accession, ko_id from enzyme.ko_annotation'
+        sql = 'select ko_accession, ko_id from enzyme_ko_annotation'
         ko_accession2ko_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
         locus2ko = parse_blast_koala_output(args.ko_table)
         locus2ko_table(locus2ko,

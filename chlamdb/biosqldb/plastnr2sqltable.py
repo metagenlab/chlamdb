@@ -565,7 +565,7 @@ def create_sql_blastnr_tables(db_name, mysql_host, mysql_user, mysql_pwd, mysql_
                         ' subject_end int,' \
                         ' INDEX nr_hit_id (nr_hit_id))' % (db_name, accession)
 
-            sql_blast_hsps2 = 'ALTER TABLE blastnr.blastnr_hsps_%s_%s ADD CONSTRAINT fk_blast_hsp_hit_id_%s ' \
+            sql_blast_hsps2 = 'ALTER TABLE blastnr_blastnr_hsps_%s ADD CONSTRAINT fk_blast_hsp_hit_id_%s ' \
                               'FOREIGN KEY (nr_hit_id) REFERENCES blastnr_hits_%s_%s(nr_hit_id);' % (db_name, accession, accession, db_name, accession)
 
 
@@ -579,16 +579,16 @@ def create_sql_blastnr_tables(db_name, mysql_host, mysql_user, mysql_pwd, mysql_
                             ' subject_scientific_name TEXT(2000000), ' \
                             ' subject_taxid TEXT(2000000),' \
                             ' subject_title VARCHAR(2000),' \
-                            ' FOREIGN KEY (locus_tag) REFERENCES biosqldb.orthology_detail_%s(locus_tag),' \
+                            ' FOREIGN KEY (locus_tag) REFERENCES orthology_detail(locus_tag),' \
                             ' INDEX locus_tag (locus_tag))' % (db_name, accession, db_name)
 
 
-            sql_blast_taxonomy = 'CREATE TABLE blastnr.blastnr_hits_taxonomy_%s_%s (nr_hit_id INT, ' \
+            sql_blast_taxonomy = 'CREATE TABLE blastnr_blastnr_hits_taxonomy_%s (nr_hit_id INT, ' \
                                  ' subject_taxon_id int,' \
                                  ' INDEX nr_hit_id (nr_hit_id),' \
                                  ' INDEX subject_taxon_id (subject_taxon_id))' % (db_name, accession)
 
-            sql_blast_taxonomy2 = 'ALTER TABLE blastnr.blastnr_hits_taxonomy_%s_%s ADD CONSTRAINT fk_blast_hit_id_%s ' \
+            sql_blast_taxonomy2 = 'ALTER TABLE blastnr_blastnr_hits_taxonomy_%s ADD CONSTRAINT fk_blast_hit_id_%s ' \
                                   'FOREIGN KEY (nr_hit_id) REFERENCES blastnr_hits_%s_%s(nr_hit_id);' % (db_name, accession, accession, db_name, accession)
 
             try:
@@ -925,10 +925,10 @@ def del_blastnr_table_content(db_name):
     all_accessions = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
     for accession in all_accessions:
-        sql1 = 'DROP TABLE IF EXISTS blastnr.blastnr_hsps_%s_%s' % (db_name, accession)
-        sql2 = 'DROP TABLE IF EXISTS blastnr.blastnr_hits_%s_%s' % (db_name, accession)
-        sql3 = 'DROP TABLE IF EXISTS blastnr.blastnr_hits_taxonomy_%s_%s' % (db_name, accession)
-        sql4 = 'DROP TABLE IF EXISTS blastnr.blastnr_hits_taxonomy_filtered_%s_%s' % (db_name, accession)
+        sql1 = 'DROP TABLE IF EXISTS blastnr_blastnr_hsps_%s' % (db_name, accession)
+        sql2 = 'DROP TABLE IF EXISTS blastnr_blastnr_hits_%s' % (db_name, accession)
+        sql3 = 'DROP TABLE IF EXISTS blastnr_blastnr_hits_taxonomy_%s' % (db_name, accession)
+        sql4 = 'DROP TABLE IF EXISTS blastnr_blastnr_hits_taxonomy_filtered_%s' % (db_name, accession)
 
 
         print (sql1)

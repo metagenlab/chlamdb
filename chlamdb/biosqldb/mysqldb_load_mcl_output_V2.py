@@ -245,7 +245,7 @@ def plot_orthogroup_size_distrib(server, biodatabase_name, out_name = "orthogrou
 
         # plot all genomes group size distribution
         #server, db = manipulate_biosqldb.load_db(db_name)
-        sql='select orthogroup, count(*) from biosqldb.orthology_detail_%s group by orthogroup' % biodatabase_name
+        sql='select orthogroup, count(*) from orthology_detail group by orthogroup' % biodatabase_name
 
         # based on the new orthology detail table
         all_grp_size = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
@@ -296,7 +296,7 @@ def get_orthology_matrix_merging_plasmids_biosqldb(server, biodatabase_name):
 
     all_orthogroups = get_all_orthogroup_size(server, biodatabase_name)
     #server, db = manipulate_biosqldb.load_db(biodatabase_name)
-    #sql='select orthogroup, count(*) from biosqldb.orthology_detail_%s group by orthogroup' % biodatabase_name
+    #sql='select orthogroup, count(*) from orthology_detail group by orthogroup' % biodatabase_name
 
     # based on the new orthology detail table
     #all_orthogroups = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
@@ -335,7 +335,7 @@ def get_orthology_matrix_merging_plasmids_own_tables(server, biodatabase_name):
 
     #all_orthogroups = get_all_orthogroup_size(server, biodatabase_name)
     server, db = manipulate_biosqldb.load_db(biodatabase_name)
-    sql='select orthogroup, count(*) from biosqldb.orthology_detail_%s group by orthogroup' % biodatabase_name
+    sql='select orthogroup, count(*) from orthology_detail group by orthogroup' % biodatabase_name
 
     # based on the new orthology detail table
     all_orthogroups = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
@@ -378,7 +378,7 @@ def create_orthology_mysql_table(server, orthogroup2detailed_count, biodatabase_
     print 
     taxon_id_list = orthogroup2detailed_count[orthogroup2detailed_count.keys()[0]].keys()
     
-    sql = "CREATE TABLE comparative_tables.orthology_%s(orthogroup VARCHAR(100) NOT NULL" % biodatabase_name
+    sql = "CREATE TABLE comparative_tables_orthology(orthogroup VARCHAR(100) NOT NULL" % biodatabase_name
     for i in taxon_id_list:
         sql+=" ,`%s` INT" % i
     sql+=")"
@@ -393,7 +393,7 @@ def create_orthology_mysql_table(server, orthogroup2detailed_count, biodatabase_
             columns+="`%s`, " % taxons[i]
         values += "%s" % orthogroup2detailed_count[group][taxons[-1]]
         columns += "`%s`" % taxons[-1]
-        sql = "INSERT INTO comparative_tables.orthology_%s (%s) values (%s);" %  (biodatabase_name, columns, values)
+        sql = "INSERT INTO comparative_tables_orthology (%s) values (%s);" %  (biodatabase_name, columns, values)
         #print sql
         server.adaptor.execute(sql)
         server.adaptor.commit()
@@ -457,7 +457,7 @@ def get_all_orthogroup_protein_fasta(server, biodatabase_name, out_dir):
 
     from chlamdb.biosqldb import manipulate_biosqldb
     server, db = manipulate_biosqldb.load_db(biodatabase_name)
-    sql = 'select orthogroup from orthology_detail_%s group by orthogroup' % biodatabase_name
+    sql = 'select orthogroup from orthology_detail group by orthogroup' % biodatabase_name
 
 
     all_groups = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)] # get_all_orthogroup_size(server, biodatabase_name).keys()
@@ -757,7 +757,7 @@ def locus_tag2nucl_sequence_dict(server, db, biodb_name):
 
 def locus_tag2aa_sequence_dict(server, db, biodb_name):
 
-    sql = 'select locus_tag, translation from orthology_detail_%s' % biodb_name
+    sql = 'select locus_tag, translation from orthology_detail' % biodb_name
 
     return manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 

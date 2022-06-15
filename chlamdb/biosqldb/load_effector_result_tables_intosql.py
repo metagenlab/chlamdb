@@ -7,13 +7,13 @@ def load_BPBAac_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table effectors.predicted_BPBAac_%s (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
+    sql = 'CREATE table effectors_predicted_BPBAac (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
           ' INDEX taxon_id (taxon_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -32,7 +32,7 @@ def load_BPBAac_table(table_file, biodb='chlamydia_04_16'):
                     effector = 1
                 else:
                     print 'unknown result', data
-                sql = 'insert into effectors.predicted_BPBAac_%s values (%s,%s,%s,%s)' % (biodb,
+                sql = 'insert into effectors_predicted_BPBAac values (%s,%s,%s,%s)' % (biodb,
                                                                                           locus_tag2seqfeature_id[data[0]],
                                                                                           locus_tag2taxon_id[data[0]],
                                                                                           data[1],
@@ -46,13 +46,13 @@ def load_T3_MM_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table effectors.predicted_T3MM_%s (seqfeature_id INT primary key,taxon_id INT,value FLOAT,effectors INT,' \
+    sql = 'CREATE table effectors_predicted_T3MM (seqfeature_id INT primary key,taxon_id INT,value FLOAT,effectors INT,' \
           ' probability FLOAT, INDEX taxon_id (taxon_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -73,7 +73,7 @@ def load_T3_MM_table(table_file, biodb='chlamydia_04_16'):
                     print 'unknown result', data
 
                 # seqName,value,T3SE,probability
-                sql = 'insert into effectors.predicted_T3MM_%s values (%s,%s,%s,%s, %s)' % (biodb,
+                sql = 'insert into effectors_predicted_T3MM values (%s,%s,%s,%s, %s)' % (biodb,
                                                                                             locus_tag2seqfeature_id[data[0]],
                                                                                             locus_tag2taxon_id[data[0]],
                                                                                             data[1],
@@ -88,13 +88,13 @@ def load_effectiveT3_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table IF NOT EXISTS effectors.predicted_effectiveT3_%s (seqfeature_id INT primary key,taxon_id INT,score FLOAT,effectors INT,' \
+    sql = 'CREATE table IF NOT EXISTS effectors_predicted_effectiveT3 (seqfeature_id INT primary key,taxon_id INT,score FLOAT,effectors INT,' \
           ' INDEX taxon_id (taxon_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -115,7 +115,7 @@ def load_effectiveT3_table(table_file, biodb='chlamydia_04_16'):
                     print 'unknown result', data
 
                 # Id; Description; Score; is Effective
-                sql = 'insert into effectors.predicted_effectiveT3_%s values (%s,%s,%s,%s)' % (biodb,
+                sql = 'insert into effectors_predicted_effectiveT3 values (%s,%s,%s,%s)' % (biodb,
                                                                                             locus_tag2seqfeature_id[data[0]],
                                                                                             locus_tag2taxon_id[data[0]],
                                                                                             data[2],
@@ -130,13 +130,13 @@ def load_T4SEpre_bpbAac_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table IF NOT EXISTS effectors.predicted_T4SEpre_bpbAac_%s (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
+    sql = 'CREATE table IF NOT EXISTS effectors_predicted_T4SEpre_bpbAac (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
           ' INDEX taxon_id (taxon_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -158,7 +158,7 @@ def load_T4SEpre_bpbAac_table(table_file, biodb='chlamydia_04_16'):
 
                 #Protein,SVM-Value,T4S protein or not
                 locus = re.sub('"', "", data[0])
-                sql = 'insert into effectors.predicted_T4SEpre_bpbAac_%s values (%s,%s,%s,%s)' % (biodb,
+                sql = 'insert into effectors_predicted_T4SEpre_bpbAac values (%s,%s,%s,%s)' % (biodb,
                                                                                             locus_tag2seqfeature_id[locus],
                                                                                             locus_tag2taxon_id[locus],
                                                                                             data[1],
@@ -173,13 +173,13 @@ def load_T4SEpre_psAac_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table IF NOT EXISTS effectors.predicted_T4SEpre_psAac_%s (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
+    sql = 'CREATE table IF NOT EXISTS effectors_predicted_T4SEpre_psAac (seqfeature_id INT primary key,taxon_id INT,SVM_value FLOAT,effectors INT,' \
           ' INDEX taxon_id (taxon_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -201,7 +201,7 @@ def load_T4SEpre_psAac_table(table_file, biodb='chlamydia_04_16'):
 
                 #Protein,SVM-Value,T4S protein or not
                 #locus = re.sub('"', "", data[0])
-                sql = 'insert into effectors.predicted_T4SEpre_psAac_%s values (%s,%s,%s,%s)' % (biodb,
+                sql = 'insert into effectors_predicted_T4SEpre_psAac values (%s,%s,%s,%s)' % (biodb,
                                                                                             locus_tag2seqfeature_id[data[0]],
                                                                                             locus_tag2taxon_id[data[0]],
                                                                                             data[1],
@@ -220,13 +220,13 @@ def load_chaperones_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table IF NOT EXISTS effectors.predicted_chaperones_%s (seqfeature_id INT,taxon_id INT,motif varchar(400), info TEXT,' \
+    sql = 'CREATE table IF NOT EXISTS effectors_predicted_chaperones (seqfeature_id INT,taxon_id INT,motif varchar(400), info TEXT,' \
           ' INDEX taxon_id (taxon_id), index seqfeature_id (seqfeature_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -242,7 +242,7 @@ def load_chaperones_table(table_file, biodb='chlamydia_04_16'):
 
             #Protein,SVM-Value,T4S protein or not
             #locus = re.sub('"', "", data[0])
-            sql = 'insert into effectors.predicted_chaperones_%s values (%s,%s,"%s", "%s")' % (biodb,
+            sql = 'insert into effectors_predicted_chaperones values (%s,%s,"%s", "%s")' % (biodb,
                                                                                         locus_tag2seqfeature_id[data[0]],
                                                                                         locus_tag2taxon_id[data[0]],
                                                                                         motif,
@@ -266,13 +266,13 @@ def load_ELD_table(table_file, biodb='chlamydia_04_16'):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id' % biodb
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'select locus_tag, taxon_id from orthology_detail_%s' % biodb
+    sql = 'select locus_tag, taxon_id from orthology_detail' % biodb
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    sql = 'CREATE table IF NOT EXISTS effectors.predicted_ELD_%s (seqfeature_id INT,taxon_id INT,pfam_domain varchar(400), description TEXT, score INT,' \
+    sql = 'CREATE table IF NOT EXISTS effectors_predicted_ELD (seqfeature_id INT,taxon_id INT,pfam_domain varchar(400), description TEXT, score INT,' \
           ' INDEX taxon_id (taxon_id), index seqfeature_id (seqfeature_id))' % biodb
 
     server.adaptor.execute(sql,)
@@ -283,7 +283,7 @@ def load_ELD_table(table_file, biodb='chlamydia_04_16'):
 
             #Protein,SVM-Value,T4S protein or not
             #locus = re.sub('"', "", data[0])
-            sql = 'insert into effectors.predicted_ELD_%s values (%s,%s,"%s", "%s", %s)' % (biodb,
+            sql = 'insert into effectors_predicted_ELD values (%s,%s,"%s", "%s", %s)' % (biodb,
                                                                                         locus_tag2seqfeature_id[data[0]],
                                                                                         locus_tag2taxon_id[data[0]],
                                                                                         data[1],

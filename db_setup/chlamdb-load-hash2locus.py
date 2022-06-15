@@ -1,30 +1,30 @@
 #!/usr/bin/env python
 
 
-def load_hash2locus(hash2locus_list, biodb):
+def load_hash2locus(hash2locus_list, 
+                    biodb):
     import MySQLdb
     import os
     from chlamdb.biosqldb import manipulate_biosqldb
-    sqlpsw = os.environ['SQLPSW']
-    conn = MySQLdb.connect(host="localhost", # your host, usually localhost
-                           user="root", # your username
-                           passwd=sqlpsw) # name of the data base
-    cursor = conn.cursor()
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
 
-    sql = 'select locus_tag, seqfeature_id from annotation.seqfeature_id2locus_%s' % biodb
+    sql = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus'
     cursor.execute(sql,)
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(cursor.fetchall())
 
-    sql = 'create table annotation.hash2seqfeature_id_%s (hash varchar(300), seqfeature_id INTEGER)' % biodb
+    sql = 'create table annotation_hash2seqfeature_id (hash varchar(300), seqfeature_id INTEGER)'
     cursor.execute(sql,)
 
     for hash in hash2locus_list:
         locus_list = hash2locus_list[hash]
         for locus in locus_list:
-            cursor.execute('insert into annotation.hash2seqfeature_id_%s values ("%s", "%s")' % (biodb, hash, locus_tag2seqfeature_id[locus]))
+            cursor.execute('insert into annotation_hash2seqfeature_id values ("%s", "%s")' % (hash, 
+                                                                                              locus_tag2seqfeature_id[locus]))
     conn.commit()
-    sql1 = 'create index h1 ON annotation.hash2seqfeature_id_%s(hash)' % biodb
-    sql2 = 'create index h2 ON annotation.hash2seqfeature_id_%s(seqfeature_id)' % biodb
+    sql1 = 'create index h1 ON annotation_hash2seqfeature_id(hash)'
+    sql2 = 'create index h2 ON annotation_hash2seqfeature_id(seqfeature_id)'
     cursor.execute(sql1,)
     cursor.execute(sql2,)
     conn.commit()

@@ -1,20 +1,17 @@
 #! /usr/bin/env python
 
 
-def get_pfam_freq(db_version):
+def get_pfam_freq(biodb, 
+                  db_version):
 
     import MySQLdb
     import os
     from chlamdb.biosqldb import manipulate_biosqldb
-    sqlpsw = os.environ['SQLPSW']
 
-
-    conn = MySQLdb.connect(host="localhost", # your host, usually localhost
-                                user="root", # your username
-                                passwd=sqlpsw, # your password
-                                db="pfam") # name of the data base
-
-    cursor = conn.cursor()
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
+    
     sql_pfam_list = 'select hmm_id from pfam_summary_version_%s' % (db_version)
     cursor.execute(sql_pfam_list,)
     pfam_list = [i[0] for i in cursor.fetchall()]
@@ -22,7 +19,7 @@ def get_pfam_freq(db_version):
     # get overall taxonomy statistics
 
     sql = 'select superkingdom, count(*) from refseq_ref_repres_genomes t1 ' \
-          ' inner join blastnr.blastnr_taxonomy t2 on t1.taxid=t2.taxon_id group by superkingdom;'
+          ' inner join blastnr_blastnr_taxonomy t2 on t1.taxid=t2.taxon_id group by superkingdom;'
     cursor.execute(sql, )
     superkingdom2count = manipulate_biosqldb.to_dict(cursor.fetchall())
 
@@ -51,7 +48,7 @@ def get_pfam_freq(db_version):
               ' (select t1.assembly_id, taxid from refseq_ref_repres_genomes_domains_pfam_%s t1 ' \
               ' inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
               ' where pfam_id=%s group by t1.assembly_id) A ' \
-              ' inner join blastnr.blastnr_taxonomy B on A.taxid=B.taxon_id group by B.superkingdom;' % (db_version,
+              ' inner join blastnr_blastnr_taxonomy B on A.taxid=B.taxon_id group by B.superkingdom;' % (db_version,
                                                                                                          pfam)
         cursor.execute(sql, )
         superkingdom2count_domain = manipulate_biosqldb.to_dict(cursor.fetchall())
@@ -152,8 +149,10 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", '--pfam_db_version', type=str, help="pfam db version number", required=True)
+    parser.add_argument("-n", '--biodb', type=str, help="biodb name", required=True)
 
     args = parser.parse_args()
 
     create_pfam_interpro_signature2pfam_id('2017_06_29b_motile_chlamydiae', args.pfam_db_version)
-    #get_pfam_freq(args.pfam_db_version)
+    #get_pfam_freq(args.biodb,
+    #               args.pfam_db_version)

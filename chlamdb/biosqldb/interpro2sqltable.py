@@ -136,7 +136,7 @@ def interpro2biosqlV2(server,
     :return:
     '''
 
-    sql = 'CREATE TABLE interpro.interpro_%s (accession VARCHAR(100),' \
+    sql = 'CREATE TABLE interpro_interpro (accession VARCHAR(100),' \
           ' seqfeature_id INT, ' \
           ' organism VARCHAR(200),  ' \
           ' taxon_id INT,' \
@@ -211,7 +211,7 @@ def interpro2biosqlV2(server,
                 #print organism
                 locus_tag = seqfeature_id2locus_tag[str(seqfeature_id)]
 
-                sql = 'INSERT INTO interpro.interpro_%s(accession, locus_tag, organism, taxon_id,' \
+                sql = 'INSERT INTO interpro_interpro(accession, locus_tag, organism, taxon_id,' \
                       ' sequence_length, analysis, signature_accession, signature_description, start, ' \
                       ' stop, score, interpro_accession, interpro_description, GO_terms, pathways) ' \
                       ' values ("%s", "%s", "%s", %s, %s, "%s", "%s", "%s", %s, %s, "%s", "%s", "%s", "%s", "%s");' % (db_name,
@@ -243,7 +243,7 @@ def update_analysis_dico(server):
 
     from chlamdb.biosqldb import manipulate_biosqldb
 
-    sql = 'select analysis_name, analysis_id from interpro.analysis'
+    sql = 'select analysis_name, analysis_id from interpro_analysis'
 
     analysis_nam2analysis_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -274,13 +274,13 @@ def interpro2biosql(server,
     :return:
     '''
 
-    sql = 'CREATE TABLE if not exists interpro.analysis(analysis_id INT AUTO_INCREMENT PRIMARY KEY, ' \
+    sql = 'CREATE TABLE if not exists interpro_analysis(analysis_id INT AUTO_INCREMENT PRIMARY KEY, ' \
           ' analysis_name varchar(400),' \
           ' index analysis_name(analysis_name))'
 
     server.adaptor.execute(sql,)
 
-    sql2 = 'CREATE TABLE if not exists interpro.signature (signature_id INT AUTO_INCREMENT PRIMARY KEY, ' \
+    sql2 = 'CREATE TABLE if not exists interpro_signature (signature_id INT AUTO_INCREMENT PRIMARY KEY, ' \
            ' signature_accession varchar(400),' \
            ' signature_description TEXT,' \
            ' analysis_id INT,' \
@@ -293,7 +293,7 @@ def interpro2biosql(server,
 
     server.adaptor.execute(sql2,)
 
-    sql3 = 'CREATE TABLE if not exists interpro.interpro_%s (seqfeature_id INT,' \
+    sql3 = 'CREATE TABLE if not exists interpro_interpro (seqfeature_id INT,' \
           ' sequence_length INT, ' \
           ' signature_id INT, ' \
           ' start INT, ' \
@@ -305,9 +305,9 @@ def interpro2biosql(server,
     server.adaptor.execute(sql3)
 
     analysis2analysis_id = update_analysis_dico(server)
-    sql = 'select signature_accession, signature_id from interpro.signature'
+    sql = 'select signature_accession, signature_id from interpro_signature'
     signature2signature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
-    sql = 'select name, interpro_id from interpro.entry'
+    sql = 'select name, interpro_id from interpro_entry'
     interpro_entry2interpro_entry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     for one_interpro_file in input_files:
@@ -352,7 +352,7 @@ def interpro2biosql(server,
                     analysis_id = analysis2analysis_id[analysis]
                 except KeyError:
                     print ('New analysis:', analysis)
-                    sql = 'insert into interpro.analysis (analysis_name) values ("%s")' % analysis
+                    sql = 'insert into interpro_analysis (analysis_name) values ("%s")' % analysis
                     server.adaptor.execute(sql)
                     server.adaptor.commit()
                     analysis2analysis_id = update_analysis_dico(server)
@@ -360,13 +360,13 @@ def interpro2biosql(server,
 
                 signature_accession = data[4]
 
-                #sql = 'select signature_id from interpro.signature where signature_accession="%s"' % signature_accession
+                #sql = 'select signature_id from interpro_signature where signature_accession="%s"' % signature_accession
 
                 try:
                     signature_id = signature2signature_id[signature_accession]#server.adaptor.execute_and_fetchall(sql,)[0][0]
                 except KeyError:
                     print ('New signature', signature_accession, signature_description)
-                    #sql1 = 'select interpro_id from interpro.entry where name="%s"' % (interpro_accession)
+                    #sql1 = 'select interpro_id from interpro_entry where name="%s"' % (interpro_accession)
 
                     try:
                         interpro_id = interpro_entry2interpro_entry_id[interpro_accession]#server.adaptor.execute_and_fetchall(sql1,)[0][0]
@@ -377,17 +377,17 @@ def interpro2biosql(server,
                         else:
                             print ('New Interpro entry', interpro_accession, interpro_description)
 
-                            sql1b = 'insert into interpro.entry(name, description) values("%s","%s")' % (interpro_accession,
+                            sql1b = 'insert into interpro_entry(name, description) values("%s","%s")' % (interpro_accession,
                                                                                                          interpro_description)
                             print (sql1b)
                             server.adaptor.execute(sql1b,)
                             server.adaptor.commit()
-                            sql1 = 'select interpro_id from interpro.entry where name="%s"' % (interpro_accession)
+                            sql1 = 'select interpro_id from interpro_entry where name="%s"' % (interpro_accession)
                             interpro_id = server.adaptor.execute_and_fetchall(sql1,)[0][0]
                             # update dictionnray
                             interpro_entry2interpro_entry_id[interpro_accession] = interpro_id
 
-                    sql2 = 'insert into interpro.signature (signature_accession, signature_description, ' \
+                    sql2 = 'insert into interpro_signature (signature_accession, signature_description, ' \
                           ' analysis_id, interpro_id, GO_terms, pathways) values ("%s", "%s", %s, %s, "%s", "%s")' % (signature_accession,
                                                                                                      signature_description,
                                                                                                      analysis_id,
@@ -397,7 +397,7 @@ def interpro2biosql(server,
 
                     server.adaptor.execute(sql2,)
                     server.adaptor.commit()
-                    sql = 'select signature_id from interpro.signature where signature_accession="%s"' % signature_accession
+                    sql = 'select signature_id from interpro_signature where signature_accession="%s"' % signature_accession
                     signature_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
                     # update dictionnary
                     signature2signature_id[signature_accession] = signature_id
@@ -411,7 +411,7 @@ def interpro2biosql(server,
 
                 seqfeature_id = locus_tag2seqfeature_id[accession]
 
-                sql = 'INSERT INTO interpro.interpro_%s(seqfeature_id,' \
+                sql = 'INSERT INTO interpro_interpro(seqfeature_id,' \
                       ' signature_id,' \
                       ' sequence_length, ' \
                       ' start, ' \
@@ -472,7 +472,7 @@ if __name__ == '__main__':
     #print seqfeature_id2locus_tag.keys()[1:10]
     if not args.v2_table:
 
-        sql = 'select locus_tag, seqfeature_id from annotation.seqfeature_id2locus_%s' % biodb
+        sql = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus' % biodb
         locus_tag2seqfeature_id =manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
         interpro2biosql(server,
@@ -483,7 +483,7 @@ if __name__ == '__main__':
     else:
 
 
-        sql = 'select name,interpro_id from interpro.entry'
+        sql = 'select name,interpro_id from interpro_entry'
 
         interpro_accession2interpro_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 

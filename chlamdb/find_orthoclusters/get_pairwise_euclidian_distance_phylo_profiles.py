@@ -69,9 +69,9 @@ def euclidian_dist_orthogroups(biodb, merge_taxons=False):
     except:
         print ('problem creating the sql table')
 
-    sql = 'select * from comparative_tables.orthology_%s' % biodb
+    sql = 'select * from comparative_tables_orthology' % biodb
 
-    sql2 = 'show columns from comparative_tables.orthology_%s' % biodb
+    sql2 = 'show columns from comparative_tables_orthology' % biodb
 
 
     # get matrix as pantas table: orthogroups as rows, genomes as columns
@@ -237,7 +237,7 @@ def euclidian_dist_cogs(biodb):
     except:
         print ('problem creating the sql table')
 
-    sql = 'select * from comparative_tables.COG_%s' % biodb
+    sql = 'select * from comparative_tables_COG' % biodb
     cog2profile = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     combinations = []
@@ -331,7 +331,7 @@ def euclidian_dist_interpro(biodb):
     except:
         print ('problem creating the sql table')
 
-    sql = 'select * from comparative_tables.interpro_%s' % biodb
+    sql = 'select * from comparative_tables_interpro' % biodb
     interpro2profile = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     combinations = []

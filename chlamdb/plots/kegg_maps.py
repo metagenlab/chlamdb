@@ -96,9 +96,8 @@ def map2highlighted_map(map_id, ko_list, ko2freq, biodb, outpath = 'test.pdf', t
     '''
 
     #print re.sub('pdf', 'svg', outpath)
-    shell_command.shell_command('inkscape -l %s %s' % (re.sub('pdf', 'svg', outpath), outpath)) # 'pdf2svg %s %s all'
-    #shell_command.shell_command('pdf2svg %s %s all' % (outpath, re.sub('pdf', 'svg', outpath))) # 'pdf2svg %s %s all'
-    print("edit SVG")
+    shell_command.shell_command('inkscape %s --export-plain-svg=%s' % (outpath, re.sub('pdf', 'svg', outpath))) # 'pdf2svg %s %s all'
+    
     t = edit_svg_map("%s" % re.sub('pdf', 'svg', outpath), ko2freq.keys(), biodb, map_id, taxon_id=taxon_id)
     #print "%s" % re.sub('pdf', 'svg', outpath)
     t.write("%s" % re.sub('pdf', 'svg', outpath))
@@ -113,7 +112,7 @@ def edit_svg_map(map_path, keep_ko_list, biodb_name, map_name,taxon_id=False):
 
     server, db = manipulate_biosqldb.load_db(biodb_name)
 
-    sql = 'select description,pathway_name from enzyme.kegg_pathway;'
+    sql = 'select description,pathway_name from enzyme_kegg_pathway;'
 
     description2map = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
