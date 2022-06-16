@@ -8,17 +8,17 @@ def create_COG_tables(biodb):
     cursor = server.adaptor.cursor
 
 
-    sql2 = 'CREATE table COG_cog_names_2014 (COG_id INTEGER PRIMARY KEY,' \
+    sql2 = 'CREATE table if not exists COG_cog_names_2014 (COG_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
                                             ' COG_name varchar(100),' \
                                             ' description varchar(200))'
 
-    sql3 = 'CREATE table COG_cog_id2cog_category (COG_id INT,' \
+    sql3 = 'CREATE table if not exists COG_cog_id2cog_category (COG_id INT,' \
            ' category_id int)'
 
 
-    sql4 = 'create table COG_code2category (code varchar(5),' \
+    sql4 = 'create table if not exists COG_code2category (code varchar(5),' \
                                            ' description TEXT,' \
-                                           ' category_id INTEGER primary KEY);'
+                                           ' category_id INTEGER primary KEY AUTO_INCREMENT);'
                                            
     sql_index2 = 'create index cciccid on COG_cog_id2cog_category(COG_id)'
     sql_index3 = 'create index ccicccid on COG_cog_id2cog_category(category_id)'
@@ -27,9 +27,11 @@ def create_COG_tables(biodb):
     cursor.execute(sql2,)
     cursor.execute(sql3,)
     cursor.execute(sql4,)
-    
-    cursor.execute(sql_index2,)
-    cursor.execute(sql_index3,)
+    try:
+        cursor.execute(sql_index2,)
+        cursor.execute(sql_index3,)
+    except:
+        pass
     
     conn.commit()
 
@@ -82,16 +84,9 @@ def load_cog_tables(biodb,
     except:
         cursor.execute('PRAGMA encoding="UTF-8";')
 
-    sql = 'insert into COG_code2category (code, description) values ("%s", "%s")'
-    for row in cog_categories:
-        if len(row) == 0:
-            continue
-        if row[0] == '#':
-            continue
-        data = row.split('\t')
-        sql_str = sql % (data[0], data[1])
-        print(sql_str)
-        cursor.execute(sql_str, )
+    sql = 'insert into COG_code2category (code, description) values (%s, %s)'
+    for n,row in cog_categories.iterrows():
+        cursor.execute(sql, [row.code, row.name])
     conn.commit()
 
     sql2 = 'select code, category_id from COG_code2category'
@@ -102,26 +97,20 @@ def load_cog_tables(biodb,
     cursor.execute(sql3,)
     cog_description2cog_category_id = manipulate_biosqldb.to_dict(cursor.fetchall())
 
-    for row in cognames_2014:
-        if len(row) == 0:
-            continue
-        data = row.split('\t')
-        if data[0][0] == '#':
-            continue
-
+    for n, row in cognames_2014.iterrows():
         # split multiple function and insert one row/function
-        fonctions = list(data[1])
+        fonctions = list(row.functional_class)
 
-        sql = 'insert into COG_cog_names_2014(COG_name, description) values("%s","%s")' % (data[0],
-                                                                                           re.sub('"','',data[2]))
-        cursor.execute(sql,)
+        sql = 'insert into COG_cog_names_2014(COG_name, description) values(%s, %s)'
+        cursor.execute(sql, [row.COG_id, 
+                             re.sub('"','',row.COG_annotation)])
         
         cog_id = cursor.lastrowid
         
+        sql = 'insert into COG_cog_id2cog_category values (%s, %s)'
         for fonction in fonctions:
-            sql = 'insert into COG_cog_id2cog_category values (%s, %s)' % (cog_id,
-                                                                           cog_category2cog_category_id[fonction])
-            cursor.execute(sql,)
+            cursor.execute(sql,[cog_id,
+                                cog_category2cog_category_id[fonction]])
 
     conn.commit()
 
@@ -129,6 +118,7 @@ if __name__ == '__main__':
     import argparse
     from Bio import SeqIO
     import urllib.request
+    import pandas 
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", '--cognames_2014', type=str, help="cognames2003-2014.tab")
@@ -158,10 +148,10 @@ if __name__ == '__main__':
                         cog_functions_data)
 
     else:
-        with open(args.cognames_2014, 'r') as f:
-            cognames_2014 = [i.rstrip() for i in f]
-        with open(args.functions_2014, 'r') as f:
-            functions_2014 = [i.rstrip() for i in f]
+
+        cognames_2014 = pandas.read_csv(args.cognames_2014, names=["COG_id", "functional_class", "COG_annotation"], sep="\t", comment="#", encoding = "ISO-8859-1")
+
+        functions_2014 = pandas.read_csv(args.cognames_2014, names=["code", "name"], sep="\t", comment="#", encoding = "ISO-8859-1")
                   
         load_cog_tables(args.biodb,
                         cognames_2014, 

@@ -56,4 +56,4 @@ if __name__ == '__main__':
 
     biodb2cds_gc(args.db_name)
     
-    manipulate_biosqldb.update_config_table(args.database_name, "GC_statistics")
+    manipulate_biosqldb.update_config_table(args.db_name, "GC_statistics")

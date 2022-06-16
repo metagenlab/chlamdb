@@ -175,12 +175,12 @@ def interpro2biosql(server,
     :return:
     '''
 
-    sql = 'CREATE TABLE if not exists interpro_analysis (analysis_id INTEGER PRIMARY KEY, ' \
+    sql = 'CREATE TABLE if not exists interpro_analysis (analysis_id INTEGER PRIMARY KEY AUTO_INCREMENT, ' \
           ' analysis_name varchar(400))'
 
     server.adaptor.execute(sql,)
 
-    sql2 = 'CREATE TABLE if not exists interpro_signature (signature_id INTEGER PRIMARY KEY, ' \
+    sql2 = 'CREATE TABLE if not exists interpro_signature (signature_id INTEGER PRIMARY KEY AUTO_INCREMENT, ' \
            ' signature_accession varchar(400),' \
            ' signature_description TEXT,' \
            ' analysis_id INT,' \
@@ -240,8 +240,8 @@ def interpro2biosql(server,
                 signature_description = data[5]
                 interpro_accession = data[11]
                 interpro_description = data[12]
-                GO_terms = data[13]
-                pathways = data[14]
+                GO_terms = ""#data[13]
+                pathways = ""#data[14]
 
                 try:
                     analysis_id = analysis2analysis_id[analysis]
@@ -486,8 +486,8 @@ def interpro2biosql_legacy(server,
 
                 interpro_accession = data[11]
                 interpro_description = data[12]
-                GO_terms = data[13]
-                pathways = data[14]
+                GO_terms = ""#data[13]
+                pathways = ""#data[14]
 
                 for locus_tag in hash2locus_list[accession]:
 

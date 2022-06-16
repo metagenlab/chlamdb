@@ -28,7 +28,7 @@ class Orthogroup_Identity_DB:
 
 
         sql = 'CREATE TABLE if not exists orthology_identity (' \
-                   ' id INTEGER PRIMARY KEY,' \
+                   ' id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
                    ' orthogroup varchar(200),' \
                    ' locus_a VARCHAR(30) NOT NULL,' \
                    ' locus_b VARCHAR(30) NOT NULL,' \

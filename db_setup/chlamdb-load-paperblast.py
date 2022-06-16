@@ -18,6 +18,7 @@ class PaperBlast():
 
         self.paperblast_conn = sqlite3.connect(paperblast_sqlite)
         self.paperblast_cursor = self.paperblast_conn.cursor()
+        self.paperblast_conn.text_factory = lambda b: b.decode(errors = 'ignore')
 
         self.server, self.db = manipulate_biosqldb.load_db(db_name)
         self.blast_results = blast_results
@@ -34,7 +35,7 @@ class PaperBlast():
         # check if some data were already inserted
         sql = 'select pmId,doi,title,journal,year from (select distinct pmId,doi,title,journal,year from GenePaper) A;'
         self.pmid2article_data = manipulate_biosqldb.to_dict(self.paperblast_cursor.execute(sql,).fetchall())
-        sql = f'select distinct hash from string_seqfeature_id2paperblast t1 inner join annotation.hash2seqfeature_id_{db_name} t2 on t1.seqfeature_id=t2.seqfeature_id;'
+        sql = f'select distinct hash from string_seqfeature_id2paperblast t1 inner join annotation_hash2seqfeature_id t2 on t1.seqfeature_id=t2.seqfeature_id;'
         self.hash_in_db =set([i[0] for i in self.server.adaptor.execute_and_fetchall(sql,)])
         sql = 'select pmid from string_pmid2data_paperblast'
         self.pmid_in_db = [i[0] for i in self.server.adaptor.execute_and_fetchall(sql,)]
@@ -162,7 +163,7 @@ class PaperBlast():
         
         db_name = self.db_name
                 
-        sql = f'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_{db_name}'
+        sql = f'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id'
         locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(self.server.adaptor.execute_and_fetchall(sql,))
 
         check_if_new = True

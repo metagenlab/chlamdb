@@ -4,7 +4,7 @@ import os
 from csv import DictReader
 import gzip
 import re
-
+import logging
 
 class MySQLDB():
     def __init__(self, biodb):
@@ -38,7 +38,7 @@ class MySQLDB():
 
             ph = ("%s,"*len(dr.fieldnames))[:-1]
             self.db.execute("DROP TABLE IF EXISTS %s" % tablename)
-            print("CREATE TABLE %s(%s)" % (tablename, fieldlist_header[0:-1]))
+            logging.info("CREATE TABLE %s(%s)" % (tablename, fieldlist_header[0:-1]))
             self.db.execute("CREATE TABLE %s(%s)" % (tablename, fieldlist_header[0:-1]))
             ins = "insert into %s (%s) values (%s)" % (tablename, fieldlist, ph)
             for line in dr:
@@ -79,14 +79,14 @@ class MySQLDB():
                 columns_def.append("`%s` %s" % (col[1], col[2]))
 
         sql = 'select %s from ncbi_taxonomy' % ','.join(column_index)
-        print(sql)
+        logging.info(sql)
         sqlite_cursor.execute(sql)
         taxonomy_data = sqlite_cursor.fetchall()
 
         column_index[0] = 'taxon_id'
 
         sql_header_crate = 'create table if not exists blastnr_blastnr_taxonomy (%s)' % ','.join(columns_def)
-        print(sql_header_crate)
+        logging.info(sql_header_crate)
         self.mysql_cursor.execute(sql_header_crate)
 
         sql = 'insert into blastnr_blastnr_taxonomy (%s) values (' % ','.join(column_index)
@@ -98,7 +98,7 @@ class MySQLDB():
         sql += ')'
         for n, row in enumerate(taxonomy_data):
             if n % 10000 == 0:
-                print(n)
+                logging.info(n)
             row = list(row)
             row = [i if (i != '') else None for i in row]
             self.mysql_cursor.execute(sql, row)
@@ -128,12 +128,12 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--linear_taxonomy_sqlite', type=str, help='Linear taxonomy sqlite3 file')
     parser.add_argument('-d', '--db_name', type=str, help='DB name', default='Biodb name')
     parser.add_argument('-sf', '--sqlitef', action='store_true', help='Data stored in sqlite rather than MySQL (need to adapt inserts)')
+    parser.add_argument("-l", '--logfile', type=str, help="log file", default="setup_linear_taxonomy.log")
 
     args = parser.parse_args()
 
-
-
-
+    logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
+    
     if args.linear_taxonomy_file:
         db = MySQLDB(args.db_name)
         db.importFromCSV(args.linear_taxonomy, args.db_name)

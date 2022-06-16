@@ -99,9 +99,32 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "\
                              "(or 'y' or 'n').\n")
 
+def create_new_biodb(db_name, 
+            sqlite=False):
+    import os
+    sqlpsw = os.environ['SQLPSW']
+    home_folder = os.environ['HOME']
 
+    if not sqlite:
+        server = BioSeqDatabase.open_database(driver="MySQLdb", 
+                                              user="root",
+                                              passwd = sqlpsw, 
+                                              host = "127.0.0.1", 
+                                              db=db_name, 
+                                              charset='utf8',
+                                              use_unicode=True)
+    else:
+        server = BioSeqDatabase.open_database(driver="sqlite3", 
+                                              user="root",
+                                              passwd = sqlpsw, 
+                                              host = "127.0.0.1",
+                                              db=f"{home_folder}/{db_name}.db")
+    db = server.new_database(db_name, description="db %s" % db_name)
+    server.commit()
+    
 def load_db(db_name, 
-            sqlite=True):
+            sqlite=False):
+    
     import os
     sqlpsw = os.environ['SQLPSW']
     home_folder = os.environ['HOME']

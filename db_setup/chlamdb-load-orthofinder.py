@@ -27,10 +27,10 @@ def add_orthogroup_term(server):
     except:
         #print "adding orthogroup seqfeature term to", server
         # add orthogroup, ontology term: 2
-        sql1 = 'select ontology_id from ontology where name="SeqFeature Keys"'
-        id = server.adaptor.execute_and_fetchall(sql1)[0][0]
-        sql2 = 'INSERT INTO term (name, ontology_id) values ("orthogroup", %s);' % id
-        server.adaptor.execute(sql2)
+        sql2 = 'select ontology_id from ontology where name="SeqFeature Keys"'
+        id = server.adaptor.execute_and_fetchall(sql2)[0][0]
+        sql3 = 'INSERT INTO term (name, ontology_id) values ("orthogroup", %s);' % id
+        server.adaptor.execute(sql3)
         server.adaptor.commit()
     return server.adaptor.execute_and_fetchall(sql1)[0][0]
 
@@ -41,6 +41,7 @@ def add_orthogroup_to_seq(server,
     #| seqfeature_id | term_id | rank | value   |
     rank = 1
     term_id = add_orthogroup_term(server)
+    print(f"Orthogroup term id: {term_id}")
     for n, locus_tag in enumerate(locus_tag2orthogroup.keys()):
         if n % 100 == 0:
             print("%s / %s" % (n, len(locus_tag2orthogroup.keys())))
@@ -99,7 +100,7 @@ def create_indexes(server):
     
     
 def create_orthology_tables(server):
-    sql = 'CREATE TABLE if not exists orthology_orthogroup (orthogroup_id INTEGER PRIMARY KEY,' \
+    sql = 'CREATE TABLE if not exists orthology_orthogroup (orthogroup_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
           ' orthogroup_name varchar(400),' \
           ' orthogroup_size INT,' \
           ' n_genomes INT)'
@@ -310,16 +311,14 @@ def get_all_orthogroup_size(server, biodatabase_name):
     """
     return a dictonary with orthogroup size"
     """
-
     sql = ' select seqfeature_qualifier_value.value, COUNT(*) from seqfeature_qualifier_value' \
-          ' inner join term on seqfeature_qualifier_value.term_id = term.term_id and term.name = "orthogroup"' \
+          ' inner join term on seqfeature_qualifier_value.term_id = term.term_id' \
           ' inner join seqfeature on seqfeature_qualifier_value.seqfeature_id = seqfeature.seqfeature_id' \
           ' inner join bioentry on seqfeature.bioentry_id = bioentry.bioentry_id' \
-          ' inner join biodatabase on bioentry.biodatabase_id = biodatabase.biodatabase_id and biodatabase.name = "%s"' \
+          ' inner join biodatabase on bioentry.biodatabase_id = biodatabase.biodatabase_id where term.name = "orthogroup" and biodatabase.name = "%s"' \
           ' group by seqfeature_qualifier_value.value' % biodatabase_name
-
+    print(sql)
     result = server.adaptor.execute_and_fetchall(sql,)
-
     return manipulate_biosqldb._to_dict(result)
 
 

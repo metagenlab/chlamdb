@@ -58,8 +58,8 @@ def create_data_table(biodb, sqlite):
         ("gene_clusters", "optional", False),
         ("phylogenetic_profile", "optional", False),
         ("synonymous_table", "optional", False),
-        ("interpro_taxonomy", "optional", False) # interpro taxnonomy statistics
-        ("pfam_taxonomy", "optional", False) #  taxnonomy statistics
+        ("interpro_taxonomy", "optional", False), # interpro taxnonomy statistics
+        ("pfam_taxonomy", "optional", False), #  taxnonomy statistics
         ("COG_taxonomy", "optional", False) # COG taxnonomy statistics
     ]
     
@@ -126,20 +126,23 @@ def setup_biodb(biodb_name,
 
     sys.stdout.write("Importing Biosql schema...\n")
     if not sqlite:
-        err_code = os.system(f"mysql -uroot -p{sqlpsw} {biodb_name} < /tmp/biosql.sql")
+        
+        p = subprocess.Popen(["mysql", "-uroot", f"-p{sqlpsw}", f"{biodb_name}"], stdin = open("/tmp/biosql.sql", "rb"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout,stderr = p.communicate()
+        err_code = p.returncode
     else:
         err_code = os.system(f"sqlite3 {sqlite} < /tmp/biosql.sql")
     if err_code == 0:
         sys.stdout.write("OK")
     else:
-        raise IOError("Problem loading sql schema:", err_code)
-    
-    
+        raise IOError(f"Problem loading sql schema: {err_code}, {stdout}, {stderr}")
+
         
 if __name__ == '__main__':
     import argparse
     import os 
-        
+    import subprocess
+    
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", '--db_name', type=str, help="db name", required=True)

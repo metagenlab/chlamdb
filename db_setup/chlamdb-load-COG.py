@@ -246,6 +246,7 @@ if __name__ == '__main__':
     import argparse
     import chlamdb_setup_utils
     from Bio import SeqIO
+    from chlamdb.biosqldb import manipulate_biosqldb
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-i", '--input_blast', type=str, help="blast tab file", nargs='+')

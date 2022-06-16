@@ -19,7 +19,7 @@ def connect_db(biodb):
         cursor.execute('PRAGMA encoding="UTF-8";')
 
 
-    return conn, cursor
+    return conn, cursor, server
 
 
 def get_ko2modules():
@@ -156,9 +156,9 @@ def get_complete_ko_table(biodb,
     import urllib.request
     import re
     
-    conn, cursor = connect_db(biodb)
+    conn, cursor, server = connect_db(biodb)
 
-    sql = 'CREATE TABLE IF NOT EXISTS enzyme_ko_annotation (ko_id INTEGER PRIMARY KEY, ' \
+    sql = 'CREATE TABLE IF NOT EXISTS enzyme_ko_annotation (ko_id INTEGER PRIMARY KEY AUTO_INCREMENT, ' \
           ' ko_accession VARCHAR(20),' \
           ' name varchar(60),' \
           ' definition TEXT,' \
@@ -205,25 +205,27 @@ def get_complete_ko_table(biodb,
             pathways = '-'
 
         sql = 'insert into enzyme_ko_annotation (ko_accession, name, definition, EC, pathways, modules, dbxrefs)' \
-              ' values ("%s", "%s", "%s","%s", "%s", "%s", "%s")' % (ko,
-                                                                     name,
-                                                                     re.sub('"','',definition),
-                                                                     ec,
-                                                                     pathways,
-                                                                     modules,
-                                                                     '-')
+              ' values (%s, %s, %s,%s, %s, %s, %s)'
 
-        cursor.execute(sql,)
+        cursor.execute(sql,[ko,
+                            name,
+                            re.sub('"','',definition),
+                            ec,
+                            pathways,
+                            modules,
+                            '-'])
         conn.commit()
 
     # add indexes
     sql_index1 = 'create index ekaki on enzyme_ko_annotation(ko_id);'
     sql_index2 = 'create index ekaka on enzyme_ko_annotation(ko_accession);'
-    
-    cursor.execute(sql_index1)
-    cursor.execute(sql_index2)
+    try:
+        cursor.execute(sql_index1)
+        cursor.execute(sql_index2)
+    except:
+        pass
     conn.commit()
-    
+    conn.close()
 
 def load_enzyme_nomenclature_table(biodb):
 
@@ -271,7 +273,7 @@ def load_enzyme_nomenclature_table(biodb):
 
     data = urllib.request.urlopen(enzyme_file).read().decode('utf-8')
 
-    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_enzymes (enzyme_id INTEGER PRIMARY KEY,' \
+    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_enzymes (enzyme_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
           ' ec VARCHAR(200));'
 
     sql2 = 'CREATE TABLE IF NOT EXISTS enzyme_enzymes_dat (enzyme_dat_id INT,' \
@@ -290,48 +292,55 @@ def load_enzyme_nomenclature_table(biodb):
 
     all_data = [i for i in Enzyme.parse(StringIO(data))]
 
+    sql = 'select ec from enzyme_enzymes'
+
+    enzyme_already_in_db = set([i[0] for i in server.adaptor.execute_and_fetchall(sql)])
+
     for n, data in enumerate(all_data):
         
         if n %  1000 == 0:
             print("%s / %s" % (n, len(all_data)))
         
         enzyme = data['ID']
+        if enzyme in enzyme_already_in_db:
+            continue
         # insert enzyme id into primary TABLE
-        sql = 'INSERT into enzyme_enzymes (ec) values ("%s");' % enzyme
+        sql = 'INSERT into enzyme_enzymes (ec) values (%s);'
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [enzyme])
         conn.commit()
 
         id = cursor.lastrowid
 
         # description
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id, line, value) values (%s, "description", "%s");' % (id, data['DE'])
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id, line, value) values (%s, %s, %s);' 
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [id, "description", data['DE']])
         # alternative names
         for i in data['AN']:
-            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "alternative name", "%s");' % (id, i)
+            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, %s, %s);' 
 
-            cursor.execute(sql,)
+            cursor.execute(sql, [id, "alternative name", i])
 
         # Catalytic activity
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s,"catalytic activity", "%s");' % (id, data['CA'])
-        cursor.execute(sql,)
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s,%s, %s);' 
+        cursor.execute(sql,[id, "catalytic activity", data['CA']])
 
         # Cofactors
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "cofactors", "%s");' % (id, data['CF'])
-        cursor.execute(sql,)
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, %s, %s);' 
+        cursor.execute(sql,[id, "cofactors", data['CF']])
 
         # prosite crossref
         for i in data['PR']:
-            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "prosite", "%s");' % (id, i)
-            cursor.execute(sql,)
+            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, %s, %s);' 
+            cursor.execute(sql,[id, "prosite", i])
         # comments
         for i in data['CC']:
-            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "comment", "%s");' % (id, i)
-            cursor.execute(sql,)
+            sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, %s, %s);'
+            cursor.execute(sql, [id, "comment", i])
 
     conn.commit()
+    conn.close()
 
 
 
@@ -340,52 +349,49 @@ def get_kegg_pathway_classification():
     get kegg pathway bread classification from we page
     :return: table
     """
-
     import urllib.request
     import re
-
-    url = "http://www.genome.jp/kegg/pathway.html"
-
+    url = "https://www.genome.jp/kegg/pathway.html"
     data = urllib.request.urlopen(url).read().decode('utf-8').split("\n")
-
-    main_category = re.compile("<a name=.*")
-    sub_category = re.compile("<b>.*")
+    main_category = re.compile("<h4 id=.*")
+    sub_category = re.compile("<b id=.*")
     map = re.compile(".*<a href.*")
     map2category = {}
     for line in data:
          if re.match(main_category, line.strip()):
-             main_cat = line.rstrip().split("\"")[1]
+             main_cat = re.search("<h4 id=\"(.*)\">", line).group(1)
          elif re.match(sub_category, line):
-             try:
-                sub_cat = line.rstrip().split("<b>")[1][0:-4]
-             except:
-                continue
+             #try:
+             sub_cat = re.search(">(.*)<", line).group(1)
+             sub_cat_short = re.search("<b id=\"(.*)\">", line).group(1)
+             #except:
+             #   continue
          elif re.match(map, line):
              #print main_cat, sub_cat, line.rstrip()
              try:
                  #print main_cat, sub_cat, line.rstrip()
                  map_number = re.findall("map[0-9]+", line)[0]
-                 map_description = re.findall(">(.*)<\/a", line)[0]
+                 map_description = re.search(f"{map_number}\">(.*)</a></dd>", line).group(1)
                  #print map_description
-                 map2category[map_number] = [main_cat, sub_cat, map_description]
+                 map2category[map_number] = [sub_cat_short, sub_cat, map_description]
              except:
                  try:
                     map_number = 'map'+re.findall("ko[0-9]+&", line)[0][2:-1]
-                    map_description = re.findall(">(.*)<\/a", line)[0]
+                    map_description = re.search(f"{map_number}\">(.*)</a></dd>", line).group(1)
                     #print map_description
-                    map2category[map_number] = [main_cat, sub_cat, map_description]
+                    map2category[map_number] = [sub_cat_short, sub_cat, map_description]
                  except:
                      try:
-                        map_number = 'map'+re.findall("hsa[0-9]+&", line)[0][3:-1]
-                        map_description = re.findall(">(.*)<\/a", line)[0]
+                        map_number = 'map'+re.findall(f"hsa[0-9]+&", line)[0][3:-1]
+                        map_description = re.search("{map_number}\">(.*)</a></dd>", line).group(1)
                         #print map_description
-                        map2category[map_number] = [main_cat, sub_cat, map_description]
+                        map2category[map_number] = [sub_cat_short, sub_cat, map_description]
                      except:
                          try:
-                            map_number = 'map'+re.findall("[a-z]{3}[0-9]+&", line)[0][3:-1]
-                            map_description = re.findall(">(.*)<\/a", line)[0]
+                            map_number = 'map'+re.findall(f"[a-z]{3}[0-9]+&", line)[0][3:-1]
+                            map_description =  re.search("{map_number}\">(.*)</a></dd>", line).group(1)
                             #print map_description
-                            map2category[map_number] = [main_cat, sub_cat, map_description]
+                            map2category[map_number] = [sub_cat_short, sub_cat, map_description]
                          except:
                              pass
          else:
@@ -404,7 +410,7 @@ def get_pathay_table(map2category,
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
     
-    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_pathway (pathway_id INTEGER PRIMARY KEY,' \
+    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_pathway (pathway_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
            ' pathway_name VARCHAR(200),' \
            ' pathway_category_short VARCHAR(200),' \
            ' pathway_category VARCHAR(200),' \
@@ -444,21 +450,21 @@ def get_pathay_table(map2category,
             cat = 'uncategorized'
             cat_short = 'uncategorized'
         sql = 'INSERT into enzyme_kegg_pathway (pathway_name, description,' \
-              ' pathway_category_short, pathway_category) values ("%s", "%s", "%s", "%s");' % (map,
-                                                                                               description,
-                                                                                               cat_short,
-                                                                                               cat)
+              ' pathway_category_short, pathway_category) values (%s, %s, %s, %s);' 
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [map,
+                            description,
+                            cat_short,
+                            cat])
         pathway_id = cursor.lastrowid
         pathway_name2pathway_id[map] = pathway_id
         
     conn.commit()
+    conn.close()
     
 
 
 def get_pathway2ko(biodb,
-                   ko_accession2ko_id, 
                    pathway2ko):
     '''
     1. get all kegg pathways from API (http://rest.kegg.jp/) => create enzyme_kegg_module table
@@ -476,6 +482,11 @@ def get_pathway2ko(biodb,
     server, db = manipulate_biosqldb.load_db(biodb)
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
+
+    sql_ko = 'select ko_accession, ko_id from enzyme_ko_annotation'
+    cursor.execute(sql_ko,)
+    ko_accession2ko_id = manipulate_biosqldb.to_dict(cursor.fetchall())  
+
 
     sql2 = 'CREATE TABLE IF NOT EXISTS enzyme_pathway2ko (pathway_id INT,' \
            ' ko_id INT);'
@@ -508,7 +519,11 @@ def get_pathway2ko(biodb,
             continue
 
         for ko in ko_list:
-            ko_id = ko_accession2ko_id[ko]
+            try:
+                ko_id = ko_accession2ko_id[ko]
+            except KeyError:
+                print(f"KO in pathway absent from main KO table, skipping: {ko}")
+                continue
             sql = 'INSERT into enzyme_pathway2ko (pathway_id, ko_id) values (%s,%s);' % (pathway_id,
                                                                                          ko_id)
             cursor.execute(sql,)
@@ -520,11 +535,11 @@ def get_pathway2ko(biodb,
     server.adaptor.execute(sql_index1)
     server.adaptor.execute(sql_index2)
     conn.commit()
+    conn.close()
 
 
 def get_module_table(biodb,
-                     module2category,
-                     ko_accession2ko_id):
+                     module2category):
     '''
     1. get all kegg pathways from API (http://rest.kegg.jp/) => create enzyme_kegg_module table
     2. get all KO associated for each module => create enzyme_module2ko table
@@ -542,7 +557,7 @@ def get_module_table(biodb,
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
 
-    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_module (module_id INTEGER PRIMARY KEY,' \
+    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_module (module_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
            ' module_name VARCHAR(200),' \
            ' module_cat VARCHAR(200),' \
            ' module_sub_cat VARCHAR(200),' \
@@ -599,13 +614,13 @@ def get_module_table(biodb,
             print ('------------------------------------------------')
 
         sql = 'INSERT into enzyme_kegg_module (module_name, module_cat,module_sub_cat, module_sub_sub_cat, description) ' \
-              'values ("%s", "%s", "%s", "%s", "%s");' % (module,
-                                                          cat,
-                                                          sub_cat,
-                                                          sub_sub_cat,
-                                                          description)
+              'values (%s, %s, %s, %s, %s);'
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [module,
+                             cat,
+                             sub_cat,
+                             sub_sub_cat,
+                             description])
         conn.commit()
         
         module_id = cursor.lastrowid
@@ -626,6 +641,7 @@ def get_module_table(biodb,
     server.adaptor.execute(sql_index4)
     
     conn.commit()
+    conn.close()
     
     return module_name2module_id
 
@@ -665,6 +681,14 @@ def get_multimodule(module):
 def get_module2ko(biodb,
                   module2ko,
                   module_name2module_id):
+    
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
+
+    sql_ko = 'select ko_accession, ko_id from enzyme_ko_annotation'
+    cursor.execute(sql_ko,)
+    ko_accession2ko_id = manipulate_biosqldb.to_dict(cursor.fetchall())  
 
 
     for module in module_name2module_id:        
@@ -695,12 +719,21 @@ def get_module2ko(biodb,
     cursor.execute(sql_index1)
     cursor.execute(sql_index2)
     conn.commit()
+    conn.close()
 
 
 def get_module2ko_legacy(biodb,
                          module2ko,
-                         module_name2module_id,
                          ko2definition):
+
+    server, db = manipulate_biosqldb.load_db(biodb)
+    conn = server.adaptor.conn
+    cursor = server.adaptor.cursor
+    
+    sql = 'select module_name, module_id from enzyme_kegg_module_v1'
+    cursor.execute(sql,)
+    
+    module_name2module_id = manipulate_biosqldb.to_dict(cursor.fetchall())
 
 
     for module in module_name2module_id:        
@@ -717,11 +750,11 @@ def get_module2ko_legacy(biodb,
             
             module_id = module_name2module_id[module]
             
-            sql = 'INSERT into enzyme_module2ko_v1 (module_id, ko_id, ko_description) values (%s,"%s", "%s");' % (module_id,
-                                                                                                                  ko,
-                                                                                                                  definition)
+            sql = 'INSERT into enzyme_module2ko_v1 (module_id, ko_id, ko_description) values (%s,%s, %s);' 
 
-            cursor.execute(sql,)
+            cursor.execute(sql, [module_id,
+                                ko,
+                                definition])
 
         conn.commit()
     
@@ -732,6 +765,7 @@ def get_module2ko_legacy(biodb,
     cursor.execute(sql_index1)
     cursor.execute(sql_index2)
     conn.commit()
+    conn.close()
 
 
 
@@ -839,10 +873,11 @@ def setup_kegg_pathway2ec(biodb,
                 except:
                     print("FAIL ==> might be a wrong EC mumber, slipping")
                     continue
-            sql = 'INSERT into enzyme_kegg2ec (pathway_id, ec_id) values (%s,"%s");' % (id, ec_id)
+            sql = 'INSERT into enzyme_kegg2ec (pathway_id, ec_id) values (%s,%s);' % (id, ec_id)
             cursor.execute(sql,)
             
     conn.commit()
+    conn.close()
 
 
 
@@ -909,31 +944,32 @@ def get_ec_data_from_IUBMB(ec,
         else:
             continue
 
-    sql_new = 'INSERT into enzyme_enzymes (ec) values ("%s");' % ec
-    cursor.execute(sql_new, )
+    sql_new = 'INSERT into enzyme_enzymes (ec) values (%s);'
+    cursor.execute(sql_new, [ec])
     conn.commit()
 
     id = cursor.lastrowid
 
-    sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id, line, value) values (%s, "description", "%s");' % (id, name)
-    cursor.execute(sql,)
+    sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id, line, value) values (%s, "description", %s);'
+    cursor.execute(sql, [id, name])
     # alternative names
     for i in altname:
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "alternative name", "%s");' % (id, re.sub("<[a-z\/]+>", "", i))
-        cursor.execute(sql,)
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "alternative name", %s);'
+        cursor.execute(sql, [id, re.sub("<[a-z\/]+>", "", i)])
 
     # Catalytic activity
     for i in reaction_list:
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s,"catalytic activity", "%s");' % (id, re.sub("<[a-z\/]+>", "", i))
-        cursor.execute(sql,)
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s,"catalytic activity", %s);'
+        cursor.execute(sql, [id, re.sub("<[a-z\/]+>", "", i)])
 
     # comments
     for i in cc:
         #i = re.sub("\r\r<b>Reaction:</b> ","",i)
-        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "comment", "%s");' % (id, re.sub("<[ =\"A-Za-z0-9\/\.]+>", "", i))
-        cursor.execute(sql,)
+        sql = 'INSERT into enzyme_enzymes_dat (enzyme_dat_id,line, value) values(%s, "comment", %s);'
+        cursor.execute(sql, [id, re.sub("<[ =\"A-Za-z0-9\/\.]+>", "", i)])
 
     conn.commit()
+    conn.close()
     return id
 
 
@@ -942,7 +978,7 @@ def get_ko2ec_table(biodb,
     
     import urllib.request
     import re
-    conn, cursor = connect_db(biodb)
+    conn, cursor, server = connect_db(biodb)
 
     sql = 'CREATE TABLE IF NOT EXISTS enzyme_ko2ec (ko_id VARCHAR(20),' \
            ' enzyme_id INT);'
@@ -971,9 +1007,9 @@ def get_ko2ec_table(biodb,
                 except:
                     print ('FAIL ==> might be a wrong EC number, skipping')
                     
-            sql = 'INSERT INTO enzyme_ko2ec(ko_id, enzyme_id) VALUES ("%s", %s);' % (ko_id, ec_id)
+            sql = 'INSERT INTO enzyme_ko2ec(ko_id, enzyme_id) VALUES (%s, %s);'
 
-            cursor.execute(sql)
+            cursor.execute(sql, [ko_id, ec_id])
             
         conn.commit()
 
@@ -984,6 +1020,7 @@ def get_ko2ec_table(biodb,
     cursor.execute(sql_index2)
     
     conn.commit()
+    conn.close()
 
 def get_module_table_legacy(module2category, 
                             biodb):
@@ -1004,7 +1041,7 @@ def get_module_table_legacy(module2category,
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
 
-    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_module_v1 (module_id INTEGER PRIMARY KEY,' \
+    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_module_v1 (module_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
            ' module_name VARCHAR(200),' \
            ' module_cat VARCHAR(200),' \
            ' module_sub_cat VARCHAR(200),' \
@@ -1046,17 +1083,18 @@ def get_module_table_legacy(module2category,
             cat_short = 'uncategorized'
             print ('------------------------------------------------')
         sql = 'INSERT into enzyme_kegg_module_v1 (module_name, module_cat,module_sub_cat, module_sub_sub_cat, description) ' \
-              'values ("%s", "%s", "%s", "%s", "%s");' % (module,
-                                                          cat,
-                                                          sub_cat,
-                                                          sub_sub_cat,
-                                                          description)
+              'values (%s, %s, %s, %s, %s);'
 
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [module,
+                            cat,
+                            sub_cat,
+                            sub_sub_cat,
+                            description])
         conn.commit()
         
     conn.commit()
+    conn.close()
 
 
 def get_pathway2ko_legacy(biodb,
@@ -1106,9 +1144,8 @@ def get_pathway2ko_legacy(biodb,
             continue
 
         for ko in ko_list:
-            sql = 'INSERT into enzyme_pathway2ko_v1 (pathway_id, ko_id) values (%s, "%s");' % (pathway_id,
-                                                                                                ko)
-            cursor.execute(sql,)
+            sql = 'INSERT into enzyme_pathway2ko_v1 (pathway_id, ko_id) values (%s, %s);'
+            cursor.execute(sql, [pathway_id, ko])
 
         conn.commit()
 
@@ -1119,6 +1156,7 @@ def get_pathway2ko_legacy(biodb,
     server.adaptor.execute(sql_index2)
     
     conn.commit()
+    conn.close()
 
 
 def get_pathay_table_legacy(map2category, biodb):
@@ -1130,7 +1168,7 @@ def get_pathay_table_legacy(map2category, biodb):
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
 
-    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_pathway_v1 (pathway_id INTEGER PRIMARY KEY,' \
+    sql1 = 'CREATE TABLE IF NOT EXISTS enzyme_kegg_pathway_v1 (pathway_id INTEGER PRIMARY KEY AUTO_INCREMENT,' \
            ' pathway_name VARCHAR(200),' \
            ' pathway_category_short VARCHAR(200),' \
            ' pathway_category VARCHAR(200),' \
@@ -1154,13 +1192,14 @@ def get_pathay_table_legacy(map2category, biodb):
         except:
             cat = 'uncategorized'
             cat_short = 'uncategorized'
-        sql = 'INSERT into enzyme_kegg_pathway_v1 (pathway_name, description,pathway_category_short, pathway_category) values ("%s", "%s", "%s", "%s");' % (map,
-                                                                                                                                                            description,
-                                                                                                                                                            cat_short,
-                                                                                                                                                            cat)
+        sql = 'INSERT into enzyme_kegg_pathway_v1 (pathway_name, description,pathway_category_short, pathway_category) values (%s, %s, %s, %s);' 
 
-        cursor.execute(sql,)
+        cursor.execute(sql, [map,
+                            description,
+                            cat_short,
+                            cat])
     conn.commit()
+    conn.close()
 
 
 def get_complete_ko_table_legacy(biodb,
@@ -1173,7 +1212,8 @@ def get_complete_ko_table_legacy(biodb,
     import re
     
     server, db = manipulate_biosqldb.load_db(biodb)
-
+    conn = server.adaptor.conn
+    
     sql = 'CREATE TABLE IF NOT EXISTS enzyme_ko_annotation_v1 (ko_id VARCHAR(20),' \
            ' name varchar(200),' \
            ' definition TEXT,' \
@@ -1216,15 +1256,15 @@ def get_complete_ko_table_legacy(biodb,
             pathways = '-'
 
         sql = 'insert into enzyme_ko_annotation_v1 (ko_id, name, definition, EC, pathways, modules, dbxrefs)' \
-              ' values ("%s", "%s", "%s","%s", "%s", "%s", "%s")' % (ko,
-                                                                     name,
-                                                                     re.sub('"','', definition),
-                                                                     ec,
-                                                                     pathways,
-                                                                     modules,
-                                                                     "-")
+              ' values (%s, %s, %s,%s, %s, %s, %s)' 
 
-        server.adaptor.execute(sql,)
+        server.adaptor.execute(sql,[ko,
+                                    name,
+                                    re.sub('"','', definition),
+                                    ec,
+                                    pathways,
+                                    modules,
+                                    "-"])
         
     server.commit()
 
@@ -1232,6 +1272,7 @@ def get_complete_ko_table_legacy(biodb,
     
     server.adaptor.execute(sql_index)
     conn.commit()
+    conn.close()
     
 
 if __name__ == '__main__':
@@ -1242,8 +1283,6 @@ if __name__ == '__main__':
     parser.add_argument("-d", '--db_name', help="Biodb name")
 
     args = parser.parse_args()
-
-    conn, cursor = connect_db(args.db_name)
     
     print('Retrieve ko2name, ko2definition...')
     # complete ko list
@@ -1274,29 +1313,23 @@ if __name__ == '__main__':
     
     print('Setup enzyme nomenclature table...')
     load_enzyme_nomenclature_table(args.db_name)
-
-    sql = 'select ko_accession, ko_id from enzyme_ko_annotation'
-    cursor.execute(sql,)
-    
-    ko_accession2ko_id = manipulate_biosqldb.to_dict(cursor.fetchall())
-    
+   
     map2category = get_kegg_pathway_classification()
-    
+
     print('Setup pathway table...')
     get_pathay_table(map2category, 
                         args.db_name)
-    
+
+  
     print('Setup ko2pathway...')
     get_pathway2ko(args.db_name,
-                    ko_accession2ko_id, 
                     pathway2ko)       
     
     print('Setup module table...')
     module_hierarchy = get_kegg_module_hierarchy()
     
     module_name2module_id = get_module_table(args.db_name,
-                                                module_hierarchy, 
-                                                ko_accession2ko_id)
+                                                module_hierarchy)
     
     
     print('Setup module2ko...')       
@@ -1323,17 +1356,16 @@ if __name__ == '__main__':
     # TODO: stop using legacy enzyme tables and remove them 
     print('Setup ko legacy table...')
     get_complete_ko_table_legacy(args.db_name,
-                                    ko2name,
-                                    ko2description,
-                                    ko2ec,
-                                    ko2modules,
-                                    ko2pathways)
+                                 ko2name,
+                                 ko2description,
+                                 ko2ec,
+                                 ko2modules,
+                                 ko2pathways)
     
     
     print('Setup pathway legacy table...')
     map2category = get_kegg_pathway_classification()
             
-    map2category = get_kegg_pathway_classification()
     get_pathay_table_legacy(map2category, 
                             args.db_name)
             
@@ -1347,15 +1379,9 @@ if __name__ == '__main__':
     get_module_table_legacy(module_hierarchy,
                             args.db_name)
     
-    print('Setup module2ko legacy table...')
-    sql = 'select module_name, module_id from enzyme_kegg_module_v1'
-    cursor.execute(sql,)
-    
-    module_name2module_id = manipulate_biosqldb.to_dict(cursor.fetchall())
-    
+    print('Setup module2ko legacy table...')   
     get_module2ko_legacy(args.db_name,
                             module2ko,
-                            module_name2module_id,
                             ko2description)
     
 

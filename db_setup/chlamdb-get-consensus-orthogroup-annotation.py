@@ -59,20 +59,21 @@ def orthogroup_consensus_annotation(biodb,
     for n, group in enumerate(group_name2group_id):
         print(n, group)
         group_id = group_name2group_id[group]
-        try:
-            sorted_list = sorted(orthogroup2genes[group].items(), key=operator.itemgetter(1), reverse=True)
-            for n, row in enumerate(sorted_list):
-                gene, count = row
-                server.adaptor.execute(template1, [group_id, n, count, gene])
-        except KeyError:
-            continue
-        try:
-            sorted_list = sorted(orthogroup2products[group].items(), key=operator.itemgetter(1), reverse=True)
-            for n, row in enumerate(sorted_list):
-                product, count = row
-                server.adaptor.execute(template2, [group_id, n, count, product])
-        except KeyError:
-            continue
+        if gene:
+            try:
+                sorted_list = sorted(orthogroup2genes[group].items(), key=operator.itemgetter(1), reverse=True)
+                for n, row in enumerate(sorted_list):
+                    gene, count = row
+                    server.adaptor.execute(template1, [group_id, n, count, gene])
+            except KeyError:
+                continue
+            try:
+                sorted_list = sorted(orthogroup2products[group].items(), key=operator.itemgetter(1), reverse=True)
+                for n, row in enumerate(sorted_list):
+                    product, count = row
+                    server.adaptor.execute(template2, [group_id, n, count, product])
+            except KeyError:
+                continue
         
         if COG:
             try:

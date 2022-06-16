@@ -14,25 +14,26 @@ def get_interpro_entry_tables(interpro_release,
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
 
-    sql = 'CREATE table if not exists interpro_entry (interpro_id INTEGER PRIMARY KEY, name varchar(400), description TEXT)'
+    sql = 'CREATE table if not exists interpro_entry (interpro_id INTEGER AUTO_INCREMENT, name varchar(400), description TEXT, PRIMARY KEY (interpro_id))'
 
     cursor.execute(sql,)
     conn.commit()
-    link = 'ftp://ftp.ebi.ac.uk/pub/databases/interpro/%s/entry.list' % interpro_release
+    link = 'https://ftp.ebi.ac.uk/pub/databases/interpro/%s/entry.list' % interpro_release
     print(link)
     entry_list = urllib.request.urlopen(link).read().decode('utf-8').split("\n")
     for i, line in enumerate(entry_list):
-        print(i)
+        
         if not 'IPR' in line:
             continue
+        print(i, line)
         # ENTRY_AC	ENTRY_TYPE	ENTRY_NAME
         # IPR000126	Active_site	Serine proteases, V8 family, serine active site
         
         data = line.rstrip().split("\t")
         accession = data[0]
         description = data[2]
-        sql = 'insert into interpro_entry (name, description) values ("%s", "%s")' % (accession, description)
-        cursor.execute(sql,)
+        sql = 'insert into interpro_entry (name, description) values (%s, %s)'
+        cursor.execute(sql,[accession, description])
     conn.commit()
 
 
@@ -67,7 +68,7 @@ def get_interpro2go_table(biodb):
     cursor.execute(sql,)
     go_name2go_id = manipulate_biosqldb.to_dict(cursor.fetchall())
 
-    link = 'ftp://ftp.ebi.ac.uk/pub/databases/interpro/interpro2go'
+    link = 'https://ftp.ebi.ac.uk/pub/databases/interpro/interpro2go'
     print(link)
     req = urllib2.Request(link)
     entry_list = urllib2.urlopen(req)

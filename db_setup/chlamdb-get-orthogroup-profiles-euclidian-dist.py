@@ -121,7 +121,7 @@ def get_reduced_orthogroup_matrix(biodb, jaccard=True):
     # cluster taxons based on identity of core genome aligment
     # default clustering_ hight of 30
 
-    sql = 'select biodatabase_id from biodatabase where name="%s"'
+    sql = 'select biodatabase_id from biodatabase where name="%s"' % biodb
 
     biodb_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
 
@@ -140,7 +140,7 @@ def get_reduced_orthogroup_matrix(biodb, jaccard=True):
 
     rs1 <- dbSendQuery(con, 'select taxon_1,taxon_2, median_identity from comparative_tables_shared_og_av_id union select taxon_2, taxon_1, median_identity from comparative_tables_shared_og_av_id;')
     pairwise_identity<- dbFetch(rs1, n=-1)
-    rs2 <- dbSendQuery(con, 'select taxon_id,description from biosqldb.bioentry where biodatabase_id=%s and description not like "%%plasmid%%";')
+    rs2 <- dbSendQuery(con, 'select taxon_id,description from bioentry where biodatabase_id=%s and description not like "%%plasmid%%";')
     taxon2description<- dbFetch(rs2, n=-1)
 
     pairwise_identity_matrix <- dcast(pairwise_identity, taxon_1~taxon_2)
@@ -326,7 +326,7 @@ def euclidian_dist_cogs(biodb):
     except:
         print ('problem creating the sql table')
 
-    sql = 'select * from comparative_tables_COG_%s'
+    sql = 'select * from comparative_tables_COG'
     cog2profile = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     combinations = []

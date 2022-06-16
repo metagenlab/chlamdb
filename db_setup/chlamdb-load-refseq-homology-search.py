@@ -15,8 +15,8 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
                               biodb,
                               hash2locus_list,
                               linear_taxonomy,
-                              diamond_refseq,
-                              refseq_taxonomy):
+                              diamond_refseq, 
+                              uniref_db):
 
     '''
     Load tabulated blast results into sql table blastnr_`db_name`
@@ -42,14 +42,14 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
     sqlite3_cursor = sqlite3_conn.cursor()
 
     sql1 = 'attach "%s" as linear_taxonomy' % linear_taxonomy
-    sql2 = 'attach "%s" as refseq_taxonomy' % refseq_taxonomy
-
+    sql2 = 'attach "%s" as uniref' % uniref_db
+    
     sqlite3_cursor.execute(sql1)
     sqlite3_cursor.execute(sql2)
 
-    sql3 = 'select t1.*,t2.*,t3.superkingdom from diamond_refseq t1 ' \
-           ' inner join refseq_taxonomy_refseq_hits t2 on t1.sseqid=t2.accession ' \
-           'inner join linear_taxonomy_ncbi_taxonomy t3 on t2.taxid=t3.tax_id'
+    sql3 = 'select t1.*,t2.superkingdom, t3.sequence_length, t3.description from diamond_uniref t1 ' \
+           ' inner join linear_taxonomy.ncbi_taxonomy t2 on t1.taxon_id=t2.tax_id' \
+            ' inner join uniref.uniref t3 on t1.sseqid=t3.accession'
 
     n = 0
     for row in sqlite3_cursor.execute(sql3):
@@ -68,13 +68,14 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
         10 send
         11 evalue
         12 bitscore
-        13 accession
-        14 taxid
-        15 description
-        16 length
-        17 superkingdom
+        13 taxid
+        14 superkingdom
+        15 seq length
+        16 description
         '''
-
+        from ete3 import NCBITaxa
+        ncbi = NCBITaxa()
+        
         if n % 10000 == 0:
             print(time.ctime() + ': %s...' % n)
             mysql_conn.commit()
@@ -91,18 +92,19 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
         subject_end = int(row[10])
         bit_score = float(row[12])
         subject_accession = row[2]
-        subject_taxon_id = row[14]
-        subject_kingdom = row[17]
-        hit_length = row[16]
+        subject_taxon_id = row[13]
+        subject_kingdom = row[14]
+        hit_length = row[15]
+        subject_title = row[16]
 
-        subject_description_data = re.findall("(.+) \[(.*)\]", row[15])
         try:
-            subject_scientific_names = subject_description_data[0][1]
-            subject_title = subject_description_data[0][0]
-        except:
-            subject_scientific_names = "?"
-            subject_title = row[15]
-
+            rank = ncbi.get_rank([subject_taxon_id])[int(subject_taxon_id)]
+        except KeyError:
+            rank = ''
+        try:
+            subject_scientific_names = ncbi.get_taxid_translator([subject_taxon_id])[int(subject_taxon_id)]
+        except KeyError:
+            subject_scientific_names = ''    
 
         '''
         1 query_taxon_id int
@@ -138,7 +140,7 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
                                                                                                  hit_n,
                                                                                                  subject_accession,
                                                                                                  subject_kingdom,
-                                                                                                 subject_scientific_names,
+                                                                                                 f"{subject_scientific_names} ({rank})",
                                                                                                  subject_taxon_id,
                                                                                                  subject_title,
                                                                                                  evalue,
@@ -156,6 +158,7 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
             sql = 'insert into blastnr_%s values %s' % (biodb,
                                                         values)
             mysql_cursor.execute(sql,)
+        mysql_conn.commit()
 
 
 def create_sql_plastnr_tables(db_name):
@@ -218,7 +221,8 @@ if __name__ == '__main__':
     parser.add_argument("-u", '--hash2locus_tag', type=str, help="Tab separated file with correspondance between sequence hashes and locus tags")
     parser.add_argument("-lt", '--linear_taxonomy', type=str, help="linear_taxonomy.db")
     parser.add_argument("-rd", '--diamond_refseq', type=str, help="diamond_refseq.db")
-    parser.add_argument("-rt", '--refseq_taxonomy', type=str, help="refseq_taxonomy.db")
+    parser.add_argument("-ud", '--uniref_db', type=str, help="uniref100.db")
+    
 
     args = parser.parse_args()
 
@@ -263,4 +267,4 @@ if __name__ == '__main__':
                               hash2locus_list,
                               args.linear_taxonomy,
                               args.diamond_refseq,
-                              args.refseq_taxonomy)
+                              args.uniref_db)
