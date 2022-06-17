@@ -27,7 +27,7 @@ def load_PMID(PMID_db_path, hash2locus_list, db_name):
     sql = 'select locus_tag, seqfeature_id from annotation_seqfeature_id2locus'
     locus_tag2seqfeaure_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
     # retrieve existing pmid data (if any)
-    sql = 'select pmid from string.pmid2data '
+    sql = 'select pmid from string_pmid2data '
     pmid_already_in_db = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql,)]
     
     sql = 'select * from hash2pmid'

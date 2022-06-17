@@ -5,7 +5,7 @@ import sqlite3
 from Bio import SeqIO
 from Bio import Medline
 from Bio import Entrez
-Entrez.email = 'trestan.pillone@chuv.chl'
+Entrez.email = 'trestan.pillone@chuv.ch'
 
 class StringPMID():
     def __init__(self,
@@ -40,7 +40,7 @@ class StringPMID():
         self.species_id2species_name = manipulate_biosqldb.to_dict(self.string_cursor.execute(sql_species).fetchall())
                 
         # retrieve protein hash from biosqldb
-        sql = f'select distinct hash from string.seqfeature_id2string_protein_mapping t1 inner join annotation.hash2seqfeature_id_{db_name} t2 on t1.seqfeature_id=t2.seqfeature_id;'
+        sql = f'select distinct hash from string.seqfeature_id2string_protein_mapping t1 inner join annotation_hash2seqfeature_id t2 on t1.seqfeature_id=t2.seqfeature_id;'
         self.hash_in_db =set([i[0] for i in self.server.adaptor.execute_and_fetchall(sql,)])
         
         # check if some data were already inserted
@@ -53,10 +53,10 @@ class StringPMID():
         
 
     def create_tables(self):
-        sql1 = 'create table if not exists string.seqfeature_id2string_protein_mapping (seqfeature_id INT, string_protein_id INT, query_cov FLOAT, hit_cov FLOAT, identity FLOAT, evalue FLOAT, score FLOAT)'
-        sql2 = 'create table if not exists string.string_protein2pmid (string_protein_id INT, PMID BIGINT)'
-        sql3 = 'create table if not exists string.pmid2data_stringdb (pmid BIGINT, title TEXT, journal TEXT, year varchar(200), linkout_url TEXT, authors TEXT)'
-        sql4 = 'create table if not exists string.string_protein_entry (id INT AUTO_INCREMENT PRIMARY KEY, accession varchar(200), organism TEXT, description TEXT, preferred_name varchar(400))'
+        sql1 = 'create table if not exists string_seqfeature_id2string_protein_mapping (seqfeature_id INT, string_protein_id INT, query_cov FLOAT, hit_cov FLOAT, identity FLOAT, evalue FLOAT, score FLOAT)'
+        sql2 = 'create table if not exists string_string_protein2pmid (string_protein_id INT, PMID BIGINT)'
+        sql3 = 'create table if not exists string_pmid2data_stringdb (pmid BIGINT, title TEXT, journal TEXT, year varchar(200), linkout_url TEXT, authors TEXT)'
+        sql4 = 'create table if not exists string_string_protein_entry (id INT AUTO_INCREMENT PRIMARY KEY, accession varchar(200), organism TEXT, description TEXT, preferred_name varchar(400))'
         self.server.adaptor.execute(sql1)
         self.server.adaptor.execute(sql2)
         self.server.adaptor.execute(sql3)
@@ -74,7 +74,7 @@ class StringPMID():
 
         db_name = self.db_name
                 
-        sql = f'select locus_tag, seqfeature_id from custom_tables.locus2seqfeature_id_{db_name}'
+        sql = f'select locus_tag, seqfeature_id from custom_tables_locus2seqfeature_id'
         locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(self.server.adaptor.execute_and_fetchall(sql,))
 
         check_if_new = True
@@ -140,7 +140,7 @@ class StringPMID():
                         species_id = protein_external_id.split(".")[0]
                         species_name = self.species_id2species_name[species_id]
                         
-                        sql = f'insert into string.string_protein_entry (accession, organism, description, preferred_name) values (%s, %s, %s, %s)'
+                        sql = f'insert into string_string_protein_entry (accession, organism, description, preferred_name) values (%s, %s, %s, %s)'
                         self.server.adaptor.execute(sql, (protein_external_id, species_name, annotation, preferred_name))
                         
                         # add new id to dictionnary
@@ -148,13 +148,13 @@ class StringPMID():
                         self.string_proteins2string_protein_id[hit_accession] = string_protein_id
                         
                         for pmid in nr_pmid_list:
-                            sql = f'insert into string.string_protein2pmid (string_protein_id, pmid) values ({string_protein_id}, {pmid})'
+                            sql = f'insert into string_string_protein2pmid (string_protein_id, pmid) values ({string_protein_id}, {pmid})'
                             self.server.adaptor.execute(sql,)
                             # insert data if not already present in db 
                             if pmid not in self.pmid_in_db:
                                 article_data = self.pmid2article_data[pmid]
                                 publication_date, publication_source, linkout_url, authors, title = article_data
-                                sql2 = f'insert into string.pmid2data_stringdb (pmid, title, journal, year, linkout_url, authors) values (%s, %s, %s, %s, %s, %s)'
+                                sql2 = f'insert into string_pmid2data_stringdb (pmid, title, journal, year, linkout_url, authors) values (%s, %s, %s, %s, %s, %s)'
                                 self.server.adaptor.execute(sql2, (pmid, title, publication_source, publication_date, linkout_url, authors))
                                 self.pmid_in_db.append(pmid)
 
@@ -162,7 +162,7 @@ class StringPMID():
                     for locus_tag in self.hash2locus_list[query_hash]:
                         seqfeature_id = locus_tag2seqfeature_id[locus_tag] 
                         # insert Match 
-                        sql = f'insert into string.seqfeature_id2string_protein_mapping (seqfeature_id, string_protein_id, query_cov, hit_cov, identity, evalue, score)' \
+                        sql = f'insert into string_seqfeature_id2string_protein_mapping (seqfeature_id, string_protein_id, query_cov, hit_cov, identity, evalue, score)' \
                               f' values ({seqfeature_id}, {string_protein_id}, {query_cov}, {hit_cov}, {identity}, {evalue} ,{score})'
                         self.server.adaptor.execute(sql,)
         self.server.adaptor.commit()  
