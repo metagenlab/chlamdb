@@ -80,16 +80,12 @@ def _chunks(l, n):
 
 
 def get_swissprot_annotation(accession_list):
-
-    import urllib
+    import urllib.request
     from urllib.error import URLError
-
-    link = "http://www.uniprot.org/uniprot/?query=id:%s&columns=id,taxon,annotation score,protein names,genes,organism&format=tab" % ('+OR+'.join(accession_list))
+    link = "https://rest.uniprot.org/uniprotkb/search?query=accession:%s&columns=accession_id,organism_id,annotation_score,protein_name,gene_names,organism&format=tsv" %  ("+OR+accession:".join(accession_list))
     link = link.replace(' ', '%20')
-
-    req = urllib.request.Request(link)
     try:
-        page = urllib.request.urlopen(req)
+        page = urllib.request.urlopen(link)
         data = page.read().decode('utf-8').split('\n')
         rows = [i.rstrip().split('\t') for i in data]
         accession2data = {}
