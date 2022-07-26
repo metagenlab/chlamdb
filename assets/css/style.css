@@ -415,7 +415,14 @@ body {
 	/*background:#3B3B3B;*/
   background: #fafafa url(http://jackrugile.com/images/misc/noise-diagonal.png);
 	color: #444;
-	font-size: 13px;
+	font-size: 16px;
+}
+
+#sidebar-title {
+	font-size: 17px;
+}
+#separator {
+    margin-top: 10px;
 }
 
 #locus_body {
