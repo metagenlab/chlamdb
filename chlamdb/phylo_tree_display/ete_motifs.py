@@ -940,7 +940,7 @@ def multiple_profiles_heatmap(biodb,
     server, db = manipulate_biosqldb.load_db(biodb)
     if not tree:
         sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
-
+        print(sql_tree)
         tree = server.adaptor.execute_and_fetchall(sql_tree)[0][0]
     if not isinstance(tree, Tree):
         t1 = Tree(tree)
@@ -953,9 +953,11 @@ def multiple_profiles_heatmap(biodb,
     tss.guiding_lines_color = "gray"
     tss.show_leaf_name = False
     tss.draw_aligned_faces_as_table=True
-
-    R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        R = t1.get_midpoint_outgroup()
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
     # retrieve leaf labels from db
