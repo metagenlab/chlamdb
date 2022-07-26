@@ -368,7 +368,10 @@ def plot_heatmap_tree_locus(biodb,
     # Calculate the midpoint node
     R = t1.get_midpoint_outgroup()
     # and set it as tree outgroup
-    t1.set_outgroup(R)
+    try:
+        t1.set_outgroup(R)
+    except:
+        pass
 
     leaf_number = 0
 
