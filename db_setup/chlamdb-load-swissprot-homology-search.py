@@ -84,42 +84,36 @@ def get_swissprot_annotation(accession_list):
     import urllib
     from urllib.error import URLError
 
-    link = "https://www.uniprot.org/uniprot/?query=id:%s&columns=id,taxon,annotation score,protein names,genes,organism&format=tab" % ('+OR+id:'.join(accession_list))
-    link = link.replace(' ', '%20')
+    link = f'https://rest.uniprot.org/uniprotkb/search?query=accession:%s&fields=accession,organism_id,annotation_score,protein_name,gene_names,organism_name&format=tsv'  % ('+OR+accession:'.join(accession_list))
+    link = f'https://rest.uniprot.org/uniprotkb/search?query=accession:%s&fields=accession,annotation_score&format=tsv&size={len(accession_list)}'  % ('+OR+accession:'.join(accession_list))
+    #link = link.replace(' ', '%20')
 
     req = urllib.request.Request(link)
-    try:
-        page = urllib.request.urlopen(req)
-        data = page.read().decode('utf-8').split('\n')
-        #print("data", data)
-        rows = [i.rstrip().split('\t') for i in data]
-        accession2data = {}
-        for n,row in enumerate(rows):
-            if n==0:
-                continue
-            elif len(row)<5:
-                continue
-            else:
-                accession2data[row[0]] = row[1:]
-        return accession2data
-    except:
-        print ('echec')
-        print (link)
-        return (False)
 
-def deleted_uniprot2new_identical_sequence(accession_list):
+    page = urllib.request.urlopen(req)
+    data = page.read().decode('utf-8').split('\n')
+    
+    rows = [i.rstrip().split('\t') for i in data]
+    accession2score = {}
+    for row in rows:
+        if row != [''] and row[0] != 'Entry':
+            accession2score[row[0]] = row[1]
+    return accession2score
+    #except:
+    #    return (False)
+
+def deleted_uniprot2new_identical_sequence(accession):
     import requests, sys
     import json
-    requestURL = "https://www.ebi.ac.uk/proteins/api/uniparc/accession/O84147"
-
+    requestURL = f"https://www.ebi.ac.uk/proteins/api/uniparc/accession/{accession}"
     r = requests.get(requestURL, headers={ "Accept" : "application/json"})
-
+    print(r)
     if not r.ok:
       r.raise_for_status()
       sys.exit()
-
     responseBody = r.text
     data = json.loads(responseBody)
+    print(data)
     active_entries = [i for i in data["dbReference"] if (i['active'] == 'Y')]
     inactive_entries = [i  for i in data["dbReference"] if (i['active'] != 'Y')]
     if len(active_entries) > 0:
@@ -141,205 +135,206 @@ def load_blastswissprot_file_into_db(locus_tag2taxon_id,
                                 locus_tag2bioentry_id,
                                 input_blast_files,
                                 biodb,
+                                swissprot_sqlite,
                                 hash2locus_list):
 
     from chlamdb.biosqldb import plastnr2sqltable
     import MySQLdb
     from chlamdb.biosqldb import manipulate_biosqldb
     import time
-
+    import sqlite3
+    import pandas
     server, db = manipulate_biosqldb.load_db(biodb)
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
+    print("sqlite DB", swissprot_sqlite)
+    sqlite3_conn = sqlite3.connect(swissprot_sqlite)
+    sqlite3_cursor = sqlite3_conn.cursor()
 
+    columns = [ "qseqid",
+                "sseqid",
+                "pident",
+                "length",
+                "mismatch",
+                "gapopen",
+                "qstart",
+                "qend",
+                "sstart",
+                "send",
+                "evalue",
+                "bitscore"]
 
     n_file = 0
     sp_accessions = []
+    df_list = []
     for one_blast_file in input_blast_files:
         n_file +=1
         with open(one_blast_file, 'r') as f:
-            input_file = [i.rstrip().split('\t') for i in f]
-            sp_accessions += list(set([i[1].split('|')[1] for i in input_file]))
+            df = pandas.read_csv(one_blast_file, sep='\t', header=None, names=columns)
+            # keep only top 100 hits
+            df = df.groupby(["qseqid"]).head(100)
+            df_list.append(df)
+            df["sseqid"] = [i.split("|")[1] for i in df["sseqid"]]
+            sp_accessions += list(set(df["sseqid"].to_list()))
 
     nr_accessions = list(set(sp_accessions))
     print('Total number of accessions:', len(nr_accessions))
-    hit_lists = _chunks(nr_accessions, 500)
-
-    print ('getting annotation')
-    accession2annotation = {}
-    for n, one_list in enumerate(hit_lists):
-        if n % 1 == 0:
-            print ('%s lists/ %s' % (n, len(hit_lists)))
-        temp_dico = get_swissprot_annotation(one_list)
-        #print("temp_dico", temp_dico)
-        if temp_dico:
-            accession2annotation.update(temp_dico)
-        else:
-            print ('waiting 20 sec...')
-            time.sleep(20)
-            temp_dico = get_swissprot_annotation(one_list)
-            if temp_dico:
-                accession2annotation.update(temp_dico)
-            else:
-                print ('1-waiting another 60 sec...')
-                time.sleep(60)
-                temp_dico = get_swissprot_annotation(one_list)
-                if temp_dico:
-                    accession2annotation.update(temp_dico)
-                else:
-                    print ('2-waiting another 60 sec...')
-                    print (one_list)
-                    time.sleep(60)
-                    temp_dico = get_swissprot_annotation(one_list)
+    hit_lists = _chunks(nr_accessions, 300)
 
 
-    all_taxid = [str(accession2annotation[i][0]) for i in accession2annotation]
-
-    print ("getting taxid2superkingdom")
-    sql = 'select taxon_id,superkingdom from blastnr_blastnr_taxonomy'
-    cursor.execute(sql,)
-    taxon_id2superkingdom = manipulate_biosqldb.to_dict(cursor.fetchall())
+    sql = 'select uniprot_accession, gene,recommendedName_fullName,annotation_score,reviewed,t2.accession as taxon_id from uniprot_annotation t1' \
+          ' inner join cross_references t2 on t1.uniprot_id=t2.uniprot_id ' \
+          ' inner join crossref_databases t3 on t2.db_id=t3.db_id ' \
+          ' where t3.db_name="NCBI Taxonomy" and t1.uniprot_accession in ("%s");'
+    accession2annotation={}
+    acc2score = {}
+    for n,chunk in enumerate(hit_lists):
+        print(f"{n} / {len(hit_lists)}")
+        acc_filter = '","'.join(chunk)
+        acc2score_tmp = get_swissprot_annotation(chunk)
+        acc2score.update(acc2score_tmp)
+        data = pandas.read_sql(sql % acc_filter, sqlite3_conn).set_index(["uniprot_accession"]).to_dict(orient="index")
+        accession2annotation.update(data)
+    
 
     print ("getting locus2protein_length")
-    sql = 'select locus_tag,char_length(translation) from orthology_detail' % biodb
+    sql = 'select locus_tag,char_length(translation) from orthology_detail'
     cursor.execute(sql,)
     locus_tag2protein_length = manipulate_biosqldb.to_dict(cursor.fetchall())
 
     print ('loading blast results into database...')
 
-
-    sql_template = 'insert into blastnr_blast_swissprot'
-    sql_template += 'values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);'
+    sql_template = 'insert into blastnr_blast_swissprot '
+    sql_template += 'values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);'
 
     deleted_accession2annotation = {}
 
-    for one_blast_file in input_blast_files:
+    for n_df, df in enumerate(df_list):
+        print(f"Table {n_df}")
         n_file +=1
-        with open(one_blast_file, 'r') as f:
-            input_file = [i.rstrip().split('\t') for i in f]
-            for n, line in enumerate(input_file):
+        row_index = 0
+        for n, row in df.iterrows():
+            sp_accession = row.sseqid
+            # taxon
+            # annotation score
+            # protein names
+            # genes
+            # organism
 
-                sp_accession = line[1].split('|')[1]
-                # taxon
-                # annotation score
-                # protein names
-                # genes
-                # organism
-
-                query_accession = line[0]
-                try:
-                    annot = accession2annotation[sp_accession]
+            query_accession = row.qseqid
+            try:
+                annot = accession2annotation[sp_accession]
+                subject_taxon_id = annot["taxon_id"]
+                subject_description = annot["recommendedName_fullName"]
+                subject_genes = annot["gene"]
+                
+            except KeyError:
+                print("Deleted entry!----- %s" % sp_accession)
+                if sp_accession not in deleted_accession2annotation:
+                    # get a new accession if possible, download annotation and store it
+                    new_accession = deleted_uniprot2new_identical_sequence(sp_accession)
+                    time.sleep(1)
+                    if new_accession:
+                        temp_accession2annotation = get_swissprot_annotation([new_accession])
+                        # add new annotation to the dictionnary
+                        deleted_accession2annotation[sp_accession] = temp_accession2annotation[new_accession]
+                    else:
+                        # if no match, false
+                        deleted_accession2annotation[sp_accession] = False
+                annot = deleted_accession2annotation[sp_accession]
+                if annot:
                     subject_taxon_id = annot[0]
                     subject_annot_score = annot[1].split(' ')[0]
                     subject_description = annot[2]
                     subject_genes = annot[3]
                     subject_organism = annot[4]
-                except KeyError:
-                    print("Deleted entry!----- %s" % sp_accession)
-                    if sp_accession not in deleted_accession2annotation:
-                        # get a new accession if possible, download annotation and store it
-                        new_accession = deleted_uniprot2new_identical_sequence(sp_accession)
-                        time.sleep(1)
-                        if new_accession:
-                            temp_accession2annotation = get_swissprot_annotation([new_accession])
-                            # add new annotation to the dictionnary
-                            deleted_accession2annotation[sp_accession] = temp_accession2annotation[new_accession]
-                        else:
-                            # if no match, false
-                            deleted_accession2annotation[sp_accession] = False
-                    annot = deleted_accession2annotation[sp_accession]
-                    if annot:
-                        subject_taxon_id = annot[0]
-                        subject_annot_score = annot[1].split(' ')[0]
-                        subject_description = annot[2]
-                        subject_genes = annot[3]
-                        subject_organism = annot[4]
-                    else:
-                        # set to unknown
-                        subject_taxon_id = '32644'
-                        subject_annot_score = '0'
-                        subject_description = '-'
-                        subject_genes = '-'
-                        subject_organism = 'unknown'
-
-                subject_kingdom = taxon_id2superkingdom[subject_taxon_id]
-
-                evalue = line[10]
-                percent_identity = float(line[2])
-                gaps = int(line[5])
-                length = int(line[3])
-                query_start = int(line[6])
-                query_end = int(line[7])
-
-                subject_start = int(line[8])
-                subject_end = int(line[9])
-                bit_score = float(line[11])
-
-                # first hit of the file
-                if n == 0:
-                    hit_n = 1
-                # check if new query accession)
-                elif line[0] != input_file[n-1][0]:
-                    # new query => insert its first hit into blastnrdb
-                    hit_n = 1
-                # same query, new hit
                 else:
-                    hit_n+=1
+                    # set to unknown
+                    subject_taxon_id = '32644'
+                    subject_annot_score = '0'
+                    subject_description = '-'
+                    subject_genes = '-'
+            try:
+                subject_annot_score = acc2score[sp_accession]
+            except:
+                subject_annot_score = 0
+            
+            evalue = row.evalue
+            percent_identity = float(row.pident)
+            gaps = int(row.gapopen)
+            length = int(row.length)
+            query_start = int(row.qstart)
+            query_end = int(row.qend)
 
-                '''
-                1 query_taxon_id int
-                2 query_bioentry_id INT
-                3 seqfeature_id INT
-                4 hit_number int
-                5 subject_accession varchar(200)
-                6 subject_kingdom varchar(200)
-                7 subject_scientific_name TEXT(2000000)
-                8 subject_taxid INT
-                9 subject_title VARCHAR(2000)
-                10 evalue varchar(200)
-                11 bit_score float
-                12 percent_identity float
-                13 gaps int
-                14 length int
-                15 query_start int
-                16 query_end int
-                17 query_cov float
-                18 subject_start int
-                19 subject_end
-                20 genes
-                21 annot score
-                '''
-                for locus_tag in hash2locus_list[query_accession]:
-                    seqfeature_id = locus_tag2seqfeature_id[locus_tag]
-                    query_cov = round(((query_end-query_start)/float(locus_tag2protein_length[locus_tag]))*100,2)
+            subject_start = int(row.sstart)
+            subject_end = int(row.send)
+            bit_score = float(row.bitscore)
 
-                    values = [locus_tag2taxon_id[locus_tag],
-                              locus_tag2bioentry_id[locus_tag],
-                              seqfeature_id,
-                              hit_n,
-                              sp_accession,
-                              subject_kingdom,
-                              subject_organism,
-                              subject_taxon_id,
-                              subject_description,
-                              evalue,
-                              bit_score,
-                              percent_identity,
-                              gaps,
-                              length,
-                              query_start,
-                              query_end,
-                              query_cov,
-                              subject_start,
-                              subject_end,
-                              subject_genes,
-                              subject_annot_score]
-                    try:
-                        cursor.execute(sql_template, values)
-                    except:
-                        print ('problem with sql query')
-                        print (sql_template)
-                        print(values)
+            # first hit of the file
+            if n == 0:
+                hit_n = 1
+            # check if new query accession)
+            
+            elif query_accession != df.iloc[row_index-1, :].qseqid:
+                # new query => insert its first hit into blastnrdb
+                hit_n = 1
+            # same query, new hit
+            else:
+                hit_n+=1
+            row_index+=1
+            '''
+            1 query_taxon_id int
+            2 query_bioentry_id INT
+            3 seqfeature_id INT
+            4 hit_number int
+            5 subject_accession varchar(200)
+            6 subject_kingdom varchar(200)
+            7 subject_scientific_name TEXT(2000000)
+            8 subject_taxid INT
+            9 subject_title VARCHAR(2000)
+            10 evalue varchar(200)
+            11 bit_score float
+            12 percent_identity float
+            13 gaps int
+            14 length int
+            15 query_start int
+            16 query_end int
+            17 query_cov float
+            18 subject_start int
+            19 subject_end
+            20 genes
+            21 annot score
+            '''
+            for locus_tag in hash2locus_list[query_accession]:
+                seqfeature_id = locus_tag2seqfeature_id[locus_tag]
+                query_cov = round(((query_end-query_start)/float(locus_tag2protein_length[locus_tag]))*100,2)
+
+                values = [locus_tag2taxon_id[locus_tag],
+                            locus_tag2bioentry_id[locus_tag],
+                            seqfeature_id,
+                            hit_n,
+                            sp_accession,
+                            subject_taxon_id,
+                            subject_description,
+                            str(evalue),
+                            bit_score,
+                            percent_identity,
+                            gaps,
+                            length,
+                            query_start,
+                            query_end,
+                            query_cov,
+                            subject_start,
+                            subject_end,
+                            subject_genes,
+                            subject_annot_score]
+                #try:
+
+                cursor.execute(sql_template, values)
+                #except:
+                #    print ('problem with sql query')
+                #    print (sql_template)
+                #    print(values)
         # commit entire file
         conn.commit()
 
@@ -381,8 +376,6 @@ def create_sql_blast_swissprot_tables(db_name):
                 ' seqfeature_id INT,' \
                 ' hit_number int,' \
                 ' subject_accession varchar(200),' \
-                ' subject_kingdom varchar(200),' \
-                ' subject_scientific_name TEXT(2000000), ' \
                 ' subject_taxid INT,' \
                 ' subject_title VARCHAR(2000),' \
                 ' evalue varchar(200),' \
@@ -415,6 +408,7 @@ def create_sql_blast_swissprot_tables(db_name):
 
 def blastswiss2biosql( locus_tag2seqfeature_id,
                     db_name,
+                    swissprot_sqlite,
                     n_procs,
                     hash2locus_list,
                     *input_blast_files):
@@ -441,11 +435,12 @@ def blastswiss2biosql( locus_tag2seqfeature_id,
     locus_tag2bioentry_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
 
     load_blastswissprot_file_into_db(locus_tag2taxon_id,
-                            locus_tag2seqfeature_id,
-                            locus_tag2bioentry_id,
-                            input_blast_files,
-                            biodb,
-                            hash2locus_list)
+                                     locus_tag2seqfeature_id,
+                                     locus_tag2bioentry_id,
+                                     input_blast_files,
+                                     biodb,
+                                     swissprot_sqlite,
+                                     hash2locus_list)
 
     sys.stdout.write("done!")
 
@@ -463,6 +458,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", '--input_blast', type=str, help="input blast tab files", nargs='+')
     parser.add_argument("-d", '--mysql_database', type=str, help="Biosql biodatabase name")
+    parser.add_argument("-s", '--swissprot_sqlite', type=str, help="Swissprot sqlite database")
     parser.add_argument("-t", '--create_tables', action='store_true', help="Create SQL tables")
     parser.add_argument("-p", '--n_procs', type=int, help="Number of threads to use (default=8)", default=8)
     parser.add_argument("-c", '--clean_tables', action='store_true', help="delete all sql tables")
@@ -495,6 +491,9 @@ if __name__ == '__main__':
 
         blastswiss2biosql(locus_tag2seqfeature_id,
                         biodb,
+                        args.swissprot_sqlite,
                         args.n_procs,
                         hash2locus_list,
                         *args.input_blast)
+
+    manipulate_biosqldb.update_config_table(biodb, "BLAST_swissprot")

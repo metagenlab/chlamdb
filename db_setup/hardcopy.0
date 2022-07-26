@@ -1,0 +1,27 @@
+ 7154  snakemake --notemp -j 8 --snakefile /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases --use-conda --conda-prefix /home/tpillone/miniconda3/ databases/uniprot/uniparc/uniparc.db databases/uniprot/idmapping/idmapping.db databases/uniprot/idmapping/uni
+prot_sprot_trembl.db databases/refseq/merged_refseq.dmnd databases/interproscan/annotated_uniparc/uniparc_match.db databases/ncbi-taxonomy/prot_accession2taxid.db databases/ncbi-taxonomy/linear_taxonomy.db -n
+ 7155  snakemake --notemp -j 8 --snakefile /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases --use-conda --conda-prefix /home/tpillone/miniconda3/ databases/uniprot/uniparc/uniparc.dbh noteb
+ 7841  rm -rf singularity_containers/ snakemake_singularity_amplicons/ snakemake_singularity/
+ 8318  conda activate snakemake_latest
+ 8320  h snakemake
+(snakemake_latest) tpillone@HOS60345:/data$ h snakemake | grep database
+ 7151  snakemake --notemp -j 8 --snakefile /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases --use-conda --conda-prefix /home/tpillone/miniconda3/ databases/uniprot/uniparc/uniparc.db databases/uniprot/idmapping/idmapping.db databases/uniprot/idmapping/uni
+prot_sprot_trembl.db databases/refseq/merged_refseq.dmnd databases/interproscan/annotated_uniparc/uniparc_match.db databases/ncbi-taxonomy/prot_accession2taxid.db databases/ncbi-taxonomy/linear_taxonomy.db -n
+ 7154  snakemake --notemp -j 8 --snakefile /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases --use-conda --conda-prefix /home/tpillone/miniconda3/ databases/uniprot/uniparc/uniparc.db databases/uniprot/idmapping/idmapping.db databases/uniprot/idmapping/uni
+prot_sprot_trembl.db databases/refseq/merged_refseq.dmnd databases/interproscan/annotated_uniparc/uniparc_match.db databases/ncbi-taxonomy/prot_accession2taxid.db databases/ncbi-taxonomy/linear_taxonomy.db -n
+ 7155  snakemake --notemp -j 8 --snakefile /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases --use-conda --conda-prefix /home/tpillone/miniconda3/ databases/uniprot/uniparc/uniparc.dbh noteb
+ 8321  h snakemake | grep database
+(snakemake_latest) tpillone@HOS60345:/data$ ll /scratch/hdd/tpillone/dev/metagenlab/databases_setup/
+total 48K
+drwxr-xr-x 6 tpillone gen 4,0K mai    4  2020 bin/
+drwxr-xr-x 2 tpillone gen 4,0K mai    5 15:58 envs/
+-rw-r--r-- 1 tpillone gen 5,1K févr.  5  2020 README.md
+drwxr-xr-x 6 tpillone gen 4,0K nov.  20  2019 rules/
+drwxr-xr-x 3 tpillone gen 4,0K janv.  4 16:22 scripts/
+-rw-r--r-- 1 tpillone gen 2,3K juin  18  2019 Snakefile_annotation
+-rw-r--r-- 1 tpillone gen 6,4K mai    5 15:58 Snakefile_databases
+-rw-r--r-- 1 tpillone gen 7,7K oct.  25  2021 Snakefile_virulence
+-rw-r--r-- 1 tpillone gen  428 juin  18  2019 Snakemake_chlamdb_setup
+(snakemake_latest) tpillone@HOS60345:/data$ ll /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases
+-rw-r--r-- 1 tpillone gen 6,4K mai    5 15:58 /scratch/hdd/tpillone/dev/metagenlab/databases_setup/Snakefile_databases
+(snakemake_latest) tpillone@HOS60345:/data$ Snakefile_databases

@@ -120,6 +120,7 @@ def load_pdb_data(blast_output_files,
 if __name__ == '__main__':
     import argparse
     import chlamdb_setup_utils
+    from chlamdb.biosqldb import manipulate_biosqldb
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", '--blast_output', type=str, help="BLAST output file(s)", required=True, nargs="+")

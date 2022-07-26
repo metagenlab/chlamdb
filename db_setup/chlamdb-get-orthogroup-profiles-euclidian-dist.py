@@ -74,6 +74,8 @@ def create_ortogroup_dist_table(biodb, table_name='phylo_profiles_eucl_dist'):
         server.adaptor.execute(sql_profiles_table)
     except:
         print ('problem creating the sql table')
+        
+    
 
 
 def get_reduced_orthogroup_matrix(biodb, jaccard=True):
@@ -254,7 +256,10 @@ def euclidian_dist_orthogroups(biodb, merge_taxons=False, n_cpus=8):
 
     for proc in procs:
         proc.join()
-        
+    
+    
+    
+    
 
 
 def jaccard_dist_orthogroups(biodb, n_cpus=8):
@@ -476,6 +481,7 @@ def euclidian_dist_interpro(biodb):
 
 if __name__ == '__main__':
     import argparse
+    from chlamdb.biosqldb import manipulate_biosqldb
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", '--db_name', type=str, help="db name", required=True)
     parser.add_argument("-c", '--cpus', type=int, help="Number of cpus", default=8)
@@ -483,13 +489,24 @@ if __name__ == '__main__':
     parser.add_argument("-e", '--euclidean', help="Euclidean distance", action="store_true")
 
     args = parser.parse_args()
-
+    server, db = manipulate_biosqldb.load_db(args.db_name)
     if args.euclidean:
         euclidian_dist_orthogroups(args.db_name, 
                                    args.cpus)
+        sql1 = 'CREATE INDEX ipped ON interactions_phylo_profiles_eucl_dist(group_1);'
+        sql2 = 'CREATE INDEX ipped2 ON interactions_phylo_profiles_eucl_dist(group_2);'
+        server.adaptor.execute(sql1)
+        server.adaptor.execute(sql2)
     if args.jaccard:
         jaccard_dist_orthogroups(args.db_name, 
                                 args.cpus)
     
+        sql1 = 'CREATE INDEX ippjd ON interactions_phylo_profiles_jac_dist(group_1);'
+        sql2 = 'CREATE INDEX ippjd2 ON interactions_phylo_profiles_jac_dist(group_2);'
+        server.adaptor.execute(sql1)
+        server.adaptor.execute(sql2)
+        
+    
     #euclidian_dist_cogs(args.db_name)
     #euclidian_dist_interpro(args.db_name)
+    manipulate_biosqldb.update_config_table(args.db_name, "phylogenetic_profile")

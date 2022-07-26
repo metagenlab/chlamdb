@@ -33,6 +33,7 @@ def parse_psort_results(out_file):
     pattern_score = re.compile("Localization Scores:") 
     pattern_final_prediction = re.compile("Final Prediction:")
     seq_hash2data = {}
+
     with open(out_file, 'r') as f:
         rows = [i.rstrip() for i in f]
         for row in rows:

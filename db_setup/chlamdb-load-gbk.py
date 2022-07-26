@@ -119,7 +119,7 @@ def create_cds_tables(one_gbk,
             sql = 'select taxon_id from bioentry t1 inner join biodatabase t2 on t1.biodatabase_id=t2.biodatabase_id ' \
                   ' where t2.name="%s" and t1.accession="%s"' % (biodb_name,
                                                                  accession)
-
+            print(sql)
             taxon_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
             for feature in record.features:
                 if feature.type == 'CDS' and not 'pseudo' in feature.qualifiers:

@@ -18,8 +18,11 @@ class Uniprot_annot():
         from Bio import SeqIO
         import http.client
         import sqlite3
+        import os
+        if os.path.exists(f'/tmp/uniprot_{biodb}.db'):
+            os.remove(f'/tmp/uniprot_{biodb}.db')
 
-        self.sqlite_db_path = '/tmp/uniprot.db'
+        self.sqlite_db_path = f'/tmp/uniprot_{biodb}.db'
         self.biodb = biodb
         self.uniprot_mapping = uniprot_mapping
         self.uniprot_data = uniprot_data
@@ -29,6 +32,7 @@ class Uniprot_annot():
         # create temporary sqlite3 database
         self.sqlite_conn = sqlite3.connect(self.sqlite_db_path)
         self.sqlite_cursor = self.sqlite_conn.cursor()
+        
         self.mysql_server, self.mysql_db = manipulate_biosqldb.load_db(self.biodb)
 
     def get_whole_db_uniprot_crossref(self):
@@ -48,7 +52,7 @@ class Uniprot_annot():
 
 
         sql1 = 'CREATE TABLE IF NOT EXISTS custom_tables_uniprot_id2seqfeature_id (seqfeature_id INT UNIQUE, uniprot_id INT AUTO_INCREMENT,' \
-               ' uniprot_accession varchar(400), uniprot_status varchar(400), annotation_score INT, proteome varchar(200), insert_date varchar(300), INDEX uniprot_id(uniprot_id))'
+               ' uniprot_accession varchar(400), uniprot_status varchar(400), annotation_score FLOAT, proteome varchar(200), insert_date varchar(300), INDEX uniprot_id(uniprot_id))'
 
 
         sql5 = 'CREATE TABLE IF NOT EXISTS custom_tables_uniprot_annotation (seqfeature_id INT, comment_function TEXT,' \
@@ -92,6 +96,12 @@ class Uniprot_annot():
                     sql = 'select t4.* from taxid2locus_tag t1 inner join locus_tag2hash t2 on t1.locus_tag=t2.locus_tag inner join hash2uniprot_accession t3 on t2.hash=t3.hash inner join uniprot_data t4 on t3.uniprot_accession=t4.uniprot_accession where t1.locus_tag="%s" ORDER by t3.source_db;' % (locus_tag)
                     self.sqlite_cursor.execute(sql,)
                     annot = self.sqlite_cursor.fetchall()[0]
+            else:
+                print(row)
+                # no proteome, keep first hit with priority to swissprot entries (ORDER BY alphabetical order)
+                sql = 'select t4.* from taxid2locus_tag t1 inner join locus_tag2hash t2 on t1.locus_tag=t2.locus_tag inner join hash2uniprot_accession t3 on t2.hash=t3.hash inner join uniprot_data t4 on t3.uniprot_accession=t4.uniprot_accession where t1.locus_tag="%s" ORDER by t3.source_db;' % (locus_tag)
+                self.sqlite_cursor.execute(sql,)
+                annot = self.sqlite_cursor.fetchall()[0]   
 
             '''
             0    uniprot_accession
@@ -129,8 +139,8 @@ class Uniprot_annot():
             uniprot_status = annot[2]
             proteome = annot[3]
             # '1 out of 5'
-            if not isinstance(annot[1], int):
-                uniprot_score = annot[1].split(' ')[0]
+            if not isinstance(annot[1], float):
+                uniprot_score = float(annot[1])
             else:
                 uniprot_score = annot[1]
 
@@ -170,7 +180,7 @@ class Uniprot_annot():
 
     def get_most_frequent_proteome(self):
 
-        # import taxid2locus_tag
+        # import taxid2locus_tag       
         sql1 = 'create table taxid2locus_tag (taxid INT, locus_tag varchar(200))'
         self.sqlite_cursor.execute(sql1,)
         sql2 = 'select taxon_id, locus_tag from orthology_detail'
@@ -192,7 +202,8 @@ class Uniprot_annot():
         with open(self.hash_locus_mapping, 'r') as f:
             sql = 'insert into locus_tag2hash values (?, ?)'
             for row in f:
-                data = row.rstrip().split("\t")
+                # locus, hash
+                data = row.rstrip().split("\t")[0:2]
                 self.sqlite_cursor.execute(sql, data)
         self.sqlite_conn.commit()
 

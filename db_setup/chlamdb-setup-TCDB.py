@@ -14,6 +14,7 @@ import urllib.request
 from chlamdb.biosqldb import blastswiss2sqltable
 import logging
 
+
 class TCDB():
     def __init__(self, biodb):
         from chlamdb.biosqldb import manipulate_biosqldb
@@ -44,10 +45,13 @@ class TCDB():
         sql_index2 = 'create index tttspf on transporters_transporters(superfamily)'
         sql_index3 = 'create index tttf on transporters_transporters(family)'
         sql_index4 = 'create index tttsuf on transporters_transporters(subfamily)'
-        self.cursor.execute(sql_index1,)
-        self.cursor.execute(sql_index2,)
-        self.cursor.execute(sql_index3,)
-        self.cursor.execute(sql_index4,)
+        try:
+            self.cursor.execute(sql_index1,)
+            self.cursor.execute(sql_index2,)
+            self.cursor.execute(sql_index3,)
+            self.cursor.execute(sql_index4,)
+        except:
+            pass
 
         self.conn.commit()
 
@@ -65,8 +69,11 @@ class TCDB():
         sql_index2 = 'create index tpettid on transporters_protein_entry2transporter(transporter_id)'
         self.cursor.execute(sql,)
         self.cursor.execute(sql2,)
-        self.cursor.execute(sql_index1,)
-        self.cursor.execute(sql_index2,)
+        try:
+            self.cursor.execute(sql_index1,)
+            self.cursor.execute(sql_index2,)
+        except:
+            pass
         self.conn.commit()
 
 
@@ -439,6 +446,7 @@ def get_family2members(family2description, acc2tcid_list):
 if __name__ == '__main__':
     import argparse
     import time
+    from chlamdb.biosqldb import manipulate_biosqldb
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", '--db_name', type=str, help="db name", required=True)
     parser.add_argument("-l", '--logfile', type=str, help="log file", default="setup_TCDB.log")
@@ -497,20 +505,30 @@ if __name__ == '__main__':
   
     acc2species, missing_list = parse_tcdb_fasta()
     
-    logging.info("%s Try to search species name on the UNIPROTKB" % time.ctime())
-    
-    annot_dico = blastswiss2sqltable.get_swissprot_annotation(missing_list)
+    logging.info("%s Try to search species name in UNIPROTKB for %s entries" % (time.ctime(), len(missing_list)))
+    annot_dico = {}
+    for n,acc in enumerate(missing_list):
+        if n % 10 == 0:
+            logging.info(f"{n} / {len(missing_list)}")
+            time.sleep(1)
+        tmp = blastswiss2sqltable.get_swissprot_annotation([acc])
+        # skip problematic entries
+        if tmp:
+            annot_dico.update(tmp)
+        
     # update the dictionnary
     for acc in annot_dico:
         acc2species[acc] = annot_dico[acc][-1]    
 
     t = TCDB(args.db_name)
+    logging.info("insert_classification")
     t.insert_classification(id2description)
 
     t.insert_transporters(acc2tcid_list,
                           tcid2data_all,
                           tcid2substrate)
-    
+    logging.info("insert_transporters")
     t.import_annot(acc2tcid_list,
                    acc2species)
    
+    manipulate_biosqldb.update_config_table(args.database_name, "TCDB_data")

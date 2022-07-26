@@ -60,7 +60,18 @@ class PaperBlast():
         self.server.adaptor.execute(sql3)
         self.server.adaptor.execute(sql4)
         self.server.adaptor.execute(sql5)
-
+        
+    def index_tables(self):
+        sql1 = 'CREATE index ssipa ON string_seqfeature_id2paperblast(seqfeature_id)'
+        sql2 = 'CREATE index ssipp ON string_seqfeature_id2paperblast(paperblast_id)'
+        sql3 = 'CREATE index spbpp ON string_paperblast2pmid(paperblast_id)'
+        sql4 = 'CREATE index spdp ON string_pmid2data_paperblast(pmid)'
+        sql5 = 'CREATE index spg ON string_pmid2gene_rif_comment(pmid)'
+        self.server.adaptor.execute(sql1)
+        self.server.adaptor.execute(sql2)
+        self.server.adaptor.execute(sql3)
+        self.server.adaptor.execute(sql4)
+        self.server.adaptor.execute(sql5)
 
     def parse_fasta(self, fasta_file):
 
@@ -305,3 +316,4 @@ if __name__ == '__main__':
                     args.query_fasta,
                     args.db_fasta)
     pb.load_paperblast_data()
+    pb.index_tables()

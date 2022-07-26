@@ -200,6 +200,7 @@ def import_annot(gblast_file,
 if __name__ == '__main__':
     import argparse
     import chlamdb_setup_utils
+    from chlamdb.biosqldb import manipulate_biosqldb
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", '--gblast_html', type=str, help="gblast html file")
@@ -219,3 +220,5 @@ if __name__ == '__main__':
                  args.fasta_database,
                  args.xml_dir,
                  hash2locus_list)
+
+    manipulate_biosqldb.update_config_table(args.db_name, "priam_data")

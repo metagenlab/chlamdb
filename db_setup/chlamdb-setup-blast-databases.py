@@ -64,9 +64,9 @@ def setup_blastdb(biodb, static_dir_path):
         gbk2table.gbk2table(record, out_name_tab)
 
     # merging faa, fna and ffn
-    shell_command.shell_command("cd %s; cat *faa> all.faa" % faa_path)
-    shell_command.shell_command("cd %s; cat *ffn> all.ffn" % ffn_path)
-    shell_command.shell_command("cd %s; cat *fna> all.fna" % fna_path)
+    shell_command.shell_command("cd %s; cat *faa > all.faa" % faa_path)
+    shell_command.shell_command("cd %s; cat *ffn > all.ffn" % ffn_path)
+    shell_command.shell_command("cd %s; cat *fna > all.fna" % fna_path)
 
     # formatdb
     # makeblastdb -in prot2003-2014_test.fa -dbtype prot

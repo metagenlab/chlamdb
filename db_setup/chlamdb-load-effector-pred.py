@@ -191,6 +191,7 @@ def load_DeepT3_table(table_file,
 if __name__ == '__main__':
     import argparse
     import chlamdb_setup_utils
+    from chlamdb.biosqldb import manipulate_biosqldb
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", '--table_file', type=str, help="effector prediction table", required=True)
@@ -222,3 +223,5 @@ if __name__ == '__main__':
         load_DeepT3_table(args.table_file, 
                           args.db_name,
                           hash2locus_list)
+
+    manipulate_biosqldb.update_config_table(args.db_name, "T3SS_data")

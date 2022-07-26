@@ -23,7 +23,6 @@ def get_pathway_ko_association_table(biodb):
 
     for pathway in pathway2pathway_id:
         print(pathway)
-
         url_template = 'http://rest.kegg.jp/get/%s/kgml' % re.sub('map', 'ko', pathway)
         print(url_template)
         try:
@@ -47,4 +46,16 @@ def get_pathway_ko_association_table(biodb):
                 cursor.execute(sql,)
         conn.commit()
 
-get_pathway_ko_association_table(biodb)
+
+
+if __name__ == '__main__':
+        import argparse
+        from chlamdb.biosqldb import manipulate_biosqldb
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-d', '--db_name', type=str, help='DB name', default='Biodb name')
+        parser.add_argument('-v', '--interpro_version', type=str, help='Interpro version')
+        
+        args = parser.parse_args()
+        
+        get_pathway_ko_association_table(args.db_name)

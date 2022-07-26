@@ -7,19 +7,19 @@
 
 
 def parse_idmapping_crossrefs(table):
-    # CRC-84A6E563630AFDE9    A0A317JCC6      UniProtKB-ID    A0A317JCC6_9BACT
-    uniprot_accession2crosserfs = {}
+    # CRC-84A6E563630AFDE9 UniProtKB-ID  A0A317JCC6  1
+    hash2crosserfs = {}
     with open(table, 'r') as f:
         for row in f:
             data = row.rstrip().split("\t")
-            uniprot_accession = data[1]
-            database_name = data[2]
-            accession = data[3]
-            if uniprot_accession not in uniprot_accession2crosserfs:
-                uniprot_accession2crosserfs[uniprot_accession] = [[database_name, accession]]
+            hash = data[0]
+            database_name = data[1]
+            accession = data[2]
+            if hash not in hash2crosserfs:
+                hash2crosserfs[hash] = [[database_name, accession]]
             else:
-                uniprot_accession2crosserfs[uniprot_accession].append([database_name, accession])
-    return uniprot_accession2crosserfs
+                hash2crosserfs[hash].append([database_name, accession])
+    return hash2crosserfs
 
 
 def create_db(biodatabase):
@@ -54,7 +54,7 @@ def unirpot_crossrefs(biodatabase,
     sql3 = f'select locus_tag,seqfeature_id from annotation_seqfeature_id2locus;'
     sql4 = f'select seqfeature_id,protein_id from annotation_seqfeature_id2CDS_annotation'
     sql5 = f'select protein_id, seqfeature_id from annotation_seqfeature_id2CDS_annotation'
-    sql6 = f'select accession, db_name from biosqldb_cross_references where db_name in ("RefSeq","RefSeq locus_tag")'
+    sql6 = f'select accession, db_name from cross_references where db_name in ("RefSeq","RefSeq locus_tag")'
 
     seqfeature_id2uniprot_accession = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2))
     locus_tag2seqfeature_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql3))
@@ -70,7 +70,7 @@ def unirpot_crossrefs(biodatabase,
             protein_accession_no_version2seqfeature_id[protein_id[0]] =  1
 
     # parse crossrefs table
-    uniprot_accession2crosserfs = parse_idmapping_crossrefs(uniprot_crossrefs_table)
+    hash2crosserfs = parse_idmapping_crossrefs(uniprot_crossrefs_table)
     
     for hash in hash2locus_list:
         for locus in list(set(hash2locus_list[hash])):
@@ -102,7 +102,7 @@ def unirpot_crossrefs(biodatabase,
                 uniprot_accession = seqfeature_id2uniprot_accession[str(seqfeature_id)]
             except KeyError:
                 continue
-            uniprot_crossrefs = uniprot_accession2crosserfs[uniprot_accession]
+            uniprot_crossrefs = hash2crosserfs[hash]
             
             # add alll crossrefs
             for uniprot_crossref in uniprot_crossrefs:
@@ -215,8 +215,8 @@ if __name__ == '__main__':
 
     if args.idmapping:
         unirpot_crossrefs(args.database_name, 
-                        hash2locus_list, 
-                        args.idmapping)
+                          hash2locus_list, 
+                          args.idmapping)
 
     if args.refseq:
         refseq_crossrefs(args.database_name, 

@@ -6,17 +6,18 @@
 # Author: Trestan Pillonel (trestan.pillonel[]gmail.com)
 # Date: april 2019
 # ---------------------------------------------------------------------------
-
+import logging 
+logging.basicConfig(filename="load_data.log", level=logging.DEBUG)
 
 def load_blastnr_file_into_db(locus_tag2taxon_id,
                               locus_tag2seqfeature_id,
-                              protein_id2seqfeature_id,
                               locus_tag2bioentry_id,
                               biodb,
                               hash2locus_list,
                               linear_taxonomy,
                               diamond_refseq, 
                               uniref_db):
+    import pandas
 
     '''
     Load tabulated blast results into sql table blastnr_`db_name`
@@ -24,23 +25,28 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
 
     :param seqfeature_id2locus_tag: dictionnary with whole data for `biodb` biodatabase
     :param locus_tag2seqfeature_id: dictionnary with whole data for `biodb` biodatabase
-    :param protein_id2seqfeature_id: dictionnary with whole data for `biodb` biodatabase
     :param db_name: name of the biodatabase
     :param input_blast_files: all input tabulated blast files
     :return: None
     '''
-
+    from ete3 import NCBITaxa
+    ncbi = NCBITaxa()
 
     import time
     import sqlite3
     from chlamdb.biosqldb import manipulate_biosqldb
-    server, db = manipulate_biosqldb.load_db(biodb)
-    mysql_conn = server.adaptor.conn
-    mysql_cursor = server.adaptor.cursor
+    sqlpsw = os.environ['SQLPSW']
+    from sqlalchemy import create_engine
+    
+    engine = create_engine(f"mysql://root:{sqlpsw}@127.0.0.1/{biodb}")
+    engine_conn = engine.connect()
+    conn_mysql = engine.raw_connection()
+
 
     sqlite3_conn = sqlite3.connect(diamond_refseq)
     sqlite3_cursor = sqlite3_conn.cursor()
-
+    # engine = create_engine("mysql+pymysql://…")
+    
     sql1 = 'attach "%s" as linear_taxonomy' % linear_taxonomy
     sql2 = 'attach "%s" as uniref' % uniref_db
     
@@ -50,115 +56,56 @@ def load_blastnr_file_into_db(locus_tag2taxon_id,
     sql3 = 'select t1.*,t2.superkingdom, t3.sequence_length, t3.description from diamond_uniref t1 ' \
            ' inner join linear_taxonomy.ncbi_taxonomy t2 on t1.taxon_id=t2.tax_id' \
             ' inner join uniref.uniref t3 on t1.sseqid=t3.accession'
-
-    n = 0
-    for row in sqlite3_cursor.execute(sql3):
-
-        '''
-        0 hit_count
-        1 qseqid
-        2 sseqid
-        3 pident
-        4 length
-        5 mismatch
-        6 gapopen
-        7 qstart
-        8 qend
-        9 sstart
-        10 send
-        11 evalue
-        12 bitscore
-        13 taxid
-        14 superkingdom
-        15 seq length
-        16 description
-        '''
-        from ete3 import NCBITaxa
-        ncbi = NCBITaxa()
+    print(logging.info("Retrieve table"))
+    
+    # use chunksize iterator
+    hash2locus_list= hash2locus_list[["locus_tag", "hash"]].set_index(["hash"])
+    for n,df in enumerate(pandas.read_sql(sql3, sqlite3_conn, chunksize=50000)):
+        memory_usage = df.memory_usage().sum()
+        logging.info(f"Memory df {n} {memory_usage}")
         
-        if n % 10000 == 0:
-            print(time.ctime() + ': %s...' % n)
-            mysql_conn.commit()
+        columns = ["hit_number", 
+                "query_hash", 
+                "subject_accession", 
+                "percent_identity", 
+                "length", 
+                "mismatch", 
+                "gaps", 
+                "query_start", 
+                "query_end", 
+                "subject_start", 
+                "subject_end", 
+                "evalue", 
+                "bit_score", 
+                "subject_taxid", 
+                "subject_kingdom", 
+                "subject_length", 
+                "subject_title"]
+        
+        df.columns = columns
+        
+        logging.info("Join table with locus2hash")
+        df_merged = df.set_index(["query_hash"]).join(hash2locus_list)
+        memory_usage_join = df_merged.memory_usage().sum()
+        logging.info(f"Memory df join {n} {memory_usage_join}")
+        
+        df_merged["query_taxon_id"] = [locus_tag2taxon_id[locus_tag] for locus_tag in df_merged.locus_tag]
+        df_merged["query_bioentry_id"] = [locus_tag2bioentry_id[locus_tag] for locus_tag in df_merged.locus_tag] 
+        df_merged["seqfeature_id"]  = [locus_tag2seqfeature_id[locus_tag] for locus_tag in df_merged.locus_tag]
+        df_merged["subject_taxid"] = df_merged["subject_taxid"].astype(int)
+        nr_hit_taxid = list(set(df_merged["subject_taxid"].to_list()))
+        rank = ncbi.get_rank(nr_hit_taxid)
+        subject_scientific_names = ncbi.get_taxid_translator(nr_hit_taxid)
+        
+        df_merged["subject_scientific_name"]  = [f"{subject_scientific_names[subject_taxid]} ({rank[subject_taxid]})" if subject_taxid in rank else '-' for subject_taxid in df_merged.subject_taxid]
 
-        hit_n = row[0]
-        query_hash = row[1]
-        evalue = row[11]
-        percent_identity = float(row[3])
-        gaps = int(row[6])
-        align_length = int(row[4])
-        query_start = int(row[7])
-        query_end = int(row[8])
-        subject_start = int(row[9])
-        subject_end = int(row[10])
-        bit_score = float(row[12])
-        subject_accession = row[2]
-        subject_taxon_id = row[13]
-        subject_kingdom = row[14]
-        hit_length = row[15]
-        subject_title = row[16]
+        df_merged[["query_taxon_id","query_bioentry_id", 
+                "seqfeature_id", "hit_number", "subject_accession", 
+                "subject_kingdom", "subject_scientific_name", 
+                "subject_taxid", "subject_title", "evalue", 
+                "bit_score", "percent_identity", "gaps", "length", 
+                "length", "query_start", "query_end", "subject_start", "subject_end", "subject_length"]].to_sql("blastnr_blastnr", engine, if_exists="append", index=False)
 
-        try:
-            rank = ncbi.get_rank([subject_taxon_id])[int(subject_taxon_id)]
-        except KeyError:
-            rank = ''
-        try:
-            subject_scientific_names = ncbi.get_taxid_translator([subject_taxon_id])[int(subject_taxon_id)]
-        except KeyError:
-            subject_scientific_names = ''    
-
-        '''
-        1 query_taxon_id int
-        2 query_bioentry_id INT
-        3 seqfeature_id INT
-        4 hit_number int
-        5 subject_gi int
-        6 subject_accession varchar(200)
-        7 subject_kingdom varchar(200)
-        8 subject_scientific_name TEXT(2000000)
-        9 subject_taxid INT
-        10 subject_title VARCHAR(2000)
-        11 evalue varchar(200)
-        12 bit_score float
-        12 percent_identity float
-        14 gaps int
-        15 length int
-        16 query_start int
-        17 query_end int
-        18 subject_start int
-        19 subject_end
-        '''
-
-        locus_list = hash2locus_list[query_hash]
-
-        n += 1
-        for locus_tag in locus_list:
-            seqfeature_id = locus_tag2seqfeature_id[locus_tag]
-
-            values = '(%s,%s,%s,%s,"%s","%s","%s",%s,"%s","%s",%s,%s,%s,%s,%s,%s,%s,%s, %s);' % (locus_tag2taxon_id[locus_tag],
-                                                                                                 locus_tag2bioentry_id[locus_tag],
-                                                                                                 seqfeature_id,
-                                                                                                 hit_n,
-                                                                                                 subject_accession,
-                                                                                                 subject_kingdom,
-                                                                                                 f"{subject_scientific_names} ({rank})",
-                                                                                                 subject_taxon_id,
-                                                                                                 subject_title,
-                                                                                                 evalue,
-                                                                                                 bit_score,
-                                                                                                 percent_identity,
-                                                                                                 gaps,
-                                                                                                 align_length,
-                                                                                                 query_start,
-                                                                                                 query_end,
-                                                                                                 subject_start,
-                                                                                                 subject_end,
-                                                                                                 hit_length
-                                                                                                 )
-
-            sql = 'insert into blastnr_%s values %s' % (biodb,
-                                                        values)
-            mysql_cursor.execute(sql,)
-        mysql_conn.commit()
 
 
 def create_sql_plastnr_tables(db_name):
@@ -167,7 +114,7 @@ def create_sql_plastnr_tables(db_name):
     conn = server.adaptor.conn
     cursor = server.adaptor.cursor
     
-    sql_plast = 'CREATE TABLE IF NOT EXISTS blastnr_%s (query_taxon_id INT,' \
+    sql_plast = 'CREATE TABLE IF NOT EXISTS blastnr_blastnr (query_taxon_id INT,' \
                 ' query_bioentry_id INT,' \
                 ' seqfeature_id INT,' \
                 ' hit_number int,' \
@@ -190,15 +137,15 @@ def create_sql_plastnr_tables(db_name):
                 ' INDEX query_bioentry_id (query_bioentry_id),' \
                 ' INDEX hit_number (hit_number),' \
                 ' INDEX seqfeature_id (seqfeature_id),' \
-                ' INDEX subject_taxid(subject_taxid))' % (db_name)
+                ' INDEX subject_taxid(subject_taxid))'
 
     try:
 
         cursor.execute(sql_plast)
         conn.commit()
     except:
-        print(sql_plast)
-        print('not created')
+        logging.info(sql_plast)
+        logging.info('not created')
 
 
 if __name__ == '__main__':
@@ -230,7 +177,6 @@ if __name__ == '__main__':
     mysql_user = 'root'
 
     mysql_pwd = os.environ['SQLPSW']
-    mysql_db = 'blastnr'
 
     db_name = args.mysql_database
 
@@ -238,21 +184,18 @@ if __name__ == '__main__':
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    hash2locus_list = chlamdb_setup_utils.get_hash2locus_list(args.hash2locus_tag)
+    hash2locus_list = chlamdb_setup_utils.get_hash2locus_list(args.hash2locus_tag, as_df=True)
 
     sys.stdout.write("creating locus_tag2seqfeature_id")
     locus_tag2seqfeature_id = manipulate_biosqldb.locus_tag2seqfeature_id_dict(server, biodb)
 
-    sys.stdout.write("creating protein_id2seqfeature_id")
-    protein_id2seqfeature_id = manipulate_biosqldb.protein_id2seqfeature_id_dict(server, biodb)
-
     create_sql_plastnr_tables(db_name)
 
-    print('get locus2taxon_id')
+    logging.info('get locus2taxon_id')
     sql = 'select locus_tag, taxon_id from orthology_detail'
     locus_tag2taxon_id = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    print('get locus2bioentry')
+    logging.info('get locus2bioentry')
     sql2 = 'select locus_tag,bioentry_id from biodatabase t1 ' \
            ' inner join bioentry as t2 on t1.biodatabase_id=t2.biodatabase_id' \
            ' inner join orthology_detail t3 on t2.accession=t3.accession where t1.name="%s"' % (db_name)
@@ -261,10 +204,11 @@ if __name__ == '__main__':
 
     load_blastnr_file_into_db(locus_tag2taxon_id,
                               locus_tag2seqfeature_id,
-                              protein_id2seqfeature_id,
                               locus_tag2bioentry_id,
                               db_name,
                               hash2locus_list,
                               args.linear_taxonomy,
                               args.diamond_refseq,
                               args.uniref_db)
+    
+    manipulate_biosqldb.update_config_table(biodb, "BLAST_swissprot")

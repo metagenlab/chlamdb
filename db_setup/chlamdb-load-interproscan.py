@@ -630,5 +630,9 @@ if __name__ == '__main__':
                                    seqfeature_id2orthogroup,
                                    hash2locus_list,
                                    *args.input_interpro)
+        
+            
+            manipulate_biosqldb.update_config_table(args.database_name, "interpro_data")
+            
     if args.add_SP_TM:
         add_TM_and_SP_columns(args.database_name)

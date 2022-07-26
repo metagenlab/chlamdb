@@ -12,6 +12,17 @@ def create_locus_link_table(biodb):
 
     server.adaptor.execute(sql,)
 
+def index_tables(biodb):
+    from chlamdb.biosqldb import manipulate_biosqldb
+    server, db = manipulate_biosqldb.load_db(biodb)
+    sql1='CREATE INDEX ictll1 ON interactions_colocalization_table_locus(locus_1)'
+    sql2='CREATE INDEX ictll2 ON interactions_colocalization_table_locus(locus_2)'
+    sql3='CREATE INDEX ictt1 ON interactions_colocalization_taxons_table_locus(locus_1)'
+    sql4='CREATE INDEX ictt2 ON interactions_colocalization_taxons_table_locus(locus_2)'
+    server.adaptor.execute(sql1,)
+    server.adaptor.execute(sql2,)
+    server.adaptor.execute(sql3,)
+    server.adaptor.execute(sql4,)
 
 def create_taxon_link_table_locus(biodb):
     # locus_a, linked_locus, ref_ortho, linked_group, taxon_a,t
@@ -602,3 +613,8 @@ if __name__ == '__main__':
 
     insert_locus_links_into_mysql(args.database_name, locus_links)
     insert_taxon_links_into_mysql_locus(args.database_name, taxon_links)
+    index_tables(args.database_name)
+
+    manipulate_biosqldb.update_config_table(args.database_name, "gene_clusters")
+    
+    
