@@ -587,7 +587,8 @@ def proteins_id2cossplot(server,
                          out_name, 
                          region_size_bp, 
                          cache, 
-                         color_locus_list = []):
+                         color_locus_list = [],
+                         color_orthogroup_list=[]):
     
     plasmid_list = []
     sub_record_list = []

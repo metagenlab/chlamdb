@@ -714,16 +714,16 @@ def plot_heat_tree(tree_file, biodb="chlamydia_04_16", exclude_outgroup=False, b
 
     sql1 = 'select taxon_id, description from bioentry where biodatabase_id=%s and description not like "%%%%plasmid%%%%"' % db_id
     sql2 = 'select t2.taxon_id, t1.GC from genomes_info as t1 inner join bioentry as t2 ' \
-           ' on t1.accession=t2.accession where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (biodb, db_id)
+           ' on t1.accession=t2.accession where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (db_id)
     sql3 = 'select t2.taxon_id, t1.genome_size from genomes_info as t1 ' \
            ' inner join bioentry as t2 on t1.accession=t2.accession ' \
-           ' where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (biodb, db_id)
+           ' where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (db_id)
     sql4 = 'select t2.taxon_id,percent_non_coding from genomes_info as t1 ' \
            ' inner join bioentry as t2 on t1.accession=t2.accession ' \
-           ' where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (biodb, db_id)
+           ' where t2.biodatabase_id=%s and t1.description not like "%%%%plasmid%%%%";' % (db_id)
            
-    sql_checkm_completeness = 'select taxon_id, completeness from custom_tables_checkm;' % biodb
-    sql_checkm_contamination = 'select taxon_id,contamination from custom_tables_checkm;' % biodb
+    sql_checkm_completeness = 'select taxon_id, completeness from custom_tables_checkm;'
+    sql_checkm_contamination = 'select taxon_id,contamination from custom_tables_checkm;'
 
     try:
         taxon_id2completeness = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql_checkm_completeness))

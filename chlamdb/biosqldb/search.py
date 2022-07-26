@@ -42,7 +42,7 @@ def perform_search(request,
         
             # try to match synonymous table
             sql_sy = f'select t1.db_name,t1.accession,t2.orthogroup,t2.locus_tag,t2.start,t2.stop,t2.strand,t2.gene, t2.orthogroup_size,t2.n_genomes,t2.TM,t2.SP,t2.product,t2.organism ' \
-                    f' from biosqldb_cross_references t1 ' \
+                    f' from cross_references t1 ' \
                     f' inner join orthology_detail t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                     f' where t1.accession="{search_term}" ' \
                     f' and db_name not in ("STRING", "KEGG", "KO", "eggNOG") group by t1.seqfeature_id limit 200;'
@@ -241,7 +241,7 @@ def perform_search(request,
         sql = 'select A.pmid,count(*) as n from (select t1.pmid,orthogroup_id from string_pmid2data_stringdb t1 ' \
                 ' inner join string_string_protein2pmid t2 on t1.pmid=t2.pmid ' \
                 ' inner join string_seqfeature_id2string_protein_mapping t3 on t2.string_protein_id=t3.string_protein_id ' \
-                ' inner join orthology_seqfeature_id2orthogroup_%s t4 on t3.seqfeature_id=t4.seqfeature_id ' \
+                ' inner join orthology_seqfeature_id2orthogroup t4 on t3.seqfeature_id=t4.seqfeature_id ' \
                 ' where t1.pmid in (%s) group by t1.pmid,orthogroup_id) A group by pmid;' % (','.join(pmid_list))
 
         pmid2n_homologs = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
