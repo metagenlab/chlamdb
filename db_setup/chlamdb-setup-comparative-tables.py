@@ -267,7 +267,7 @@ def collect_interpro(db_name):
     #sys.exit()
 
     all_interpro_ids_sql = 'select interpro_accession from interpro ' \
-                       ' where interpro_accession != "0" group by interpro_accession;'
+                       ' where interpro_accession != "-" group by interpro_accession;'
 
     all_interpro_ids = [i[0] for i in server.adaptor.execute_and_fetchall(all_interpro_ids_sql,)]
 

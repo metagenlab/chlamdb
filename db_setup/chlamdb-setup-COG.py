@@ -135,7 +135,7 @@ if __name__ == '__main__':
     cog_functions = 'ftp://ftp.ncbi.nlm.nih.gov/pub/COG/COG2014/data/fun2003-2014.tab'
     
     if args.download:
-        print("Downloading ftp://ftp.ncbi.nlm.nih.gov/pub/COG/COG2014/data/cognames2003-2014.tab")
+        print("Downloading https://ftp.ncbi.nlm.nih.gov/pub/COG/COG2014/data/fun2003-2014.tab")
         cog_functions_data = urllib.request.urlopen(cog_functions).read().decode('utf-8').split('\n')
 
         print("Downloading ftp://ftp.ncbi.nlm.nih.gov/pub/COG/COG2014/data/cognames2003-2014.tab...")
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
         cognames_2014 = pandas.read_csv(args.cognames_2014, names=["COG_id", "functional_class", "COG_annotation"], sep="\t", comment="#", encoding = "ISO-8859-1")
 
-        functions_2014 = pandas.read_csv(args.cognames_2014, names=["code", "name"], sep="\t", comment="#", encoding = "ISO-8859-1")
+        functions_2014 = pandas.read_csv(args.functions_2014, names=["code", "name"], sep="\t", comment="#", encoding = "ISO-8859-1")
                   
         load_cog_tables(args.biodb,
                         cognames_2014, 

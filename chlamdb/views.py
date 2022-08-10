@@ -69,7 +69,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.forms.utils import flatatt
 from chlamdb.forms import make_blastnr_best_non_top_phylum_form
-
+from chlamdb.biosqldb import biosql_own_sql_tables
 
 
 from chlamdb.biosqldb import manipulate_biosqldb
@@ -3949,65 +3949,49 @@ def entry_list_ko(request,):
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
     
-    # retrieve taxid list
-    genomes_data = db.get_genomes_infos()
-    taxids = [str(i) for i in genomes_data.index.to_list()]
+    sql = f'select * from comparative_tables_ko'
+    count_df = pandas.read_sql(sql, server.adaptor.conn, index_col="id")
 
-    # retrieve entry list
-    ko_all = db.get_ko_hits(taxids, 
-                            search_on="taxid", 
-                            indexing="taxid")
-    # retrieve annotations
-    ko_desc = db.get_ko_desc(ko_all.index.to_list())
-    ko_mod = db.get_ko_modules(ko_all.index.to_list())
-    ko_path = db.get_ko_pathways(ko_all.index.to_list())
+    # get count in subgroup
+    cog2count = (count_df).sum(axis=1)
+    cog2count.name = "count"
+    # get count in complete database
+    cog2_n_genomes = (count_df > 0).sum(axis=1)
+    cog2_n_genomes.name = "freq"
     
-    # count frequency and n genomes
-    combined_df = pd.DataFrame(ko_all.sum(axis=1).rename('count'))
-    ko_freq = ko_all[ko_all > 0].count(axis=1).to_dict()
-
-    combined_df["accession"] = [format_ko(ko) for ko in combined_df.index]
-    combined_df["modules"] = [format_ko_modules(ko_mod, ko) if ko in ko_mod else '-' for ko in combined_df.index]
-    combined_df["description"] = [ko_desc[ko] for ko in combined_df.index]
-    combined_df["pathways"] = [format_ko_path(ko_path, ko) if ko in ko_path else '-' for ko in combined_df.index]
-    combined_df["freq"] = [ko_freq[ko] for ko in combined_df.index]
+    sql = 'select ko_accession,definition from enzyme_ko_annotation ;'
+    df_met = pandas.read_sql(sql, server.adaptor.conn, index_col="ko_accession")
     
-    combined_df = combined_df.sort_values(["count","freq"], ascending=False)
+    df = pandas.merge(cog2count, cog2_n_genomes, right_index = True,
+               left_index = True)
+    df = pandas.merge(df, df_met, left_index=True, right_index=True).sort_values("count", ascending=False)
     
     # combine into df
-    return render(request, 'chlamdb/entry_list_ko.html', locals())
+    return render(request, 'chlamdb/entry_list_ko.html', my_locals(locals()))
 
 def entry_list_interpro(request,):
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
     
-    # retrieve taxid list
-    genomes_data = db.get_genomes_infos()
-    taxids = [str(i) for i in genomes_data.index.to_list()]
+    sql = f'select * from comparative_tables_interpro'
+    count_df = pandas.read_sql(sql, server.adaptor.conn, index_col="id")
 
-    # retrieve entry list
-    ko_all = db.get_ko_hits(taxids, 
-                            search_on="taxid", 
-                            indexing="taxid")
-    # retrieve annotations
-    ko_desc = db.get_ko_desc(ko_all.index.to_list())
-    ko_mod = db.get_ko_modules(ko_all.index.to_list())
-    ko_path = db.get_ko_pathways(ko_all.index.to_list())
+    # get count in subgroup
+    cog2count = (count_df).sum(axis=1)
+    cog2count.name = "count"
+    # get count in complete database
+    cog2_n_genomes = (count_df > 0).sum(axis=1)
+    cog2_n_genomes.name = "freq"
     
-    # count frequency and n genomes
-    combined_df = pd.DataFrame(ko_all.sum(axis=1).rename('count'))
-    ko_freq = ko_all[ko_all > 0].count(axis=1).to_dict()
-
-    combined_df["accession"] = [format_ko(ko) for ko in combined_df.index]
-    combined_df["modules"] = [format_ko_modules(ko_mod, ko) if ko in ko_mod else '-' for ko in combined_df.index]
-    combined_df["description"] = [ko_desc[ko] for ko in combined_df.index]
-    combined_df["pathways"] = [format_ko_path(ko_path, ko) if ko in ko_path else '-' for ko in combined_df.index]
-    combined_df["freq"] = [ko_freq[ko] for ko in combined_df.index]
+    sql = 'select name,description from interpro_entry ;'
+    df_met = pandas.read_sql(sql, server.adaptor.conn, index_col="name")
     
-    combined_df = combined_df.sort_values(["count","freq"], ascending=False)
+    df = pandas.merge(cog2count, cog2_n_genomes, right_index = True,
+               left_index = True)
+    df = pandas.merge(df, df_met, left_index=True, right_index=True).sort_values("count", ascending=False)
     
     # combine into df
-    return render(request, 'chlamdb/entry_list_interpro.html', locals())
+    return render(request, 'chlamdb/entry_list_interpro.html', my_locals(locals()))
 
 
 def entry_list_cog(request,):
@@ -4015,55 +3999,48 @@ def entry_list_cog(request,):
     server, db = manipulate_biosqldb.load_db(biodb)
 
     # retrieve taxid list
-    genomes_data = db.get_genomes_infos()
-    taxids = [str(i) for i in genomes_data.index.to_list()]
+    sql = f'select * from comparative_tables_COG'
+    count_df = pandas.read_sql(sql, server.adaptor.conn, index_col="id")
 
-    # retrieve entry list
-    cog_all = db.get_cog_hits(taxids, 
-                              search_on="taxid", 
-                              indexing="taxid")
-    # retrieve annotations
-    cogs_summaries = db.get_cog_summaries(cog_all.index.tolist(), as_df=True, only_cog_desc=True)
+    # get count in subgroup
+    cog2count = (count_df).sum(axis=1)
+    cog2count.name = "Count"
+    # get count in complete database
+    cog2_n_genomes = (count_df > 0).sum(axis=1)
+    cog2_n_genomes.name = "Frequency"
+    
+    df = pandas.merge(cog2count, cog2_n_genomes, right_index = True,
+               left_index = True).sort_values("count", ascending=False)
+                
+    return render(request, 'chlamdb/entry_list_cog.html', my_locals(locals()))
 
-    # count frequency and n genomes
-    cog_count = cog_all.sum(axis=1)
-    cog_freq = cog_all[cog_all > 0].count(axis=1)
-    cogs_summaries["accession"] = [format_cog(cog) for cog in cogs_summaries.index]
-        
-    # combine into df
-    combined_df = cogs_summaries.merge(cog_count.rename('count'), 
-                                       left_index=True, 
-                                       right_index=True).merge(cog_freq.rename('freq'), 
-                                                               left_index=True, 
-                                                               right_index=True).sort_values(["count"], ascending=False)
-
-    return render(request, 'chlamdb/entry_list_cog.html', locals())
-
+def cog_comparison(request,):
+    
+    return render(request, 'chlamdb/entry_list_pfam.html', my_locals(locals()))
 
 def entry_list_pfam(request,):
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
     
-    # retrieve taxid list
-    genomes_data = db.get_genomes_infos()
-    taxids = [str(i) for i in genomes_data.index.to_list()]
+    sql = f'select * from comparative_tables_Pfam'
+    count_df = pandas.read_sql(sql, server.adaptor.conn, index_col="id")
 
-    # retrieve entry list
-    pfam_all = db.get_pfam_hits(taxids, 
-                                search_on="taxid", 
-                                indexing="taxid")
-    # retrieve annotations
-    pfam_annot = db.get_pfam_def(pfam_all.index.to_list())
+    # get count in subgroup
+    cog2count = (count_df).sum(axis=1)
+    cog2count.name = "count"
+    # get count in complete database
+    cog2_n_genomes = (count_df > 0).sum(axis=1)
+    cog2_n_genomes.name = "freq"
     
-    # count frequency and n genomes
-    pfam_count = pfam_all.sum(axis=1)
-    pfam_freq = pfam_all[pfam_all > 0].count(axis=1)
-    pfam_annot["accession"] = [format_pfam(pfam) for pfam in pfam_annot.index]
+    sql = 'select signature_accession,signature_description from interpro_signature t1 inner join interpro_analysis t2 on t1.analysis_id=t2.analysis_id where analysis_name="Pfam" ;'
+    df_met = pandas.read_sql(sql, server.adaptor.conn, index_col="signature_accession")
     
-    # combine into df
-    combined_df = pfam_annot.merge(pfam_count.rename('count'), left_index=True, right_index=True).merge(pfam_freq.rename('freq'), left_index=True, right_index=True).sort_values(["count"], ascending=False)
+    df = pandas.merge(cog2count, cog2_n_genomes, right_index = True,
+               left_index = True)
+    df = pandas.merge(df, df_met, left_index=True, right_index=True).sort_values(["count","freq"], ascending=False)
+
     
-    return render(request, 'chlamdb/entry_list_pfam.html', locals())
+    return render(request, 'chlamdb/entry_list_pfam.html', my_locals(locals()))
 
 
 def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
@@ -4875,7 +4852,7 @@ def get_cog_multiple(request, category, accessions=False):
     - one or multiple explude taxons
     return the list of match COGs with their annotations
     '''
-    from chlamdb.biosqldb import biosql_own_sql_tables
+    
 
     server, db = manipulate_biosqldb.load_db(biodb)
     include = [i for i in request.GET.getlist('i')]
