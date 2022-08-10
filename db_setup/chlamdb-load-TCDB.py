@@ -107,7 +107,7 @@ def import_annot(gblast_file,
             14 Family Abrv.	
             15 Predicted Substrate
             '''
-            
+
             cols = one_row.find_all('td')
             cols = [ele.text.strip() for ele in cols]
 
@@ -136,7 +136,7 @@ def import_annot(gblast_file,
 
                     first_hsp = blast_data[hash].alignments[0].hsps[0]
                     query_align_length = first_hsp.query_end-first_hsp.query_start
-                    query_length = len(query_accession2record[locus_tag])
+                    query_length = len(query_accession2record[hash])
                     hit_length = len(db_accession2record[hit_accession])
 
                     hit_align_length = first_hsp.sbjct_end-first_hsp.sbjct_start
@@ -144,9 +144,7 @@ def import_annot(gblast_file,
                     hit_cov = round(hit_align_length/float(hit_length), 2)
                     n_hsps = len(blast_data[hash].alignments[0].hsps)
                     bitscore_first_hsp = first_hsp.bits
-                    
-                    print(baba)
-                    
+
                     
                     try:
                         hit_protein_id = protein_accession2protein_id[hit_uniprot_accession]
@@ -221,4 +219,4 @@ if __name__ == '__main__':
                  args.xml_dir,
                  hash2locus_list)
 
-    manipulate_biosqldb.update_config_table(args.db_name, "priam_data")
+    manipulate_biosqldb.update_config_table(args.db_name, "TCDB_data")

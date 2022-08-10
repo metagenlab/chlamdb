@@ -21,13 +21,16 @@ from django.core.cache import cache
 
 
 @shared_task
-def extract_interpro_task(biodb, 
-                          include,
-                          exclude,
-                          freq_missing,
-                          reference_taxon,
-                          accessions,
-                          n_missing):
+def extract_interpro_task(**kwargs):
+
+    biodb = kwargs["biodb"]
+    include = kwargs["include"]
+    exclude = kwargs["exclude"]
+    freq_missing = kwargs["freq_missing"]
+    reference_taxon = kwargs["reference_taxon"]
+    accessions = kwargs["accessions"]
+    n_missing = kwargs["n_missing"]
+    
 
     from chlamdb.biosqldb import biosql_own_sql_tables
     from chlamdb.views import get_locus_annotations
@@ -356,15 +359,17 @@ def extract_interpro_task(biodb,
 
 
 @shared_task
-def extract_orthogroup_task(biodb, 
-                            include,
-                            exclude,
-                            freq_missing,
-                            single_copy,
-                            accessions,
-                            reference_taxon,
-                            fasta_url,
-                            n_missing):
+def extract_orthogroup_task(**kwargs):
+  
+    biodb = kwargs["biodb"]
+    include = kwargs["include"]
+    exclude = kwargs["exclude"]
+    freq_missing = kwargs["freq_missing"]
+    single_copy = kwargs["single_copy"]
+    accessions = kwargs["accessions"]
+    reference_taxon = kwargs["reference_taxon"]
+    fasta_url = kwargs["fasta_url"]
+    n_missing = kwargs["n_missing"]
   
     from chlamdb.biosqldb import biosql_own_sql_tables
     from chlamdb.views import get_locus_annotations
@@ -770,7 +775,11 @@ def extract_orthogroup_task(biodb,
 
 
 @shared_task
-def run_circos(reference_taxon, target_taxons):
+def run_circos(**kwargs):
+
+    reference_taxon = kwargs["reference_taxon"]
+    target_taxons = kwargs["target_taxons"]
+
 
     from chlamdb.plots import gbk2circos
     from chlamdb.biosqldb import circos
@@ -1012,9 +1021,12 @@ def run_circos(reference_taxon, target_taxons):
 
 
 @shared_task
-def run_circos_main(reference_taxon, target_taxons, highlight):
+def run_circos_main(**kwargs):
 
-
+    reference_taxon = kwargs["reference_taxon"]
+    target_taxons = kwargs["target_taxons"]
+    highlight = kwargs["highlight"]
+    
     from chlamdb.plots import gbk2circos
     from chlamdb.biosqldb import circos
     from chlamdb.biosqldb import shell_command
@@ -1176,7 +1188,11 @@ def run_circos_main(reference_taxon, target_taxons, highlight):
 
 
 @shared_task
-def plot_neighborhood_task(biodb, target_locus, region_size):
+def plot_neighborhood_task(**kwargs):
+
+    biodb = kwargs["biodb"]
+    target_locus = kwargs["target_locus"]
+    region_size = kwargs["region_size"]
 
     from chlamdb.phylo_tree_display import ete_motifs
     from tempfile import NamedTemporaryFile
@@ -1326,14 +1342,16 @@ def plot_neighborhood_task(biodb, target_locus, region_size):
 
 
 @shared_task
-def basic_tree_task(biodb, 
-                    orthogroup):
+def basic_tree_task(**kwargs):
 
     from chlamdb.phylo_tree_display import ete_motifs
     from tempfile import NamedTemporaryFile
     from chlamdb.biosqldb import mysqldb_plot_genomic_feature
     from chlamdb.biosqldb import manipulate_biosqldb
     from chlamdb.phylo_tree_display import ete_motifs
+    
+    biodb = kwargs["biodb"]
+    orthogroup = kwargs["orthogroup"]
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,
@@ -1418,14 +1436,16 @@ def basic_tree_task(biodb,
 
 
 @shared_task
-def TM_tree_task(biodb, 
-                 orthogroup):
+def TM_tree_task(**kwargs):
 
     from chlamdb.phylo_tree_display import ete_motifs
     from tempfile import NamedTemporaryFile
     from chlamdb.biosqldb import mysqldb_plot_genomic_feature
     from chlamdb.biosqldb import manipulate_biosqldb
     from chlamdb.phylo_tree_display import ete_motifs
+    
+    biodb = kwargs["biodb"]
+    orthogroup = kwargs["orthogroup"]
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,
@@ -1516,14 +1536,16 @@ def TM_tree_task(biodb,
    
 
 @shared_task
-def pfam_tree_task(biodb, 
-                   orthogroup):
+def pfam_tree_task(**kwargs):
 
     from chlamdb.phylo_tree_display import ete_motifs
     from tempfile import NamedTemporaryFile
     from chlamdb.biosqldb import mysqldb_plot_genomic_feature
     from chlamdb.biosqldb import manipulate_biosqldb
     from chlamdb.phylo_tree_display import ete_motifs
+    
+    biodb = kwargs["biodb"]
+    orthogroup = kwargs["orthogroup"]
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,
@@ -1657,10 +1679,10 @@ def pfam_tree_task(biodb,
 
 
 @shared_task
-def phylogeny_task(biodb, 
-                   orthogroup):
+def phylogeny_task(**kwargs):
 
-
+    biodb = kwargs["biodb"]
+    orthogroup = kwargs["orthogroup"]
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,
@@ -1684,8 +1706,7 @@ def phylogeny_task(biodb,
 
     t, ts = orthogroup2phylogeny_best_refseq_uniprot_hity.plot_tree(ete3_tree,
                                                                     orthogroup,
-                                                                    biodb,
-                                                                    mysql_pwd=sqlpsw)
+                                                                    biodb)
     path = settings.BASE_DIR + '/assets/temp/BBH_tree.svg'
     asset_path = '/temp/BBH_tree.svg'
 
@@ -1736,10 +1757,12 @@ def phylogeny_task(biodb,
 
 
 @shared_task
-def plot_heatmap_task(biodb,
-                      targets, 
-                      accessions,
-                      type):
+def plot_heatmap_task(**kwargs):
+
+    biodb = kwargs["biodb"]
+    targets = kwargs["targets"]
+    targets = kwargs["accessions"]
+    targets = kwargs["type"]
 
     from chlamdb.biosqldb import manipulate_biosqldb
     from chlamdb.biosqldb import biosql_own_sql_tables
@@ -1840,8 +1863,11 @@ def plot_heatmap_task(biodb,
 
 
 @shared_task
-def KEGG_map_ko_task(biodb, 
-                     map_name):
+def KEGG_map_ko_task(**kwargs):
+
+    biodb = kwargs["biodb"]
+    map_name = kwargs["map_name"]
+
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,
@@ -2122,9 +2148,11 @@ def KEGG_map_ko_task(biodb,
 
 
 @shared_task
-def KEGG_map_ko_organism_task(biodb, 
-                              map_name,
-                              taxon_id):
+def KEGG_map_ko_organism_task(**kwargs):
+    
+    biodb = kwargs["biodb"]
+    map_name = kwargs["map_name"]
+    taxon_id = kwargs["taxon_id"]
     
     current_task.update_state(state='PROGRESS',
                               meta={'current': 1,

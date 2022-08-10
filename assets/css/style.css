@@ -250,7 +250,7 @@ width: 230px;
 
 
 header {
- font-size: 12px;
+ font-size: 14px;
  color: white;
     background: blue;
  }
@@ -415,7 +415,7 @@ body {
 	/*background:#3B3B3B;*/
   background: #fafafa url(http://jackrugile.com/images/misc/noise-diagonal.png);
 	color: #444;
-	font-size: 16px;
+	font-size: 17px;
 }
 
 #sidebar-title {

@@ -24,6 +24,7 @@ from django.http import HttpResponse
 from chlamdb.forms import make_contact_form
 from chlamdb.forms import make_plot_form
 from chlamdb.forms import SearchForm
+import pandas
 from chlamdb.forms import BiodatabaseForm
 from chlamdb.forms import make_circos_form
 from chlamdb.forms import make_circos2genomes_form
@@ -550,15 +551,15 @@ def extract_orthogroup(request):
 
             freq_missing = (len(include)-float(n_missing))/len(include)
 
-            task = extract_orthogroup_task.delay(biodb, 
-                                                 include,
-                                                 exclude,
-                                                 freq_missing,
-                                                 single_copy,
-                                                 accessions,
-                                                 reference_taxon,
-                                                 fasta_url,
-                                                 n_missing)
+            task = extract_orthogroup_task.apply_async(kwargs={"biodb":biodb, 
+                                                 "include": include,
+                                                 "exclude": exclude,
+                                                 "freq_missing": freq_missing,
+                                                 "single_copy": single_copy,
+                                                 "accessions": accessions,
+                                                 "reference_taxon": reference_taxon,
+                                                 "fasta_url": fasta_url,
+                                                 "n_missing": n_missing}, queue="chlamdb_queue")
             task_id = task.id
 
             return HttpResponse(json.dumps({'task_id': task.id}), content_type='application/json')
@@ -1696,13 +1697,13 @@ def extract_interpro(request, classification="taxon_id"):
 
             
             print("running task!")
-            task = extract_interpro_task.delay(biodb, 
-                                                include,
-                                                exclude,
-                                                freq_missing,
-                                                reference_taxon,
-                                                accessions,
-                                                n_missing)
+            task = extract_interpro_task.apply_async(kwargs={"biodb": biodb, 
+                                                "include": include,
+                                                "exclude": exclude,
+                                                "freq_missing": freq_missing,
+                                                "reference_taxon": reference_taxon,
+                                                "accessions": accessions,
+                                                "n_missing": n_missing}, queue="chlamdb_queue")
             task_id = task.id
 
             print("task ok!")
@@ -2418,20 +2419,20 @@ def locusx(request, locus=None, menu=True):
             sql19 = 'select signature_accession, interpro_description,start, stop from interpro ' \
                     ' where analysis="SUPERFAMILY" and locus_tag="%s";' % (locus)
 
-            sql20 = 'select t8.uniprot_accession,t2.evalue, t2.bitscore_first_hsp, t2.identity, t2.query_TMS, t2.hit_TMS, ' \
-                    ' t2.query_cov, t2.hit_cov,t4.tc_name as transporter_name, t4.description as transporter_description, ' \
+            sql20 = 'select distinct t8.protein_accession,t2.evalue, t2.bitscore_first_hsp, t2.identity, t2.query_TMS, t2.hit_TMS, ' \
+                    ' t2.query_cov, t2.hit_cov,t3.tc_name as transporter_name, t3.description as transporter_description, ' \
                     ' t5.tc_name as superfamily, t5.description as superfamily_description, ' \
                     ' t6.tc_name as family_name, t6.description as family_description, t7.tc_name as subfamily_name, ' \
-                    ' t7.description as subfamily_description, t8.tcdb_description, t8.organism  from custom_tables_locus2seqfeature_id t1 ' \
-                    ' inner join transporters_transporters t2 on t1.seqfeature_id=t2.seqfeature_id ' \
-                    ' inner join transporters.transporter_table t3 on t2.transporter_id=t3.transporter_id ' \
-                    ' inner join transporters.tc_table t4 on t3.transporter_id=t4.tc_id ' \
-                    ' inner join transporters.tc_table t5 on t3.superfamily=t5.tc_id ' \
-                    ' inner join transporters.tc_table t6 on t3.family=t6.tc_id ' \
-                    ' inner join transporters.tc_table t7 on t3.subfamily=t7.tc_id ' \
-                    ' inner join transporters.uniprot_table t8 on t2.hit_uniprot_id=t8.uniprot_id ' \
+                    ' t7.description as subfamily_description, t3.description, t8.organism  from custom_tables_locus2seqfeature_id t1 ' \
+                    ' inner join transporters_transporters_BBH t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+                    ' inner join transporters_protein_entry2transporter t9 on t2.hit_protein_id=t9.protein_id' \
+                    ' inner join transporters_transporters t3 on t3.transporter_id=t9.transporter_id ' \
+                    ' inner join transporters_classification t5 on t3.superfamily=t5.tc_id ' \
+                    ' inner join transporters_classification t6 on t3.family=t6.tc_id ' \
+                    ' inner join transporters_classification t7 on t3.subfamily=t7.tc_id ' \
+                    ' inner join transporters_protein_entry t8 on t2.hit_protein_id=t8.protein_id ' \
                     ' where t1.locus_tag="%s";' % (locus)
-
+            print("---", sql20)
             sql21 = 'select seqfeature_id, taxon_id from custom_tables_locus2seqfeature_id where locus_tag="%s"' % (locus)
 
             seqfeature_data = server.adaptor.execute_and_fetchall(sql21,)[0]
@@ -2537,10 +2538,11 @@ def locusx(request, locus=None, menu=True):
 
             try:
                 transporter_data = [str(i) for i in server.adaptor.execute_and_fetchall(sql20, )[0]]
-                transporter_data[16]= ' '.join(transporter_data[16].split(' ')[1:]).split("OS=")[0]
-                transporter_data[17] = transporter_data[17].split("(")[0]
+                #transporter_data[16]= ' '.join(transporter_data[16].split(' ')[1:]).split("OS=")[0]
+                #transporter_data[17] = transporter_data[17].split("(")[0]
                 # remove species name in case already in description
                 transporter_data[16] = re.sub(transporter_data[17],"",transporter_data[16])
+                print(transporter_data)
 
             except:
                 transporter_data = False
@@ -4628,7 +4630,7 @@ def KEGG_mapp_ko(request, map_name):
 
     if request.method == 'GET': 
 
-        task = KEGG_map_ko_task.delay(biodb, map_name)
+        task = KEGG_map_ko_task.apply_async(kwargs={"biodb": biodb, "map_name": map_name}, queue="chlamdb_queue")
         task_id = task.id
 
     return render(request, 'chlamdb/KEGG_map_ko.html', my_locals(locals()))
@@ -4640,7 +4642,7 @@ def KEGG_mapp_ko_organism(request, map_name, taxon_id):
 
     if request.method == 'GET': 
  
-        task = KEGG_map_ko_organism_task.delay(biodb, map_name, taxon_id)
+        task = KEGG_map_ko_organism_task.apply_async(kwargs={"biodb": biodb, "map_name": map_name, "taxon_id": taxon_id}, queue="chlamdb_queue")
         task_id = task.id
 
     return render(request, 'chlamdb/KEGG_map_ko.html', my_locals(locals()))
@@ -6484,7 +6486,7 @@ def blastnr_cat_info(request, accession, rank, taxon):
     circos_url += "t="+('&t=').join((target_taxons)) + '&h=' + ('&h=').join(locus_list)
 
     locus_filter = '"' + '","'.join(locus_list) + '"'
-    sql = 'select locus_tag,subject_accession,subject_kingdom,subject_scientific_name,subject_taxid,evalue,percent_identity ' \
+    sql = 'select locus_tag,subject_accession,t2.superkingdom,subject_scientific_name,subject_taxid,evalue,percent_identity ' \
           ' from custom_tables_locus2seqfeature_id t1 ' \
           ' inner join blastnr_blastnr t2 on t1.seqfeature_id=t2.seqfeature_id ' \
           ' where t1.locus_tag in (%s) and hit_number=1;' % (locus_filter)
@@ -8760,20 +8762,18 @@ def blastswissprot(request, locus_tag):
 
         server, db = manipulate_biosqldb.load_db(biodb)
 
-        columns = 'hit_number,subject_accession,subject_kingdom,subject_scientific_name,subject_taxid,' \
+        columns = 'hit_number,subject_accession,subject_taxid,' \
                   ' subject_title,evalue,bit_score,percent_identity,gaps,query_cov,genes,annot_score'
-        sql = 'select A.*, B.phylum, B.order, B.family from (select %s from custom_tables_locus2seqfeature_id t1 ' \
+        sql = 'select A.*, B.superkingdom,B.species, B.phylum, B.order, B.family from (select %s from custom_tables_locus2seqfeature_id t1 ' \
               ' inner join blastnr_blast_swissprot t2 on t1.seqfeature_id=t2.seqfeature_id' \
               ' where locus_tag="%s") A ' \
               ' inner join blastnr_blastnr_taxonomy B on A.subject_taxid=B.taxon_id' % (columns,locus_tag)
+        
         blast_data = server.adaptor.execute_and_fetchall(sql,)
 
         if len(blast_data) > 0:
             valid_id = True
             #'<a href="http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=%s">%s<a> ' % (taxon, name)
-
-
-
 
         return render(request, 'chlamdb/blastswiss.html', my_locals(locals()))
 
@@ -8792,7 +8792,7 @@ def blastnr(request, locus_tag):
 
         server, db = manipulate_biosqldb.load_db(biodb)
 
-        sql = 'select accession, organism from orthology_detail where locus_tag="%s"' % (biodb, locus_tag)
+        sql = 'select accession, organism from orthology_detail where locus_tag="%s"' % (locus_tag)
         data = server.adaptor.execute_and_fetchall(sql,)[0]
         accession = data[0]
         organism = data[1]
@@ -8805,14 +8805,14 @@ def blastnr(request, locus_tag):
               ' on t1.seqfeature_id=t2.seqfeature_id where locus_tag="%s" order by hit_number) A ' \
               ' inner join blastnr_blastnr_taxonomy B on A.subject_taxid=B.taxon_id;' % (columns, locus_tag)
 
-        blast_data = list(server.adaptor.execute_and_fetchall(sql))
 
-        blast_data = list(server.adaptor.execute_and_fetchall(sql))
+        blast_data = pandas.read_sql(sql, server.adaptor.conn)
+        blast_data_filtered = blast_data[~blast_data.phylum.isin(["Chlamydiae", "Verrucomicrobia", "Planctomycetes", "Kiritimatiellaeota", "Lentisphaerae", "Candidatus Aerophobetes", "Candidatus Abyssubacteria", "Candidatus Auribacterota", "Candidatus Omnitrophica"])]
 
         if len(blast_data) > 0:
             valid_id = True
-            blast_query_locus = blast_data[0][1]
-            blast_query_protein_id = blast_data[0][2]
+            blast_query_locus = blast_data["subject_accession"][0]
+            #blast_query_protein_id = blast_data[0][2]
 
 
         return render(request, 'chlamdb/blastnr.html', my_locals(locals()))
@@ -8925,7 +8925,7 @@ def plot_neighborhood(request, target_locus, region_size=23000):
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    task = plot_neighborhood_task.delay(biodb, target_locus, region_size)
+    task = plot_neighborhood_task.apply_async(kwargs={"biodb": biodb, "target_locus": target_locus, "region_size": region_size}, queue="chlamdb_queue")
 
     task_id = task.id
     
@@ -9808,7 +9808,7 @@ def eggnog_profile(request, eggnog_id, rank):
     asset_path = '/temp/tree.svg'
 
 
-    tree, style = eggnog_data.plot_phylum_counts(eggnog_id, rank=rank,colapse_low_species_counts=0)
+    tree, style = eggnog_data.plot_phylum_counts(biodb, eggnog_id, rank=rank,colapse_low_species_counts=0)
 
     tree.render(path, tree_style=style) # dpi=800,
     return render(request, 'chlamdb/eggnog_profile.html', my_locals(locals()))
@@ -10391,7 +10391,7 @@ def circos_main(request):
                 ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql_order)]
                 target_taxons = ordered_taxons[0:10]   
                          
-        task = run_circos_main.delay(reference_taxon, target_taxons, highlight)
+        task = run_circos_main.apply_async(kwargs={"reference_taxon": reference_taxon, "target_taxons": target_taxons, "highlight": highlight}, queue="chlamdb_queue")
         print("task", task)
         task_id = task.id
         envoi_circos = True
@@ -10419,7 +10419,7 @@ def circos_main(request):
 
         #sql = 'select locus_tag,traduction from orthology_detail_k_cosson_05_16 where orthogroup in (%s) and accession="NC_016845"' % ('"'+'","'.join(highlight)+'"')
 
-        task = run_circos_main.delay(reference_taxon, target_taxons, highlight)
+        task = run_circos_main.apply_async(kwargs={"reference_taxon": reference_taxon, "target_taxons": target_taxons, "highlight": highlight}, queue="chlamdb_queue")
         print("task", task)
         task_id = task.id
         envoi_circos = True
@@ -10535,7 +10535,7 @@ def circos(request):
         if form.is_valid():
             reference_taxon = form.cleaned_data['circos_reference']
             target_taxons = form.cleaned_data['targets']
-            task = run_circos.delay(reference_taxon, target_taxons)
+            task = run_circos.apply_async(kwargs={"reference_taxon": reference_taxon, "target_taxons": target_taxons}, queue="chlamdb_queue")
             print("task", task)
             return HttpResponse(json.dumps({'task_id': task.id}), content_type='application/json')
         else:
@@ -11779,8 +11779,8 @@ def multiple_COGs_heatmap(request):
 def pfam_tree(request, orthogroup):
     biodb = settings.BIODB
 
-    task = pfam_tree_task.delay(biodb, 
-                                orthogroup)
+    task = pfam_tree_task.apply_async(kwargs={"biodb":biodb, 
+                                         "orthogroup":orthogroup}, queue="chlamdb_queue")
     print("task", task)
     task_id = task.id
 
@@ -11789,8 +11789,8 @@ def pfam_tree(request, orthogroup):
 def TM_tree(request, orthogroup):
     biodb = settings.BIODB
 
-    task = TM_tree_task.delay(biodb, 
-                              orthogroup)
+    task = TM_tree_task.apply_async(kwargs={"biodb":biodb, 
+                                         "orthogroup":orthogroup}, queue="chlamdb_queue")
     print("task", task)
     task_id = task.id
 
@@ -11822,12 +11822,12 @@ def phylogeny(request, orthogroup):
             show_tm_tree = True
 
 
-        task = pfam_tree_task.delay(biodb, 
-                                    orthogroup)
+        task = pfam_tree_task.apply_async(kwargs={"biodb":biodb, 
+                                         "orthogroup":orthogroup}, queue="chlamdb_queue")
     else:
         show_tm_tree = False
-        task = basic_tree_task.delay(biodb, 
-                                    orthogroup)
+        task = basic_tree_task.apply_async(kwargs={"biodb":biodb, 
+                                         "orthogroup":orthogroup}, queue="chlamdb_queue")
 
     task_id = task.id
 
@@ -11837,8 +11837,8 @@ def phylogeny(request, orthogroup):
 def refseq_swissprot_tree(request, orthogroup):
     biodb = settings.BIODB
 
-    task = phylogeny_task.delay(biodb, 
-                                orthogroup)
+    task = phylogeny_task.apply_async(kwargs={"biodb":biodb, 
+                                         "orthogroup":orthogroup}, queue="chlamdb_queue")
     print("refseq_swissprot_tree task", task)
     task_id = task.id
 
@@ -12233,10 +12233,10 @@ def plot_heatmap(request, type):
                 accession2taxon = manipulate_biosqldb.accession2taxon_id(server, biodb)
                 targets = [str(accession2taxon[i]) for i in targets]
             
-            task = plot_heatmap_task.delay(biodb,
-                                           targets, 
-                                           accessions,
-                                           type)
+            task = plot_heatmap_task.apply_async(kwargs={"biodb":biodb,
+                                                         "targets": targets, 
+                                                         "accessions": accessions,
+                                                         "type": type}, queue="chlamdb_queue")
             task_id = task.id
             return HttpResponse(json.dumps({'task_id': task.id}), content_type='application/json')
         else:

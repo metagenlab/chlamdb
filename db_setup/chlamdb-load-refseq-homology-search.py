@@ -211,4 +211,4 @@ if __name__ == '__main__':
                               args.diamond_refseq,
                               args.uniref_db)
     
-    manipulate_biosqldb.update_config_table(biodb, "BLAST_swissprot")
+    manipulate_biosqldb.update_config_table(biodb, "BLAST_refseq")

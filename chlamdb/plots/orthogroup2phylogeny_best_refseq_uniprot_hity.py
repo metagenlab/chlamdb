@@ -22,7 +22,7 @@ def orthogroup2blast_hits(biodb,
               ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
               ' inner join %s_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
-              ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
+              ' inner join blastnr_blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
               ' where t1.orthogroup="%s" and t4.phylum not in (%s) order by t1.locus_tag, hit_number;' % (biodb,
                                                                                                 biodb,
                                                                                                 database,
@@ -209,30 +209,24 @@ def plot_tree(ete3_tree,
     filter = '"' + '","'.join(locus_list)+'"'
 
     print ('get uniprot taxnomy')
-    sql1 = 'select subject_accession,subject_scientific_name,t2.phylum from blast_swissprot_%s t1 ' \
-          ' inner join blastnr_taxonomy as t2 on t1.subject_taxid=t2.taxon_id where subject_accession in (%s);' % (biodb,
-                                                                                                                   filter)
-    sql1 = 'select subject_accession,subject_scientific_name,t4.phylum from orthology_detail t1 ' \
+    sql1 = 'select subject_accession,species,t2.phylum from blastnr_blast_swissprot t1 ' \
+          ' inner join blastnr_blastnr_taxonomy as t2 on t1.subject_taxid=t2.taxon_id where subject_accession in (%s);' % (filter)
+          
+    sql1 = 'select distinct subject_accession,species,t4.phylum from orthology_detail t1 ' \
               ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
-              ' inner join blast_swissprot_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
-              ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
-              ' where t1.orthogroup="%s"' % (biodb,
-                                            biodb,
-                                            biodb,
-                                            orthogroup)
+              ' inner join blastnr_blast_swissprot t3 on t2.seqfeature_id=t3.seqfeature_id ' \
+              ' inner join blastnr_blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
+              ' where t1.orthogroup="%s"' % (orthogroup)
     print ('get refseq taxonomy')
     cursor.execute(sql1,)
     accession2name_and_phylum = manipulate_biosqldb.to_dict(cursor.fetchall())
-    sql2 = 'select subject_accession,subject_scientific_name,t4.phylum from orthology_detail t1 ' \
+    sql2 = 'select distinct subject_accession,species,t4.phylum from orthology_detail t1 ' \
               ' inner join custom_tables_locus2seqfeature_id t2 ' \
               ' on t1.locus_tag=t2.locus_tag ' \
-              ' inner join blastnr_%s t3 on t2.seqfeature_id=t3.seqfeature_id ' \
-              ' inner join blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
-              ' where t1.orthogroup="%s"' % (biodb,
-                                            biodb,
-                                            biodb,
-                                            orthogroup)
+              ' inner join blastnr_blastnr t3 on t2.seqfeature_id=t3.seqfeature_id ' \
+              ' inner join blastnr_blastnr_taxonomy as t4 on t3.subject_taxid=t4.taxon_id ' \
+              ' where t1.orthogroup="%s"' % (orthogroup)
 
     print (sql2)
     cursor.execute(sql2,)
@@ -241,7 +235,7 @@ def plot_tree(ete3_tree,
     print ('plotting tree')
     phylum_list = list(set([accession2name_and_phylum[i][1] for i in accession2name_and_phylum.keys()]))
 
-    sql = 'select locus_tag, organism from orthology_detail' % biodb
+    sql = 'select locus_tag, organism from orthology_detail'
     cursor.execute(sql,)
     locus2organism = manipulate_biosqldb.to_dict(cursor.fetchall())
 
@@ -253,37 +247,35 @@ def plot_tree(ete3_tree,
 
 
     for lf in ete3_tree.iter_leaves():
+        print(lf.name, lf.name in accession2name_and_phylum)
 
         try:
             swissprot_or_refseq_data = accession2name_and_phylum[lf.name]
+            col = phylum2col[swissprot_or_refseq_data[1]]
+            lf.name = '%s|%s-%s' % (lf.name, swissprot_or_refseq_data[0], swissprot_or_refseq_data[1])
+
+            ff = AttrFace("name", fsize=12)
+            #ff.background.color = 'red'
+            ff.fgcolor = col
+
+            lf.add_face(ff, column=0)
+
+            #nameFace = AttrFace(lf.name, fsize=30, fgcolor=phylum2col[accession2name_and_phylum[lf.name][1]])
+            #faces.add_face_to_node(nameFace, lf, 0, position="branch-right")
+            #
+            #nameFace.border.width = 1
         except:
+            col = 'red'
             try:
-                swissprot_or_refseq_data = accession2name_and_phylum[lf.name.split(".")[0]]
-                col = phylum2col[swissprot_or_refseq_data[1]]
-                lf.name = '%s|%s-%s' % (lf.name, swissprot_or_refseq_data[0], swissprot_or_refseq_data[1])
-
-                ff = AttrFace("name", fsize=12)
-                #ff.background.color = 'red'
-                ff.fgcolor = col
-
-                lf.add_face(ff, column=0)
-
-                #nameFace = AttrFace(lf.name, fsize=30, fgcolor=phylum2col[accession2name_and_phylum[lf.name][1]])
-                #faces.add_face_to_node(nameFace, lf, 0, position="branch-right")
-                #
-                #nameFace.border.width = 1
+                lf.name = '%s| %s' % (lf.name, locus2organism[lf.name])
             except:
-                col = 'red'
-                try:
-                    lf.name = '%s| %s' % (lf.name, locus2organism[lf.name])
-                except:
-                    # tryremoving version number
-                    lf.name = '%s| ??' % (lf.name)
-                ff = AttrFace("name", fsize=12)
-                #ff.background.color = 'red'
-                ff.fgcolor = col
+                # tryremoving version number
+                lf.name = '%s| ??' % (lf.name)
+            ff = AttrFace("name", fsize=12)
+            #ff.background.color = 'red'
+            ff.fgcolor = col
 
-                lf.add_face(ff, column=0)
+            lf.add_face(ff, column=0)
     ts = TreeStyle()
     ts.show_leaf_name = False
     ts.show_branch_support = True
@@ -381,10 +373,7 @@ if __name__ == '__main__':
                ' inner join blastnr_blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
                ' where t3.phylum not in (%s) group by t1.seqfeature_id) A ' \
                ' inner join orthology_detail B on A.locus_tag=B.locus_tag ' \
-               ' group by orthogroup;' % (args.biodb,
-                                          args.biodb,
-                                          filter,
-                                          args.biodb)
+               ' group by orthogroup;' % (filter)
 
         group2n_blast_refseq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql2,))
         print ('gettig orthogroup2n_hits swissprot')
@@ -394,10 +383,7 @@ if __name__ == '__main__':
                ' inner join blastnr_blastnr_taxonomy t3 on t2.subject_taxid=t3.taxon_id ' \
                ' where t3.phylum not in (%s) group by t1.seqfeature_id) A ' \
                ' inner join orthology_detail B on A.locus_tag=B.locus_tag ' \
-               ' group by orthogroup;' % (args.biodb,
-                                          args.biodb,
-                                          filter,
-                                          args.biodb)
+               ' group by orthogroup;' % (filter)
 
         group2n_blast_swissprot = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql3,))
 

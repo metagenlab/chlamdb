@@ -31,65 +31,121 @@
 
             <nav>
                 <ul id="tabs_main" class="nav nav-tabs">
-                    <li class="active"><a href="{% url 'blastnr' blast_query_locus %}">Detailed result</a></li>
-                    <li><a href="{% url 'sunburst' blast_query_locus %}">Vizual</a></li>
+                    <li class="active"><a href="#tab1" data-toggle="tab">Detailed result</a></li>
+                    <li><a href="#tab2" data-toggle="tab">Excluding PVC</a></li>
                 </ul>
             </nav>
 
+            <div id="my-tab-content" class="tab-content">
+    
+                <div class="tab-pane active" id="tab1" style="padding-left: 15px;padding-top:20px">
+
+                    <h3> <a href="https://www.uniprot.org/help/uniref" target="_blank">UniRef100</a> homologs (homology search computed with <a href="https://github.com/bbuchfink/diamond" target="_blank">Diamond</a>) </h3>
+                    <ul>
+                    <li>Number of RefSeq hits (max 200): {{ blast_data|length }} </li>
+                    <li>Number of non PVC hits: {{ blast_data_filtered|length }} </li>
+                    </ul>
 
 
-            <h3> RefSeq homologs (homology search computed with <a href="https://plast.inria.fr/">PLAST</a>) </h3>
-            <ul>
-             <li><A HREF={% url 'locusx' locus_tag True%}>{{ locus_tag }} ({{ organism }})</A></li>
-              <li>Number of RefSeq hits (max 100): {{ blast_data|length }} </li>
+                    <!--hit_number,subject_accession,superkingdom,subject_scientific_name,subject_taxid,subject_title,evalue,bit_score,percent_identity,gaps, length, phylum, order, family -->
 
 
-            </ul>
+                        <table id="blast_nr_table" class="table">
+                            <thead>
+                                <tr>
+                                <th>n</th>
+                                <th>Subject</th>
+                                <th>Kingdom</th>
+                                <th>Phylum</th>
+                                <th>Order</th>
+                                <th>Family</th>
+                                <th>eval.</th>
+                                <th>score</th>
+                                <th>ID(%)</th>
+                                <th>N gaps</th>
+                                <th>Len.</th>
+                                <th id=blast_subject_title>Description</th>
+                                <th id=blast_taxonomy>Taxonomy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                <!-- hit_number, subject_accession, subject_kingdom -->
+                                <!-- subject_scientific_name, subject_taxid, subject_title, evalue, bit_score, percent_identity, gaps, length -->
+                                {% for n,hit in blast_data.iterrows %}
+                                <tr>
+                                    <td>{{ hit.hit_number }}</td>
+                                    {% if hit.subject_accession|slice:":2" == "UP" %}
+                                        <td><a href="https://www.uniprot.org/uniparc/{{ hit.subject_accession }}/entry" target="_blank">{{ hit.subject_accession }}<a></td>
+                                    {% else %}
+                                        <td><a href="https://www.uniprot.org/uniprotkb/{{ hit.subject_accession }}/entry" target="_blank">{{ hit.subject_accession }}<a></td>
+                                    {% endif %}
+                                    <td>{{ hit.superkingdom }}</td>
+                                    <td>{{ hit.phylum }}</td>
+                                    <td>{{ hit.order }}</td>
+                                    <td>{{ hit.family }}</td>
+                                    <td>{{ hit.evalue }}</td>
+                                    <td>{{ hit.bit_score }}</td>
+                                    <td>{{ hit.percent_identity }}</td>
+                                    <td>{{ hit.gaps }}</td>
+                                    <td>{{ hit.length }}</td>
+                                    <td>{{ hit.subject_title }}</td>
+                                    <td><a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id={{hit.subject_scientific_name}}" target="_top">{{ hit.subject_scientific_name}}</a></td>
+                                </tr>
+                                {%  endfor %}
+                            </tbody>
+                        </table>
+                </div>
+                <div class="tab-pane" id="tab2" style="padding-left: 15px;padding-top:20px">
 
 
+                    <table id="blast_nr_table_filt" class="table">
+                        <thead>
+                            <tr>
+                            <th>n</th>
+                            <th>Subject</th>
+                            <th>Kingdom</th>
+                            <th>Phylum</th>
+                            <th>Order</th>
+                            <th>Family</th>
+                            <th>eval.</th>
+                            <th>score</th>
+                            <th>ID(%)</th>
+                            <th>N gaps</th>
+                            <th>Len.</th>
+                            <th id=blast_subject_title>Description</th>
+                            <th id=blast_taxonomy>Taxonomy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
 
-
-                <table id="blast_nr_table" class="table">
-                  <thead>
-                    <tr>
-                      <th>n</th>
-                      <th>Subject</th>
-                      <th>Kingdom</th>
-                      <th>Phylum</th>
-                      <th>Order</th>
-                      <th>Family</th>
-                      <th>eval.</th>
-                      <th>score</th>
-                      <th>ID(%)</th>
-                      <th>N gaps</th>
-                      <th>Len.</th>
-                      <th id=blast_subject_title>Description</th>
-                      <th id=blast_taxonomy>Taxonomy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-
-                  <!-- hit_number, subject_accession, subject_kingdom -->
-                  <!-- subject_scientific_name, subject_taxid, subject_title, evalue, bit_score, percent_identity, gaps, length -->
-                  {% for values in blast_data %}
-                  <tr>
-                      <td>{{ values.0 }}</td>
-                      <td><a href="http://www.ncbi.nlm.nih.gov/protein/{{ values.1 }}">{{ values.1 }}<a></td>
-                      <td>{{ values.2 }}</td>
-                      <td>{{ values.11 }}</td>
-                      <td>{{ values.12 }}</td>
-                      <td>{{ values.13 }}</td>
-                      <td>{{ values.6 }}</td>
-                      <td>{{ values.7 }}</td>
-                      <td>{{ values.8 }}</td>
-                      <td>{{ values.9 }}</td>
-                      <td>{{ values.10 }}</td>
-                      <td>{{ values.5 }}</td>
-                      <td><a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id={{values.4}}" target="_top">{{ values.3}}</a></td>
-                  </tr>
-              {%  endfor %}
-              </tbody>
-            </table>
+                            <!-- hit_number, subject_accession, subject_kingdom -->
+                            <!-- subject_scientific_name, subject_taxid, subject_title, evalue, bit_score, percent_identity, gaps, length -->
+                            {% for n,hit in blast_data_filtered.iterrows %}
+                            <tr>
+                                <td>{{ hit.hit_number }}</td>
+                                {% if hit.subject_accession|slice:":2" == "UP" %}
+                                <td><a href="https://www.uniprot.org/uniparc/{{ hit.subject_accession }}/entry" target="_blank">{{ hit.subject_accession }}<a></td>
+                                {% else %}
+                                    <td><a href="https://www.uniprot.org/uniprotkb/{{ hit.subject_accession }}/entry" target="_blank">{{ hit.subject_accession }}<a></td>
+                                {% endif %}
+                                <td>{{ hit.superkingdom }}</td>
+                                <td>{{ hit.phylum }}</td>
+                                <td>{{ hit.order }}</td>
+                                <td>{{ hit.family }}</td>
+                                <td>{{ hit.evalue }}</td>
+                                <td>{{ hit.bit_score }}</td>
+                                <td>{{ hit.percent_identity }}</td>
+                                <td>{{ hit.gaps }}</td>
+                                <td>{{ hit.length }}</td>
+                                <td>{{ hit.subject_title }}</td>
+                                <td><a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id={{hit.subject_scientific_name}}" target="_top">{{ hit.subject_scientific_name}}</a></td>
+                            </tr>
+                            {%  endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
         {% endif %}
 
@@ -119,6 +175,29 @@
       "info":     false,
       } );
   } );
+  $(document).ready(function() {
+    $('#blast_nr_table_filt').DataTable( {
+      dom: 'lBfrtip',
+      buttons: [
+          {
+              extend: 'colvis',
+              columns: ':not(.noVis)',
+          },
+          {
+              extend: 'excel',
+              title: 'plast_refseq'
+          },
+          {
+              extend: 'csv',
+              title: 'plast_refseq'
+          }
+      ],
+      "paging":   true,
+      "ordering": true,
+      "info":     false,
+      } );
+  } );
+  
 $('.dropdown-toggle').dropdown()
 </script>
 
