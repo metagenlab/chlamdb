@@ -216,6 +216,7 @@ class Uniprot_annot():
         # import hash2uniprot_accession
         sql = 'create table hash2uniprot_accession (hash binary, uniprot_accession varchar(200), taxon_id INTEGER, description TEXT, source_db varchar(200))'
         self.sqlite_cursor.execute(sql,)
+        
         with open(self.uniprot_mapping, 'r') as f:
             sql = 'insert into hash2uniprot_accession values (?, ?, ?, ?, ?)'
             for n, row in enumerate(f):

@@ -2,6 +2,7 @@
 
 from chlamdb.biosqldb import manipulate_biosqldb
 from chlamdb.plots import gbk2circos
+import pandas 
 
 def locus_tag2orthogroup_size(db_name):
 
@@ -271,15 +272,7 @@ def circos_locus2taxon_highest_identity(biodb,
             orthogroup = reference_orthogroup2locus_tag[locus_A]
             
             i+=1
-            '''
-            sql = 'select locus_b,identity from orth_%s.%s where locus_a ="%s" ' \
-                  ' UNION select locus_a,identity from orth_%s.%s where locus_b ="%s";' % (biodb,
-                                                                                           reference_orthogroup2locus_tag[locus_A],
-                                                                                           locus_A,
-                                                                                           biodb,
-                                                                                           reference_orthogroup2locus_tag[locus_A],
-                                                                                           locus_A)
-            '''
+
             sql = 'select locus_b, identity from orthology_identity where orthogroup="%s" and locus_a="%s"' \
                   ' UNION select locus_a,identity from orthology_identity where orthogroup="%s" and locus_b="%s";' % (orthogroup, locus_A, orthogroup, locus_A)
             print(sql)
@@ -303,15 +296,24 @@ def circos_locus2taxon_highest_identity(biodb,
               ' inner join custom_tables_locus2seqfeature_id t2 on t1.locus_1=t2.seqfeature_id ' \
               ' inner join custom_tables_locus2seqfeature_id t3 on t1.locus_2=t3.seqfeature_id ' \
               ' where taxon_1=%s' % (reference_taxon_id)
-              
-        data = server.adaptor.execute_and_fetchall(sql,)
+
+        sql = f'select distinct t2.locus_tag as locus_a, t3.locus_tag as locus_b,pident, t3.taxon_id as taxon_id_locus_b from orthology_identity_v2 t1 ' \
+            f' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id ' \
+            f' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id ' \
+            f' inner join orthology_seqfeature_id2orthogroup t4 on t1.seqfeature_id_a=t4.seqfeature_id ' \
+            f' inner join orthology_orthogroup t5 on t4.orthogroup_id=t5.orthogroup_id where t2.taxon_id=%s;' % reference_taxon_id
+        
+        identity_data = pandas.read_sql(sql, server.adaptor.conn)
+        identity_data = identity_data.sort_values(["locus_a", "taxon_id_locus_b", "pident"], ascending=False).groupby(["locus_a", "taxon_id_locus_b"]).head(1).reset_index()
+    
         locus2locus_identity = {}
-        for row in data:
-            if row[0] not in locus2locus_identity:
-                locus2locus_identity[row[0]] = {}
-                locus2locus_identity[row[0]][row[3]] = [row[2],row[1]]
+        for n,row in identity_data.iterrows():
+            if row.locus_a not in locus2locus_identity:
+                locus2locus_identity[row.locus_a] = {}
+                locus2locus_identity[row.locus_a][int(row.taxon_id_locus_b)] = [row.pident,row.locus_b]
             else:
-                locus2locus_identity[row[0]][row[3]] = [row[2],row[1]]
+                locus2locus_identity[row.locus_a][int(row.taxon_id_locus_b)] = [row.pident,row.locus_b]
+        print(locus2locus_identity["CT_875"])
     #print '------------------', locus2locus_identity.keys()[0], locus2locus_identity[locus2locus_identity.keys()[0]]
     return locus2locus_identity
 
@@ -1388,12 +1390,27 @@ def pfam2description(db_name, accession=False):
 
     data = server.adaptor.execute_and_fetchall(sql,)
 
-
-
     return manipulate_biosqldb.to_dict(data)
 
 
+def tcdb2description(db_name, as_df=False):
+    
+    server, db = manipulate_biosqldb.load_db(db_name)
 
+    sql = 'select distinct t4.tc_name as accession,t4.description, t5.tc_name as superfamily,t5.description as superfamily_description,t6.tc_name as family,t6.description as family_description,t7.tc_name as subfamily,t7.description as subfamily_description,substrate ' \
+          'from transporters_transporters_BBH t1  ' \
+          'inner join transporters_protein_entry t2 on t1.hit_protein_id=t2.protein_id  ' \
+          'inner join transporters_protein_entry2transporter t3 on t2.protein_id=t3.protein_id  ' \
+          'inner join transporters_transporters t4 on t3.transporter_id=t4.transporter_id  ' \
+          'inner join transporters_classification t5 on t4.superfamily=t5.tc_id  ' \
+          'inner join transporters_classification t6 on t4.family=t6.tc_id  ' \
+          'inner join transporters_classification t7 on t4.subfamily=t7.tc_id ;'
+
+    if not as_df:
+        data = server.adaptor.execute_and_fetchall(sql,)
+        return manipulate_biosqldb.to_dict(data)
+    else:
+        return pandas.read_sql(sql, server.adaptor.conn, index_col="accession")
 
 
 

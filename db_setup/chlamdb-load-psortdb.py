@@ -90,9 +90,12 @@ def load_sport_data(psortdb_output_files,
                                                   final_pred,
                                                   score))
     
-    sql = f'create index ctsipsid on custom_tables_seqfeature_id2psortb (seqfeature_id)'                 
-    server.adaptor.execute(sql,)
-    server.commit()
+    sql = f'create index ctsipsid2 on custom_tables_seqfeature_id2psortb (seqfeature_id)'
+    try:             
+        server.adaptor.execute(sql,)
+        server.commit()
+    except:
+        pass
 
 
 if __name__ == '__main__':

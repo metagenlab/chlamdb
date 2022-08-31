@@ -37,8 +37,11 @@ def import_phylo(phylo_list, biodb):
         except:
             print (phylo)
     server.commit()
-    sql_index1 = 'create index pbbh on phylogenies_BBH(orthogroup)'
-    server.adaptor.execute(sql_index1,)
+    try:
+        sql_index1 = 'create index pbbh on phylogenies_BBH(orthogroup)'
+        server.adaptor.execute(sql_index1,)
+    except:
+        pass
     server.commit()
 
 

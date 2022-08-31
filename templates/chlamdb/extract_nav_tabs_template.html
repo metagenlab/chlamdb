@@ -39,6 +39,18 @@
                     </ul>
                 </nav>
 
+{% elif type == "tcdb" %}
+                <nav>
+                    <ul id="tabs_main" class="nav nav-tabs">
+                        <li class={% if active_tab == "index" %}"active"{%endif%}><a href="{% url 'entry_list_tcdb' %}">Index</a></li>
+                        <li class={% if active_tab == "det" %}"active"{%endif%}><a href="{% url 'extract_tcdb' %}">Extract form</a></li>
+                        <li class={% if active_tab == "venn" %}"active"{%endif%}><a href="{% url 'venn_tcdb' %}">Venn</a></li>
+                        <li class={% if active_tab == "comp" %}"active"{%endif%}><a href="{% url 'tcdb_comparison' %}">Presence/absence table</a></li>
+                        <li class={% if active_tab == "heat" %}"active"{%endif%}><a href="{% url 'plot_heatmap' 'tcdb' %}">Heatmaps</a></li>
+                        <li class={% if active_tab == "pan" %}"active"{%endif%}><a href="{% url 'pan_genome' 'tcdb' %}">Accumulation/rarefaction plot </a></li>
+                    </ul>
+                </nav>
+
 {% elif type == "EC" %}
                 <nav>
                     <ul id="tabs_main" class="nav nav-tabs">

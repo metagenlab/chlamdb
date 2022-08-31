@@ -75,12 +75,12 @@
 
                                       {% if biodb == "chlamydia_04_16"%}
 
-                                       <li><a href="/home/#genomes">{{n_genomes}} <i>Chlamydiae</i> genomes from 26 different species</a> (see the <a href="/home#phylogeny">phylogeny</a>)</li>
+                                       <li><a href="{% url 'genomes' %}">{{n_genomes}} <i>Chlamydiae</i> genomes from 26 different species</a> (see the <a href="{% url 'species_tree' %}">phylogeny</a>)</li>
 
                                       {% elif biodb == "2019_06_PVC"%}
-                                         <li><a href="/home/#genomes">{{n_genomes}} <i>PVC</i> genomes</a> (see the <a href="/home/#phylogeny">phylogeny</a>)</li>
+                                         <li><a href="{% url 'genomes' %}">{{n_genomes}} <i>PVC</i> genomes</a> (see the <a href="{% url 'species_tree' %}">phylogeny</a>)</li>
                                       {% else %}
-                                          <li><a href="/home/#genomes">{{n_genomes}} <i>PVC</i> genomes</a> (see the <a href="/home/#phylogeny">phylogeny</a>)</li>
+                                          <li><a href="{% url 'genomes' %}">{{n_genomes}} <i>PVC</i> genomes</a> (see the <a href="{% url 'species_tree' %}">phylogeny</a>)</li>
                                       {% endif %}
 
                                        <li>Orthologous proteins identified with <a href="https://github.com/davidemms/OrthoFinder">OrthoFinder</a></li>
@@ -89,11 +89,9 @@
                                              <li><a href="https://www.genome.jp/kegg/">KEGG</a> (Kegg orthologs)</li>
                                              <li><a href="https://www.ncbi.nlm.nih.gov/COG/">COG</a> (clusters of orthologous groups)</li>
                                              <li><a href="https://string-db.org/">STRING</a> (protein-protein interactions)</li>
-                                             <li><a href="http://priam.prabi.fr/">PRIAM</a> (enzymes)</li>
                                              <li><a href="http://www.tcdb.org/">TCDB</a> (curated transporters annotation)</li>
                                              <li><a href="https://www.uniprot.org/">SwissProt</a> (manually annotated proteins)</li>
                                              <li><a href="https://www.ebi.ac.uk/interpro/">InterproScan</a> (domains and signatures)</li>
-                                             <li><a href="http://csbl.bmb.uga.edu/DOOR/">DOOR</a> (operons)</li>
                                            </ul>
                                         <li>Precomputed homology searches with <a href="">RefSeq</a> and <a href="">SwissProt</a> databases for each protein</li>
                                         <li>Precomputed phylogenetic reconstructions of orthologous groups including the closest RefSeq homologs</li>
@@ -117,7 +115,12 @@
                                     <h3 class="panel-title">Latest News</h3>
                                   </div>
                                   <div class="panel-body" style="margin: 10px 10px 10px 10px">
-
+                                        <p>
+                                          <strong>August, 2022</strong>
+                                      </p>
+                                      <p>
+                                          Updated release with a curated dataset of 117 PVC genomes</a>. 
+                                      </p>
                                         <p>
                                             <strong>December 02, 2019</strong>
                                         </p>

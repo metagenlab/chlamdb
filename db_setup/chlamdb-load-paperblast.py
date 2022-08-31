@@ -208,7 +208,7 @@ class PaperBlast():
                         if row[0] == rows[n-1][0]:
                             count += 1
                         else:
-                            print("%s\t%s\t%s" % (n, rows[n-1][0], count))
+                            #print("%s\t%s\t%s" % (n, rows[n-1][0], count))
                             count = 1
                     # only keep the top 20 hits for each protein
                     if count > 20:

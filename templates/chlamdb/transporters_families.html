@@ -15,76 +15,127 @@
             <div class="row">
                 <div class="col-lg-12">
                     {% include "chlamdb/menu.html" %}
-
+                    <h3>{{tc_name}} ({{rank}})</h3>
                     <ul id="tabs" class="nav nav-tabs" data-tabs="tabs">
-                        <li class="active"><a href="#tab1" data-toggle="tab">Counts</a></li>
-                        <li><a href="#tab2" data-toggle="tab">Annotation</a></li>
-                        <li><a href="#tab66" data-toggle="tab" onclick="window.open('http://tcdb.org/search/result.php?tc={{family}}', 'orthoIDframe2'); return false">Informations</a></li>
-
+                        <li class="active"><a href="#tab1" data-toggle="tab">General</a></li>
+                        <li><a href="#tab2" data-toggle="tab">Profil</a></li>
+                        <li><a href="#tab3" data-toggle="tab">Protein list</a></li>
                     </ul>
 
                     <div id="my-tab-content" class="tab-content">
-
                         <div class="tab-pane active" id="tab1">
-                            <object type="image/svg+xml" data="{% static asset_path1 %}" id="asset_path1" style="width:80%"></object>
+                            <div class="col-md-12 col-lg-10" style="padding-right:30px;padding-top:30px">
+                                <div class="row">
+                                    <div class="panel panel-default">
+                                        <div class="panel-heading">
+                                            <h3 class="panel-title">Description</h3>
+                                        </div>
+                                        <table class="table table-striped" style="width: 100%">
+                                                <tr>
+                                                    <th>External link</th>
+                                                    <td><a href="http://tcdb.org/search/result.php?tc={{tc_name}}" tarket="_blank"> {{ tc_name }} <i class="fa fa-external-link"></i></a></td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Description</th>
+                                                    <td>{{description}}</td>
+                                                </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+
+
+                                <div class="row">
+                                    <div class="panel panel-default">
+                                        <div class="panel-heading">
+                                            <h3 class="panel-title">Occurence in the database</h3>
+                                        </div>
+                                            <table class="table table-striped" style="width: 100%">
+
+                                                <tr>
+                                                    <td>{{ tc_name }} is associated to <strong>{{ locus_annot|length }} different proteins</strong> (see tab "<a href="#tab3" data-toggle="tab">Protein list</a>" and "<a href="#tab2" data-toggle="tab">Profile</a>")</td>
+                                                </tr>
+                                                <tr>
+                                                    <td> The {{ locus_annot|length }} proteins are classified into <strong>{{ orthogroup_list|length }} different orthogroup(s)</strong></td>
+                                                </tr>                                                        
+                                            </table>
+                                            <div style="padding-left:40px">
+                                                <ul style="list-style-type:disc;">
+                                                        {% for group in orthogroup_list %}
+                                                        <li><a href="{% url 'locusx' group True%}">{{group}}</a></li>
+                                                        {% endfor %}
+                                                </ul>
+                                            </div>
+                                    </div>
+                                </div>
+
+
+                            </div>
                         </div>
 
                         <div class="tab-pane" id="tab2">
-
-                            <table class="table" id="table_tcdb">
-
-                                <thead>
-                                    <tr>
-                                    <th>Locus</th>
-                                        <th>Accession</th>
-                                        <th>Start</th>
-                                        <th>End</th>
-                                    <th id="entete_locus">gene</th>
-                                        <th>product</th>
-                                    <th>present_n_genomes</th>
-                                    <th>group</th>
-                                    <th>length (aa)</th>
-                                    <th>COG ID</th>
-                                        <th>COG category</th>
-                                        <th>COG description</th>
-                                        <th>InterproScan</th>
-                                    </tr>
-
-                                </thead>
-                                <tbody>
-                                    {% for value in locus_annot %}
-                                        <tr>
-
-                                            <td><a href="{% url 'locusx' value.0 True%}">{{value.0}}</a></td>
-                                            <td>{{value.1}}</td>
-                                            <td>{{value.2|safe}}</td>
-                                            <td>{{value.3|safe}}</td>
-                                            <td>{{value.4|safe}}</td>
-                                            <td>{{value.5|safe}}</td>
-                                            <td>{{value.6|safe}}</td>
-                                            <td>{{value.7|safe}}</td>
-                                            <td>{{value.8|safe}}</td>
-                                            <td>{{value.9|safe}}</td>
-                                            <td>{{value.10|safe}}</td>
-                                            <td>{{value.11|safe}}</td>
-
-                                            {% with locus2interpro|keyvalue:value.0 as interpro_data %}
-                                            <td>
-                                                {% for one_interpro in interpro_data %}
-                                                {% if one_interpro.0 != '-' %}
-                                                    <a href="{% url 'fam' one_interpro.0 'interpro' %}" target="_top">{{one_interpro.0}}</a> /
-                                                {%else%}
-                                                    {{one_interpro.0}}
-                                                {%endif%}
-                                                    {{one_interpro.1}} </br>
-                                                {% endfor %}
-                                                {%endwith%}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            <object type="image/svg+xml" data="{% static asset_path1 %}" id="asset_path1" style="width:80%"></object>
                         </div>
+
+
+                        <div class="tab-pane" id="tab3">
+                            <div class="col-md-12 col-lg-10" style="padding-right:30px;padding-top:30px">
+                                <div class="row">
+                                    <table class="table" id="table_tcdb">
+
+                                        <thead>
+                                            <tr>
+                                            <th>Locus</th>
+                                                <th>Accession</th>
+                                                <th>Start</th>
+                                                <th>End</th>
+                                            <th id="entete_locus">gene</th>
+                                                <th>product</th>
+                                            <th>present_n_genomes</th>
+                                            <th>group</th>
+                                            <th>length (aa)</th>
+                                            <th>COG ID</th>
+                                                <th>COG category</th>
+                                                <th>COG description</th>
+                                                <th>InterproScan</th>
+                                            </tr>
+
+                                        </thead>
+                                        <tbody>
+                                            {% for value in locus_annot %}
+                                                <tr>
+
+                                                    <td><a href="{% url 'locusx' value.0 True%}">{{value.0}}</a></td>
+                                                    <td>{{value.1}}</td>
+                                                    <td>{{value.2|safe}}</td>
+                                                    <td>{{value.3|safe}}</td>
+                                                    <td>{{value.4|safe}}</td>
+                                                    <td>{{value.5|safe}}</td>
+                                                    <td>{{value.6|safe}}</td>
+                                                    <td>{{value.7|safe}}</td>
+                                                    <td>{{value.8|safe}}</td>
+                                                    <td>{{value.9|safe}}</td>
+                                                    <td>{{value.10|safe}}</td>
+                                                    <td>{{value.11|safe}}</td>
+
+                                                    {% with locus2interpro|keyvalue:value.0 as interpro_data %}
+                                                    <td>
+                                                        {% for one_interpro in interpro_data %}
+                                                        {% if one_interpro.0 != '-' %}
+                                                            <a href="{% url 'fam' one_interpro.0 'interpro' %}" target="_top">{{one_interpro.0}}</a> /
+                                                        {%else%}
+                                                            {{one_interpro.0}}
+                                                        {%endif%}
+                                                            {{one_interpro.1}} </br>
+                                                        {% endfor %}
+                                                        {%endwith%}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                     </div>
             </div>
         </div>

@@ -1038,39 +1038,52 @@ def orthology_circos_files(server,
                             #if locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1] == 'PMK1_b00074':
                             #    print plasmid_locus[locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]]
                             #    print plasmid_locus[locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]] == 'True'
-                            if plasmid_locus[locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]] != 'True':
+                            try:
+                                identity, locus_tag = locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id]
+                            except KeyError:
+                              print(f"No identity value for locus {feature.qualifiers['locus_tag'][0]} and taxon {taxon_id}, set to 0")
+                              identity = 0
+                              locus_tag = None
+                              taxon_file.write("%s %s %s %s color=green,id=%s\n" % (contig,
+                                                                                      start,
+                                                                                      end,
+                                                                                      identity,
+                                                                                      locus_tag))
+                            else:
+                                #if plasmid_locus[locus_tag] != 'True':
                                 if feature.qualifiers['orthogroup'][0] not in locus_highlight and feature.qualifiers['locus_tag'][0] not in locus_highlight:
 
                                     taxon_file.write("%s %s %s %s id=%s\n" % (contig,
-                                                                              start,
-                                                                              end,
-                                                                              locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][0],
-                                                                              locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]))
+                                                                                start,
+                                                                                end,
+                                                                                identity,
+                                                                                locus_tag))
 
                                 else:
                                     #print "COLORS!!!!!!!!!!!!!!!!!!! ----- taxon" # pink piyg-5-div-1 spectral-5-div-4 green
                                     taxon_file.write("%s %s %s %s color=piyg-5-div-1,id=%s,z=2\n" % (contig,
-                                                                                                 start,
-                                                                                                 end,
-                                                                                                 locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][0],
-                                                                                                 locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]))
+                                                                                                        start,
+                                                                                                        end,
+                                                                                                        identity,
+                                                                                                        locus_tag))
+                            #else:
+                            '''
+                            if feature.qualifiers['orthogroup'][0] not in locus_highlight and feature.qualifiers['locus_tag'][0] not in locus_highlight:
+
+                                taxon_file.write("%s %s %s %s id=%s,color=accent-4-qual-4\n" % (contig,
+                                                                            start,
+                                                                            end,
+                                                                            identity,
+                                                                            locus_tag))
+
                             else:
-                                if feature.qualifiers['orthogroup'][0] not in locus_highlight and feature.qualifiers['locus_tag'][0] not in locus_highlight:
-
-                                    taxon_file.write("%s %s %s %s id=%s,color=accent-4-qual-4\n" % (contig,
-                                                                              start,
-                                                                              end,
-                                                                              locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][0],
-                                                                              locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]))
-
-                                else:
-                                    #print "COLORS!!!!!!!!!!!!!!!!!!! ----- taxon"
-                                    taxon_file.write("%s %s %s %s color=piyg-5-div-1,id=%s,color=accent-4-qual-4,z=2\n" % (contig,
-                                                                                                 start,
-                                                                                                 end,
-                                                                                                 locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][0],
-                                                                                                 locus2locus_identity[feature.qualifiers['locus_tag'][0]][taxon_id][1]))
-
+                                #print "COLORS!!!!!!!!!!!!!!!!!!! ----- taxon"
+                                taxon_file.write("%s %s %s %s color=piyg-5-div-1,id=%s,color=accent-4-qual-4,z=2\n" % (contig,
+                                                                                                                        start,
+                                                                                                                        end,
+                                                                                                                        identity,
+                                                                                                                        locus_tag))
+                            '''
 
 
 

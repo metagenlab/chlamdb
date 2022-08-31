@@ -121,6 +121,7 @@ def create_cds_tables(one_gbk,
                                                                  accession)
             print(sql)
             taxon_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
+            protein2count = {}
             for feature in record.features:
                 if feature.type == 'CDS' and not 'pseudo' in feature.qualifiers:
                     start = re.sub('>|<','', str(feature.location.start))
@@ -134,7 +135,18 @@ def create_cds_tables(one_gbk,
                         product = feature.qualifiers['product'][0]
                     except:
                         product = '-'
-                    locus_tag = feature.qualifiers['locus_tag'][0]
+                    if 'locus_tag' in feature.qualifiers:
+                        locus_tag = feature.qualifiers['locus_tag'][0]
+                    else:
+                        # deal with missing locus tags
+                        protein_id = feature.qualifiers["protein_id"][0].split(".")[0]
+                        if protein_id not in protein2count:
+                            protein2count[protein_id] = 1
+                            locus_tag = protein_id
+                        else:
+                            protein2count[protein_id] += 1
+                            locus_tag = "%s_%s" % (protein_id, protein2count[protein_id])
+                
                     try:
                         old_locus_tag = feature.qualifiers['old_locus_tag'][0]
                     except:

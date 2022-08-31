@@ -322,16 +322,18 @@ def plot_multiple_regions_crosslink(target_protein_list,
                 if group1 == group2:
                     border = colors.lightgrey
                     color = colors.lightgrey
-                    try:
-                        identity = orthogroup_identity_db.check_identity(cursor, 
-                                                                        feature_1.qualifiers["orthogroup"][0],
-                                                                        feature_1.qualifiers["locus_tag"][0],
-                                                                        feature_2.qualifiers["locus_tag"][0])
+                    #try:
+                    identity = orthogroup_identity_db.check_identity(server, 
+                                                                    feature_1.qualifiers["orthogroup"][0],
+                                                                    feature_1.qualifiers["locus_tag"][0],
+                                                                    feature_2.qualifiers["locus_tag"][0])
+                    '''
                     except:
                         identity = 0
                         print ("problem with identity table %s and locus %s %s" % (group1,
                                                                                   feature_1.qualifiers["locus_tag"][0],
                                                                                   feature_2.qualifiers["locus_tag"][0]))
+                    '''
 
 
                     color2 = colors.HexColor(rgb2hex(m.to_rgba(float(identity))))

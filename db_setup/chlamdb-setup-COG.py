@@ -86,7 +86,7 @@ def load_cog_tables(biodb,
 
     sql = 'insert into COG_code2category (code, description) values (%s, %s)'
     for n,row in cog_categories.iterrows():
-        cursor.execute(sql, [row.code, row.name])
+        cursor.execute(sql, [row.code, row.description])
     conn.commit()
 
     sql2 = 'select code, category_id from COG_code2category'
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
         cognames_2014 = pandas.read_csv(args.cognames_2014, names=["COG_id", "functional_class", "COG_annotation"], sep="\t", comment="#", encoding = "ISO-8859-1")
 
-        functions_2014 = pandas.read_csv(args.functions_2014, names=["code", "name"], sep="\t", comment="#", encoding = "ISO-8859-1")
+        functions_2014 = pandas.read_csv(args.functions_2014, names=["code", "description"], sep="\t", comment="#", encoding = "ISO-8859-1")
                   
         load_cog_tables(args.biodb,
                         cognames_2014, 

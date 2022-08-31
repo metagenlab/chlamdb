@@ -17,6 +17,9 @@
             <span class="icon-bar"></span>
           </button>
           <a class="navbar-brand" href="{% url 'home' %}">ChlamDB</a>
+
+
+
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -133,6 +136,10 @@
                             <!--<li class="item"><a href="{% url 'extract_EC' %}">EC numbers</a></li>-->
                             <li class="item" ><a   href="{% url 'index_comp' 'ko' %}">Kegg Orthologs</a></li>
                         {% endif %}
+                        {% if optional2status|keyvalue:"TCDB_data" %}
+                            <!--<li class="item"><a href="{% url 'extract_EC' %}">EC numbers</a></li>-->
+                            <li class="item" ><a   href="{% url 'index_comp' 'tcdb' %}">Transporters</a></li>
+                        {% endif %}                        
 
                     </ul>
                   </div>
@@ -270,6 +277,18 @@
     </div> <!-- /.container-fluid -->
   </div> <!-- /#sidebar-wrapper -->
 
+  <!--
+  <div class="row">
+    <div class="col">
+
+      <div style="padding-left:5px">
+        <div id="page_title" class="navbar-brand"><p class="home-title"></p></div>
+      </div>
+
+    </div>
+
+  </div>
+-->
 
 
 

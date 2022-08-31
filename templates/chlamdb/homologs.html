@@ -45,61 +45,44 @@
                                           {% if locus_tag %}
                                               <th>ID(%)</th>
                                           {% endif %}
-                                          {% if locus2uniprot_annotation %}
-                                              <th>Uniprot Status</th>
-                                              <th>Annot. score</th>
-                                              <th>Gene (uniprot/refseq)</th>
-                                          {% else %}
-                                              <th>Gene</th>
-                                          {% endif %}
+                                          <th>Uniprot</th>
+                                          <th>Gene</th>
                                           <th>TM</th>
                                           <th>SP</th>
                                           <th>Organism</th>
-                                          {% if locus2uniprot_annotation %}
-                                              <th>Product (uniprot/refseq)</th>
-                                              <th>Function</th>
-                                          {% else %}
-                                              <th>Product</th>
-                                          {% endif %}                        
+                                          <th>Product</th>
+                      
                                           
                                       </tr>
                                   </thead>
                                   <tbody>
-                                      {% for values in homologues %}
+                                      {% for n,values in homologues.iterrows %}
 
                                       <!-- 1locus_tag,2gene,3product,4organism ,5orthogroup_size,6n_genomes,7TM,8SP,9comment_function-->
                                       <!-- 10gene  | 11annotation_score | 12uniprot_status | 13recommendedName_fullName -->
-
+                                      gene                                            
+                                      product                      
+                                      organism  
+                                      orthogroup_size  n_genomes  TM    SP uniprot_accession     locus_b  pident
                                           
                                           <tr>
-                                              <td>{{values.0}}</td>
-                                              <td><a href="{% url 'locusx' values.1 True %}" target="_top">{{values.1}}</a></td>
+                                              <td>{{forloop.counter}}</td>
+                                              <td><a href="{% url 'locusx' values.locus_tag True %}" target="_top">{{values.locus_tag}}</a></td>
                                               {% if locus_tag %}
-                                                  <td>{{values.9}}</td> <!-- identity -->
+                                                  <td>{{values.pident}}</td> <!-- identity -->
                                               {% endif %}
-                                              {% if locus2uniprot_annotation %}
-                                                  {% if values.12 == 'reviewed' or values.12 == '1' %}
-                                                      <td style="color:red">RW </td>  <!-- review <img src="{{ STATIC_URL }}scales/reviewed.gif" id="rw">-->
-                                                  {%else%}
-                                                      <td>UR</td> <!-- review <img src="{{ STATIC_URL }}scales/unreviewed.gif" id="uw">-->
-                                                  {%endif%}
-                                                  <td>{{values.11}}</td> <!-- annotation score -->
-                                              {%endif%}    
-                                              
-                                              {% if locus2uniprot_annotation %}
-                                                  <td>{{values.2}} <br> {{values.10}}</td> <!-- gene -->
-                                              {%else%} <!-- only basic anotation-->
-                                                  <td>{{values.2}} <br>
+
+                                              {% if values.uniprot_status == 'reviewed' or values.12 == '1' %}
+                                                  <td style="color:red">reviewed </td>  <!-- review <img src="{{ STATIC_URL }}scales/reviewed.gif" id="rw">-->
+                                              {%  else %}
+                                                  <td>unreviewed</td> <!-- review <img src="{{ STATIC_URL }}scales/unreviewed.gif" id="uw">-->
                                               {% endif %}
-                                              <td>{{values.7}}</td> <!-- tm -->
-                                              <td>{{values.8}}</td> <!-- sp -->
-                                              <td>{{values.4}}</td> <!-- organism -->
-                                              {% if locus2uniprot_annotation %}
-                                                  <td>{{values.3}} <br> {{values.13}}</td> <!-- gene -->
-                                                  <td>{{values.9}}</td> <!-- gene -->
-                                              {%else%} <!-- only basic anotation-->
-                                                  <td>{{values.3}} <br>
-                                              {% endif %}
+                                              <td>{{values.gene}} <br> {{values.gene_up}}</td> <!-- gene -->
+                                              <td>{{values.TM}}</td> <!-- tm -->
+                                              <td>{{values.SP}}</td> <!-- sp -->
+                                              <td>{{values.organism}}</td> <!-- organism -->
+                                              <td>{{values.product}} <br>
+
                                               
                                           </tr>
 

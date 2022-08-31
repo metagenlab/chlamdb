@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+
+<html>
+
+
+
+<head>
+    {% load static %}
+    {% load static %}
+    {% get_static_prefix as STATIC_PREFIX %}
+    {% load custom_tags %}
+
+    <script type="text/javascript" src="{% static 'js/tableExport.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.base64.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.tablesorter.js' %}"></script>
+    <!--<script type="text/javascript" src="{% static 'js/jquery-1.11.2.min.js' %}"></script>-->
+    <script type="text/javascript" src="{% static 'js/sorttable.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/excellentexport.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.chained.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+
+    <script type="text/javascript" src="{% static 'js/jvenn.min.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+
+    <script type="text/javascript" src="{% static 'js/bootstrap-switch.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/toggle-switch.css' %}" />
+    {% include "chlamdb/header.html" %}
+</head>
+
+
+<body height="5000px">
+  <div class="container-fluid" id="main_container">
+    <div class="row">
+      <div id="wrapper">
+          <div id="page-content-wrapper">
+            <div class="row">
+              <div class="col-lg-12">
+                 {% include "chlamdb/menu.html" %}
+                 {% include "chlamdb/extract_nav_tabs_template.html" with type="Pfam" active_tab="comp" %}
+
+                  <div class="panel panel-success" style="width:80% ; top: 200px; margin: 10px 10px 10px 10px">
+                      <div class="panel-heading" style="width:100%">
+                          <h3 class="panel-title">Help</h3>
+                      </div>
+                      <p style="margin: 10px 10px 10px 10px; line-height: 160%">
+                      Compare TCDB transporters found in selected genomes (return detailed table)<br></p>
+                  </p>
+                  </div>
+
+
+
+                      <form action='{% url "tcdb_comparison" %}' method="post">
+                          {% csrf_token %}
+                          {{ form.as_p }}
+                          <input type="submit" value="Submit" />
+
+                      </form>
+
+                      {% if envoi_comp %}
+
+                      <div class="panel panel-success" style="width:80% ; top: 200px; margin: 10px 10px 10px 10px">
+                          <div class="panel-heading" style="width:100%">
+                              <h3 class="panel-title">Help</h3>
+                          </div>
+                          <div style="margin: 10px 10px 10px 20px;">
+                            <ul style="list-style-type:square;">
+                              <li>
+                                Number of transporters at least present 1 time in 1 of the {{taxon_list|length}} selected genomes: <strong>{{pfam2data|length}}</strong> . <br>
+                              </li>
+                              <li>
+                                Click on transporter accession to get detailed phylogenetic profile of the corresponding TCDB entry. <br>
+                              </li>
+                              <li>
+                                nDomain: total number of occurence of this domain in the complete database <br>
+                              </li>
+                            </ul>
+
+                        </div>
+                      </div>
+
+                              <table class="sortable table" id="table_pfam">
+                                  <style>
+                                    table {
+                                        width:100%;
+                                        table-layout:fixed;
+                                    }
+                                    td {
+                                        overflow: hidden;
+                                        white-space: nowrap;
+                                    }
+                                    </style>
+                                  <thead>
+                                  <tr style="height:200px;">
+                                    <th>Domain ID</th>
+                                    <th>Description</th>
+                                    <th>nDomain</th>
+                                    {% for taxon in taxon_list %}
+                                        <th id="entete_meta4" valign="bottom"><div class="rotate">{{ taxon_id2description|keyvalue:taxon}}</div></th>
+                                    {% endfor %}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {% for key, values in pfam2data.items %}
+                                      <tr>
+                                          <td><a href="{% url 'fam' values.0 'pfam' %}" target="_top">{{values.0}}</a></td><td>{{values.1}}</td><td>{{values.2}}</td>
+                                          {%for taxon_dico in taxon_dicos %}
+                                              <td data-hist="{{taxon_dico|keyvalue:values.0}}">{{taxon_dico|keyvalue:values.0}}</td>
+                                          {% endfor %}
+
+                                      </tr>
+                                  {% endfor %}
+                                </tbody>
+                              </table>
+                      {% endif %}
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    <script src="{% static 'js/jquery.hottie.js' %}"></script>
+    <script>
+      $(function(){
+
+
+        $("#table_pfam td").hottie({
+          readValue : function(e) {
+            return $(e).attr("data-hist");
+          },
+        colorArray : [
+        "#5858FA",
+            "#FBEFEF",
+            "#FA5858"
+        ]
+
+        });
+
+      });
+
+      $(document).ready(function() {
+        $('#table_pfam').DataTable( {
+          dom: 'lBfrtip',
+          buttons: [
+              {
+                  extend: 'colvis',
+                  columns: ':not(.noVis)',
+              },
+              {
+                  extend: 'excel',
+                  title: 'plast_refseq'
+              },
+              {
+                  extend: 'csv',
+                  title: 'plast_refseq'
+              }
+          ],
+          "paging":   false,
+          "ordering": true,
+          "info":     false,
+          } );
+      } );
+
+
+
+    </script>
+</body>
+{% include "chlamdb/style_menu.html" %}
+</html>

@@ -455,7 +455,7 @@ if __name__ == '__main__':
     
     
     logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
-    '''
+    
     # family_abreviations = 'http://tcdb.org/cgi-bin/projectv/family_abbreviations.py'
    
     # 1 class ok
@@ -531,6 +531,6 @@ if __name__ == '__main__':
     logging.info("insert_transporters")
     t.import_annot(acc2tcid_list,
                    acc2species)
-    '''
+    
     logging.info("update config")
     manipulate_biosqldb.update_config_table(args.db_name, "TCDB_data")

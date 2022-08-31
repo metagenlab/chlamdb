@@ -756,6 +756,7 @@ def plot_heat_tree(tree_file, biodb="chlamydia_04_16", exclude_outgroup=False, b
     value=1
 
     max_genome_size = max(genome_sizes)#3424182#
+    #max_genome_size = 3424182
     max_gc = max(gc_list) #48.23
 
     cmap = cm.YlGnBu#YlOrRd#OrRd

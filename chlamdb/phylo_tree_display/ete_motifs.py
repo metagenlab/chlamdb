@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+from sqlite3 import SQLITE_ALTER_TABLE
 import sys
 from random import sample
 from random import randint
 from ete3 import Tree, SeqMotifFace, TreeStyle, add_face_to_node, TextFace
+import pandas
 
 import numpy as np
 import colorsys
@@ -192,50 +194,34 @@ def get_locus2taxon2identity(biodb, locus_tag_list):
     else:
         raise IOError("Unknown db driver %s" % db_driver)
 
-    ordered_taxons = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)][1:]
+    ordered_taxons = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql,)][1:]
 
     taxon2locus2identity_closest = {}
     for locus in locus_tag_list:
         taxon2locus2identity_closest[locus] = {}
 
-    '''
-    select B.locus_tag,C.locus_tag,identity from (select * from comparative_tables.identity_closest_homolog2_chlamydia_04_16 where locus_1 in (17323786,17275213,17295471,17323784,17129361,17219096,17194936,17100717,17219094,17129363,17100715,17222853,17067094,17335066,17047317,17215018,17176196,17294883,17047319,17013495)) A left join custom_tables.locus2seqfeature_id_chlamydia_04_16 B on A.locus_1=B.seqfeature_id left join custom_tables.locus2seqfeature_id_chlamydia_04_16 C on A.locus_2=C.seqfeature_id;
-    '''
-    #print 'getting dico'
-    sql = 'select seqfeature_id,locus_tag from custom_tables_locus2seqfeature_id'
+    locus_filter = '","'.join(locus_tag_list)
 
-    seqfeature_id2locus = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
-    #print 'ok'
-    all_id = []
-    for locus in locus_tag_list:
-        #print 'locus', locus
-        seqfeatre_id_sql = 'select seqfeature_id from custom_tables_locus2seqfeature_id where locus_tag="%s";' % (locus)
-        #print seqfeatre_id_sql
-        try:
-            seqfeatre_id = server.adaptor.execute_and_fetchall(seqfeatre_id_sql,)[0][0]
-            all_id.append(str(seqfeatre_id))
-        except:
-            # pseudogene
-            continue
-    filter = ','.join(all_id)
-    sql = 'select taxon_2,locus_1,identity from comparative_tables_identity_closest_homolog2 where locus_1 in (%s) ;' % (filter)
-
-    identity_data = server.adaptor.execute_and_fetchall(sql, )
+    sql = 'select t2.locus_tag as locus_a, t3.locus_tag as locus_b,t3.taxon_id as taxon_id_locus_b,pident from orthology_identity_v2 t1' \
+          ' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id ' \
+          ' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id ' \
+          ' inner join orthology_seqfeature_id2orthogroup t4 on t1.seqfeature_id_a=t4.seqfeature_id ' \
+          ' where t2.locus_tag in ("%s")' % (locus_filter)
+    
+    identity_data = pandas.read_sql(sql, server.adaptor.conn)
+    identity_data = identity_data.sort_values(["locus_a", "taxon_id_locus_b", "pident"], ascending=False).groupby(["locus_a", "taxon_id_locus_b"]).head(1)
+    print(identity_data)
     taxon2identity_closest = {}
-
-    for row in identity_data:
-        #taxon2identity_closest[str(row[0])] = row[2]
-        #taxon2locus2identity_closest[seqfeature_id2locus[str(row[1])]][str(row[0])] = row[2]
-        #print taxon2locus2identity_closest
-        taxon2locus2identity_closest[seqfeature_id2locus[str(row[1])]][str(row[0])] = row[2]
+    # taxon_2,locus_1,identity
+    # locus_a, locus_b, taxon_id_locus_b
+    for n,row in identity_data.iterrows():
+        taxon2locus2identity_closest[str(row.locus_a)][str(row.taxon_id_locus_b)] = row.pident
     for locus in locus_tag_list:
         for taxon in ordered_taxons:
             if taxon not in taxon2locus2identity_closest[locus]:
                 taxon2locus2identity_closest[locus][taxon] = '-'
-
-
-
-        return taxon2locus2identity_closest
+    print(taxon2locus2identity_closest)
+    return taxon2locus2identity_closest
 
 def get_locus2taxon2n_paralogs(biodb, locus_tag_list):
 
@@ -318,7 +304,10 @@ def combined_profiles_heatmap(biodb,
     t1 = Tree(tree)
 
     R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
     taxon_id2organism_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb)
@@ -521,7 +510,10 @@ def pathways_heatmap(biodb,
     t1 = Tree(tree)
 
     R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
 
@@ -708,7 +700,10 @@ def pathways_heatmapV2(biodb,
 
 
     R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
 
@@ -1305,8 +1300,11 @@ def multiple_profiles_heatmap_nobiodb(column_labels,
     tss.guiding_lines_color = "gray"
     tss.show_leaf_name = False
 
-    R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        R = t1.get_midpoint_outgroup()
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
 
@@ -1611,8 +1609,11 @@ def multiple_profiles_heatmap_nobiodb(column_labels,
     tss.guiding_lines_color = "gray"
     tss.show_leaf_name = False
 
-    R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        R = t1.get_midpoint_outgroup()
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
 
@@ -1859,8 +1860,11 @@ def multiple_orthogroup_heatmap(biodb, reference_orthogroup, max_distance=2.2):
     t1 = Tree(tree)
     #t.populate(8)
     # Calculate the midpoint node
-    R = t1.get_midpoint_outgroup()
-    t1.set_outgroup(R)
+    try:
+        R = t1.get_midpoint_outgroup()
+        t1.set_outgroup(R)
+    except:
+        pass
     t1.ladderize()
 
     taxon_id2organism_name = manipulate_biosqldb.taxon_id2genome_description(server, biodb)

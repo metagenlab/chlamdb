@@ -1188,73 +1188,82 @@ function clearBox(elementID)
                    <h3>Interpro</h3>
 
                    {% static "" as baseUrl %}
-                   {% if interpro_protein %}
-                       <iframe src="{{ baseUrl }}{{biodb}}/interpro/{{interpro_hash}}.html" width="100%" height="2000px" frameborder="0" hspace="0" vspace="0" scrolling="no"></iframe>
-                   {% else %}
-                       <iframe src="{{ baseUrl }}{{biodb}}/interpro/{{interpro_hash}}.html" width="100%" height="2000px" frameborder="0" hspace="0" vspace="0" scrolling="no"></iframe>
-                   {% endif %}
 
-
-                    <table class="table">
+                    <table class="table" id="interpro_table">
+                        <thead>
+                          <tr>
+                              <th id="entete">Analysis</th>
+                              <th>Signature accession</th>
+                              <th>Signature description</th>
+                              <th>start</th>
+                              <th>stop</th>
+                              <th>score</th>
+                              <th>IP accession</th>
+                              <th>IP description</th>
+                              <th>Architecture</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                        {% for n, values in interpro_data_detail.iterrows %}
                         <tr>
-                            <th id="entete">Analysis</th>
-                            <th>signature_accession</th>
-                            <th>signature_description</th>
-                            <th>start</th>
-                            <th>stop</th>
-                            <th>score</th>
-                            <th>interpro_accession</th>
-                            <th>interpro_description</th>
-                        </tr>
 
-                        {% for values in interpro_data_detail %}
-                        <tr>
-                            <td>{{values.0}}</td>
+                            <td>{{values.analysis_name}}</td>
 
                             {% if values.0 == 'SUPERFAMILY' %}
-                               <td><a href="http://supfam.cs.bris.ac.uk/SUPERFAMILY/cgi-bin/scop.cgi?ipid={{values.1}}" target="_parent">{{values.1}}</a></td>
+                               <td><a href="http://supfam.cs.bris.ac.uk/SUPERFAMILY/cgi-bin/scop.cgi?ipid={{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
+                             {% elif values.analysis_name == 'PANTHER' %}
+                               <td><a href="http://pantherdb.org/panther/family.do?clsAccession={{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
+                             {% elif values.analysis_name == 'Pfam' %}
+                               <td><a href="http://pfam.xfam.org/family/{{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
+                               {% elif values.analysis_name == 'CDD' %}
+                               <td><a href="https://www.ncbi.nlm.nih.gov/Structure/cdd/cddsrv.cgi?uid={{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
 
-                             {% elif values.0 == 'Pfam' %}
-                               <td><a href="http://pfam.xfam.org/family/{{values.1}}" target="_parent">{{values.1}}</a></td>
+                             {% elif values.analysis_name == 'SMART' %}
+                               <td><a href="http://smart.embl-heidelberg.de/smart/do_annotation.pl?ACC={{values.signature_accession}}&BLAST=DUMMY" target="_parent">{{values.signature_accession}}</a></td>
 
-                             {% elif values.0 == 'SMART' %}
-                               <td><a href="http://smart.embl-heidelberg.de/smart/do_annotation.pl?ACC={{values.1}}&BLAST=DUMMY" target="_parent">{{values.1}}</a></td>
+                             {% elif values.analysis_name == 'Gene3D' %}
+                               <td><a href="http://www.cathdb.info/version/latest/superfamily/{{values.signature_accession|slice:"6:"}}" target="_parent">{{values.signature_accession}}</a></td>
 
-                             {% elif values.0 == 'Gene3D' %}
-                               <td><a href="http://www.cathdb.info/version/latest/superfamily/{{values.1|slice:"6:"}}" target="_parent">{{values.1}}</a></td>
+                             {% elif values.analysis_name == 'ProSiteProfiles' %}
+                               <td><a href="http://prosite.expasy.org/{{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
 
-                             {% elif values.0 == 'ProSiteProfiles' %}
-                               <td><a href="http://prosite.expasy.org/{{values.1}}" target="_parent">{{values.1}}</a></td>
+                             {% elif values.analysis_name == 'ProSitePatterns' %}
+                               <td><a href="http://prosite.expasy.org/{{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
 
-                             {% elif values.0 == 'ProSitePatterns' %}
-                               <td><a href="http://prosite.expasy.org/{{values.1}}" target="_parent">{{values.1}}</a></td>
-
-                             {% elif values.0 == 'PRINTS' %}
+                             {% elif values.analysis_name == 'PRINTS' %}
                                <td><a href="http://www.bioinf.manchester.ac.uk/cgi-bin/dbbrowser/sprint/searchprintss.cgi?display_opts=Prints&category=None&queryform=false&prints_accn={{values.1}} " target="_parent">{{values.1}}</a></td>
 
-                             {% elif values.0 == 'TIGRFAM' %}
-                               <td><a href="http://www.jcvi.org/cgi-bin/tigrfams/HmmReportPage.cgi?acc={{values.1}}" target="_parent">{{values.1}}</a></td>
+                             {% elif values.analysis_name == 'TIGRFAM' %}
+                               <td><a href="http://www.jcvi.org/cgi-bin/tigrfams/HmmReportPage.cgi?acc={{values.signature_accession}}" target="_parent">{{values.signature_accession}}</a></td>
 
                             {% else %}
-                                 <td>{{values.1}}</td>
+                                 <td>{{values.signature_accession}}</td>
 
                             {% endif %}
-                            <td>{{values.2}}</td>
-                            <td>{{values.3}}</td>
-                            <td>{{values.4}}</td>
-                            <td>{{values.5}}</td>
+                            <td>{{values.signature_description}}</td>
+                            <td>{{values.start}}</td>
+                            <td>{{values.stop}}</td>
+                            <td>{{values.score}}</td>
 
-                            {% if values.6 != '0' %}
+                            {% if values.name != '0' %}
 
-                               <td><a href="{% url 'fam' values.6 'interpro' %}">{{values.6}}</a></td>
-                               <td>{{values.7}}</td>
+                               <td><a href="{% url 'fam' values.name 'interpro' %}">{{values.name}}</a></td>
+                               <td>{{values.description}}</td>
                             {% else %}
                                <td>-</td>
                             {% endif %}
+                                <td>
 
+                                  <svg height="15" width="{{aa_length_scale}}">
+                                    <line x1="0" y1="6" x2="{{aa_length_scale}}" y2="6" style="stroke:rgb(255,0,0);stroke-width:2" />
+                                    <rect x="{{values.start_scale}}" y="0" rx="5" ry="5" width="{{values.domain_len}}" height="15"
+  style="fill:blue;stroke:black;opacity:0.5" />
+                                  </svg> 
+
+                                </td>
                         </tr>
                         {% endfor %}
-
+                      </tbody>
                     </table>
 
                 </div>
@@ -1793,6 +1802,15 @@ $(document).ready(function() {
         "pageLength": 200
     } );
 } );
+
+$(document).ready(function() {
+    $('#interpro_table').DataTable( {
+        dom: 'Bfrtip',
+        "order": [[ 0, "desc" ]],
+        "pageLength": 10
+    } );
+} );
+
 
 
 

@@ -65,7 +65,11 @@ def pepstats2sql(biodb, locus2pepstats, aa_list):
         aa_counts = locus2pepstats[locus].count_amino_acids()
         aa_percent = locus2pepstats[locus].get_amino_acids_percent()
         aromaticity = locus2pepstats[locus].aromaticity()
-        instability_index = locus2pepstats[locus].instability_index()
+        try:
+            instability_index = locus2pepstats[locus].instability_index()
+        except:
+            instability_index = 0
+            print(f"Problem with instability_index with locus {locus}, set to 0")
         secondary_structure_fraction = locus2pepstats[locus].secondary_structure_fraction() # The list contains 3 values: [Helix, Turn, Sheet].
 
         sql = 'insert into custom_tables_locus2pepstats values ("%s",%s,%s,%s,%s,%s,%s,%s,%s)' % (locus,

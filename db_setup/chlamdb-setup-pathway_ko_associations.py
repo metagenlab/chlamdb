@@ -43,6 +43,7 @@ def get_pathway_ko_association_table(biodb):
                 sql = 'insert into enzyme_pathway2ortholog_associations values(%s, %s, "%s")' % (pathway2pathway_id[pathway],
                                                                                                  o.id,
                                                                                                  ko)
+                print(sql)
                 cursor.execute(sql,)
         conn.commit()
 

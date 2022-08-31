@@ -36,20 +36,37 @@ def transporter_all_superfamily_heatmap(biodb, evalue, bitscore, query_cov, hit_
             code2taxon2count[row[1]][str(row[0])] = int(row[2])
     return transporter_list, code2taxon2count
 
-def transporter_family_heatmap(biodb, family_list,evalue, bitscore, query_cov, hit_cov, total=False):
+def transporter_fam_heatmap(biodb, family_list, rank, evalue, bitscore, query_cov, hit_cov, total=False):
     from chlamdb.biosqldb import manipulate_biosqldb
 
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    family_filter = '"'+'","'.join(family_list)+'"'
+    tc_name_filter = '","'.join(family_list)
 
-    sql = 'select t1.taxon_id,t3.description, count(*) as n from transporters_transporters t1 ' \
-          ' inner join transporters.transporter_table t2 on t1.transporter_id=t2.transporter_id ' \
-          ' inner join transporters.tc_table t3 on t2.family=t3.tc_id ' \
-          ' inner join transporters.tc_table t4 on t2.family=t4.tc_id ' \
-          ' where query_cov>=%s and hit_cov>=%s and evalue<=%s and bitscore_first_hsp>=%s and t4.tc_name in (%s) ' \
-          ' group by taxon_id,t3.tc_id;' % (biodb, query_cov, hit_cov, evalue, bitscore, family_filter)
+    if rank == 'family':
+        rank_filter = f'and t4.tc_name in ("{tc_name_filter}")'
+        col = 't4.tc_name'
+    elif rank == 'subfamily':
+        rank_filter = f'and t5.tc_name in ("{tc_name_filter}")'
+        col = 't5.tc_name'
+    elif rank == 'superfamily':
+        rank_filter = f'and t6.tc_name in ("{tc_name_filter}")'
+        col = 't6.tc_name'
+    elif rank == 'tc_name':
+        rank_filter = f'and t3.tc_name in ("{tc_name_filter}")'
+        col = 't3.tc_name'
+
+    sql = 'select t1.taxon_id,%s, count(*) as n from transporters_transporters_BBH t1 ' \
+          ' inner join transporters_protein_entry2transporter t2 on t1.hit_protein_id=t2.protein_id ' \
+          ' inner join transporters_transporters t3 on t2.transporter_id=t3.transporter_id ' \
+          ' inner join transporters_classification t4 on t3.family=t4.tc_id ' \
+          ' inner join transporters_classification t5 on t3.family=t5.tc_id ' \
+          ' inner join transporters_classification t6 on t3.superfamily=t6.tc_id ' \
+          ' where query_cov>=%s and hit_cov>=%s and evalue<=%s and bitscore_first_hsp>=%s %s ' \
+          ' group by taxon_id,%s;' % (col, query_cov, hit_cov, evalue, bitscore, rank_filter, col)
     print (sql)
+
+    
     data = server.adaptor.execute_and_fetchall(sql,)
 
     code2taxon2count = {}

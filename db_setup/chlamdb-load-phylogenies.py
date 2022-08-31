@@ -32,7 +32,10 @@ def import_phylo(phylo_list, biodb):
         server.adaptor.execute(sql,)
     server.commit()
     sql_index1 = 'create index p on phylogenies(orthogroup)'
-    server.adaptor.execute(sql_index1,)
+    try:
+        server.adaptor.execute(sql_index1,)
+    except:
+        pass
     server.commit()
 
 

@@ -4,6 +4,8 @@
 
 import random
 import string
+import pandas 
+
 def randomString(stringLength=10):
     """Generate a random string of fixed length """
     letters = string.ascii_lowercase
@@ -338,6 +340,92 @@ def collect_interpro_accession(db_name):
         server.adaptor.execute(sql_temp,)
         server.adaptor.commit()
         #sys.exit()
+
+
+def collect_tcdb(db_name):
+    
+    from chlamdb.biosqldb import manipulate_biosqldb
+
+
+
+    server, db = manipulate_biosqldb.load_db(db_name)
+
+    taxon_id_list = manipulate_biosqldb.get_taxon_id_list(server, db_name)
+
+    sql_head = 'INSERT INTO comparative_tables_tcdb (id,'
+
+    for taxon in taxon_id_list:
+        sql_head += '`%s`,' % taxon
+    sql_head = sql_head[0:-1] + ') values ('
+
+    all_tc_name_ids_sql = 'select distinct tc_name from transporters_transporters_BBH t1' \
+                          ' inner join transporters_protein_entry2transporter t2 on t1.hit_protein_id=t2.protein_id' \
+                          ' inner join transporters_transporters t3 on t2.transporter_id=t3.transporter_id;'
+
+    all_tc_name_ids = [i[0] for i in server.adaptor.execute_and_fetchall(all_tc_name_ids_sql,)]
+
+    i = 0
+    for accession in all_tc_name_ids:
+        print (i,'/', len(all_tc_name_ids), accession)
+        i+=1
+
+        sql = 'select taxon_id, count(*) from transporters_transporters_BBH t1 inner join transporters_protein_entry2transporter t2 on t1.hit_protein_id=t2.protein_id inner join transporters_transporters t3 on t2.transporter_id=t3.transporter_id where tc_name="%s" group by taxon_id;' % (accession)
+
+        data = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+        sql_temp = sql_head + '"%s",' % accession
+
+        for taxon in taxon_id_list:
+            try:
+                sql_temp += '%s,' % data[str(taxon)]
+            except:
+                sql_temp += '0,'
+        sql_temp = sql_temp[0:-1] + ');'
+
+        server.adaptor.execute(sql_temp,)
+        server.adaptor.commit()
+
+def collect_tcdb_accession(db_name):
+    
+    from chlamdb.biosqldb import manipulate_biosqldb
+
+    server, db = manipulate_biosqldb.load_db(db_name)
+
+    accession_list = get_all_accessions(db_name)
+
+    sql_head = 'INSERT INTO comparative_tables_tcdb_accessions (id,'
+
+    for accession in accession_list:
+        sql_head += '%s,' % accession
+    sql_head = sql_head[0:-1] + ') values ('
+
+    all_tc_name_ids_sql = 'select distinct tc_name from transporters_transporters_BBH t1' \
+                          ' inner join transporters_protein_entry2transporter t2 on t1.hit_protein_id=t2.protein_id' \
+                          ' inner join transporters_transporters t3 on t2.transporter_id=t3.transporter_id;'
+
+    all_tc_name_ids = [i[0] for i in server.adaptor.execute_and_fetchall(all_tc_name_ids_sql,)]
+
+    i = 0
+    for accession in all_tc_name_ids:
+        print (i,'/', len(all_tc_name_ids), accession)
+        i+=1
+
+        sql = 'select accession,count(*) as n from transporters_transporters_BBH t1 ' \
+        ' inner join transporters_protein_entry2transporter t2 on t1.hit_protein_id=t2.protein_id ' \
+        ' inner join transporters_transporters t3 on t2.transporter_id=t3.transporter_id ' \
+        ' inner join custom_tables_locus2seqfeature_id t4 on t1.seqfeature_id=t4.seqfeature_id ' \
+        ' inner join orthology_detail t5 on t4.locus_tag=t5.locus_tag where tc_name="%s" group by accession;' % (accession)
+        data = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+        sql_temp = sql_head + '"%s",' % accession
+
+        for accession in accession_list:
+            try:
+                sql_temp += '%s,' % data[str(accession)]
+            except:
+                sql_temp += '0,'
+        sql_temp = sql_temp[0:-1] + ');'
+
+        server.adaptor.execute(sql_temp,)
+        server.adaptor.commit()
 
 
 def collect_ko(db_name):
@@ -681,17 +769,26 @@ def shared_orthogroups_average_identity(db_name):
     all_taxons = list(taxon2description.keys())
     for i, taxon_1 in enumerate(all_taxons):
         for taxon_2 in all_taxons[i+1:]:
-            data_sql = 'select identity from comparative_tables_identity_closest_homolog2 where taxon_1=%s and taxon_2=%s' % (taxon_1,
-                                                                                                                              taxon_2)
-            data = list([i[0] for i in server.adaptor.execute_and_fetchall(data_sql,)])
-            print(data)
+            data_sql = f'select t2.taxon_id as taxon_id_a,t3.taxon_id as taxon_id_b,seqfeature_id_a,seqfeature_id_b,t1.length, t1.pident from orthology_identity_v2 t1 '\
+                       f' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id '\
+                       f' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id '\
+                       f' where (t2.taxon_id={taxon_1}) and (t3.taxon_id={taxon_2}) ' \
+                       f' UNION select t3.taxon_id as taxon_id_a,t2.taxon_id as taxon_id_b,seqfeature_id_b as seqfeature_id_a,seqfeature_id_a as seqfeature_id_b,t1.length, t1.pident from orthology_identity_v2 t1 '\
+                       f' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id '\
+                       f' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id '\
+                       f' where (t2.taxon_id={taxon_2}) and (t3.taxon_id={taxon_1})'
+                            
+            print(data_sql)
+            df = pandas.read_sql(data_sql, server.adaptor.conn)
+            # group by to remove 1 to many relationships
+            df = df.sort_values(["length"]).groupby(["taxon_id_a", "taxon_id_b", "seqfeature_id_a"]).head(1).reset_index().groupby(["taxon_id_a", "taxon_id_b", "seqfeature_id_b"]).head(1).reset_index()
+            print("best shared list", len(df))
             sql = 'insert into comparative_tables_shared_og_av_id(taxon_1, taxon_2, average_identity,' \
                   ' median_identity, n_pairs) values (%s, %s, %s, %s, %s)' % (taxon_1,
                                                                               taxon_2,
-                                                                              numpy.average(data),
-                                                                              numpy.median(data),
-                                                                              len(data))
-            print(sql)
+                                                                              df["pident"].mean(),
+                                                                              df["pident"].median(),
+                                                                              len(df))
             server.adaptor.execute_and_fetchall(sql,)
         server.adaptor.commit()
 
@@ -707,6 +804,7 @@ if __name__ == '__main__':
     parser.add_argument("-e", '--ec', help="priam EC table", action="store_true")
     parser.add_argument("-i", '--interpro', help="interpro table", action="store_true")
     parser.add_argument("-k", '--ko', help="KEGG ko table", action="store_true")
+    parser.add_argument("-t", '--tcdb', help="TCDB table", action="store_true")
     parser.add_argument("-a", '--accessions', help="accession tables", action="store_true")
 
     args = parser.parse_args()
@@ -747,13 +845,18 @@ if __name__ == '__main__':
             collect_ko_accession(args.database_name)
             # update config table
             manipulate_biosqldb.update_config_table(args.database_name, "KEGG_comparative_accession")
-            
+        if args.tcdb:
+            create_comparative_tables_accession(args.database_name, "tcdb")
+            collect_tcdb_accession(args.database_name)
+            # update config table
+            manipulate_biosqldb.update_config_table(args.database_name, "TCDB_comparative_accession")
+                       
     if not args.accessions:
         if args.orthology:
-            print("identity_closest_homolog")
-            identity_closest_homolog(args.database_name)
+            #print("identity_closest_homolog")
+            #identity_closest_homolog(args.database_name)
             print("n_shared_orthogroup_table")
-            n_shared_orthogroup_table(args.database_name)
+            #n_shared_orthogroup_table(args.database_name)
             print("shared_orthogroups_average_identity")
             shared_orthogroups_average_identity(args.database_name)
             
@@ -784,3 +887,9 @@ if __name__ == '__main__':
             create_comparative_tables(args.database_name, "ko")
             collect_ko(args.database_name)
             manipulate_biosqldb.update_config_table(args.database_name, "KEGG_comparative")
+
+        if args.tcdb:
+            create_comparative_tables(args.database_name, "tcdb")
+            collect_tcdb(args.database_name)
+            # update config table
+            manipulate_biosqldb.update_config_table(args.database_name, "TCDB_comparative")

@@ -18,7 +18,7 @@ def get_interpro_entry_tables(interpro_release,
 
     cursor.execute(sql,)
     conn.commit()
-    link = 'https://ftp.ebi.ac.uk/pub/databases/interpro/%s/entry.list' % interpro_release
+    link = 'https://ftp.ebi.ac.uk/pub/databases/interpro/releases/%s/entry.list' % interpro_release
     print(link)
     entry_list = urllib.request.urlopen(link).read().decode('utf-8').split("\n")
     for i, line in enumerate(entry_list):

@@ -11,21 +11,22 @@ from multiprocessing import cpu_count
 import os
 import MySQLdb
 from chlamdb.biosqldb import manipulate_biosqldb
+import pandas
 
-
-def check_identity(cursor, 
+def check_identity(server, 
                    orthogroup, 
                    locus1, 
                    locus2):
 
-    sql = 'select identity from orthology_identity where (locus_a = "%s" and locus_b = "%s") or (locus_a ="%s" and locus_b="%s")'  % (locus1, 
-                                                                                                                                      locus2, 
-                                                                                                                                      locus1, 
-                                                                                                                                      locus2)
-    print(sql)
-    cursor.execute(sql)
-    identity = int(cursor.fetchone()[0])
-    return identity
+    sql = f'select distinct t2.locus_tag as locus_a, t3.locus_tag as locus_b,pident from orthology_identity_v2 t1 ' \
+          f' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id ' \
+          f' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id ' \
+          f' inner join orthology_seqfeature_id2orthogroup t4 on t1.seqfeature_id_a=t4.seqfeature_id ' \
+          f' inner join orthology_orthogroup t5 on t4.orthogroup_id=t5.orthogroup_id where (t2.locus_tag="{locus1}" and t3.locus_tag="{locus2}") OR (t2.locus_tag="{locus2}" and t3.locus_tag="{locus1}");'
+    
+    df = pandas.read_sql(sql, server.adaptor.conn)
+    
+    return df["pident"].mean()
 
 
 def heatmap_presence_absence(biodb_name, group_name):
@@ -50,23 +51,18 @@ def heatmap_presence_absence(biodb_name, group_name):
     return taxon2presence_absence
 
 
-def orthogroup2identity_dico(biodb_name, orthogroup):
+def orthogroup2identity(biodb_name, orthogroup, ref_locus=None):
     server, db = manipulate_biosqldb.load_db(biodb_name)
-    sql = 'select locus_a, locus_b, identity from orthology_identity where orthogroup="%s"' % orthogroup
-    identity_table = server.adaptor.execute_and_fetchall(sql,)
-    locus2locus_id = {}
-    for row in identity_table:
-        if row[0] not in locus2locus_id:
-            locus2locus_id[row[0]] = {}
-            locus2locus_id[row[0]][row[1]] = row[2]
-        else:
-            locus2locus_id[row[0]][row[1]] = row[2]
-        if row[1] not in locus2locus_id:
-            locus2locus_id[row[1]] = {}
-            locus2locus_id[row[1]][row[0]] = row[2]
-        else:
-            locus2locus_id[row[1]][row[0]] = row[2]
-    return locus2locus_id
+    sql = 'select distinct t2.locus_tag as locus_a, t3.locus_tag as locus_b,pident from orthology_identity_v2 t1 ' \
+          ' inner join custom_tables_locus2seqfeature_id t2 on t1.seqfeature_id_a=t2.seqfeature_id ' \
+          ' inner join custom_tables_locus2seqfeature_id t3 on t1.seqfeature_id_b=t3.seqfeature_id ' \
+          ' inner join orthology_seqfeature_id2orthogroup t4 on t1.seqfeature_id_a=t4.seqfeature_id ' \
+          ' inner join orthology_orthogroup t5 on t4.orthogroup_id=t5.orthogroup_id where orthogroup_name="%s";' % orthogroup
+    identity_table = pandas.read_sql(sql, server.adaptor.conn)
+    if ref_locus:
+        return identity_table.query('locus_a == "%s"' % ref_locus)
+    else:
+        return identity_table
 
 
 def locus_list2presence_absence_all_genomes(locus_list, biodb_name):
