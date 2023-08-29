@@ -272,16 +272,63 @@ def species_tree(request):
     path = settings.BASE_DIR + f'/assets/temp/species_tree_{biodb}.svg'
     asset_path = f'/temp/species_tree_{biodb}.svg'
 
+    taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+
     # plot phylo only of not already in assets
     if not os.path.exists(settings.BASE_DIR + f'/assets/temp/species_tree_{biodb}.svg'):
         
         t1 = Tree(tree)
-        R = t1.get_midpoint_outgroup()
-        try:
-            t1.set_outgroup(R)
-        except:
-            pass
-        
+        if taxid_list:
+            t1.prune(taxid_list)
+            t1.set_outgroup("9")
+        else:
+            R = t1.get_midpoint_outgroup()
+            try:
+                t1.set_outgroup(R)
+            except:
+                pass
+        t1.ladderize()
         # the tree has to be pruned in we want to plot a subtree only
         '''
         try:
@@ -3875,7 +3922,7 @@ def effector_predictions(request, genome):
 
     locus_tag_list_effective_T3MM = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql_locus_tag_T3MM, )]
 
-    sql_locus_tag_BPBAac = 'select distinct t2.locus_tag from effectors.predicted_BPBAac t1 ' \
+    sql_locus_tag_BPBAac = 'select distinct t2.locus_tag from effectors_predicted_BPBAac t1 ' \
                                            'inner join annotation_seqfeature_id2locus t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                                            'where t1.taxon_id in (%s);' % (','.join(taxid_list))
 
@@ -3888,15 +3935,29 @@ def effector_predictions(request, genome):
 
     locus_tag_list_effective_DeepT3 = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql_locus_tag_DeepT3, )]
 
+    sql_euk = '''
+    select distinct t5.locus_tag from interpro_interpro t1  
+    inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
+    inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
+    inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
+    inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
+    inner join annotation_seqfeature_id2locus t6 on t1.seqfeature_id=t6.seqfeature_id
+    where t6.taxon_id in (%s)
+    and s_eukaryote > 15 and s_p_bacteria < 1;
+    ''' % (','.join(taxid_list))
+    
+    locus_tag_list_euk = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql_euk, )]
+    
 
     serie_effective_T3 = '{' + f'name: "effectiveT3", data: {locus_tag_list_effective_T3}'  + '}' 
     serie_effective_T3MM = '{' + f'name: "T3MM", data: {locus_tag_list_effective_T3MM}'  + '}' 
     serie_effective_BPBAac = '{' + f'name: "BPBAac", data: {locus_tag_list_effective_BPBAac}'  + '}' 
     serie_effective_DeepT3 = '{' + f'name: "DeepT3", data: {locus_tag_list_effective_DeepT3}' + '}' 
+    serie_euk = '{' + f'name: "Ekaryote domains", data: {locus_tag_list_euk}' + '}' 
 
     #series = [serie_pfam, serie_interpro, serie_blastnr, serie_effective_ELD] # serie_effective_T3, serie_effective_T3MM
 
-    series = [serie_effective_T3, serie_effective_T3MM, serie_effective_BPBAac, serie_effective_DeepT3]
+    series = [serie_effective_T3, serie_effective_T3MM, serie_effective_BPBAac, serie_euk]
     series_string = '[%s]' % ','.join(series)
 
     envoi_venn = True
@@ -3911,13 +3972,13 @@ def effector_predictions(request, genome):
 
     
     sql_scores_T3MM = 'select probability from effectors_predicted_T3MM t1 ' \
-                                           'inner join annotation.seqfeature_id2locus t2 on t1.seqfeature_id=t2.seqfeature_id ' \
+                                           'inner join annotation_seqfeature_id2locus t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                                            'where t1.taxon_id in (%s);' % (','.join(taxid_list))
 
     score_list_T3MM = [float(i[0]) for i in server.adaptor.execute_and_fetchall(sql_scores_T3MM, )]
 
     
-    sql_scores_BPBAac = 'select SVM_value from effectors.predicted_BPBAac t1 ' \
+    sql_scores_BPBAac = 'select SVM_value from effectors_predicted_BPBAac t1 ' \
                                            'inner join annotation_seqfeature_id2locus t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                                            'where t1.taxon_id in (%s);' % (','.join(taxid_list))
 
@@ -3951,86 +4012,72 @@ def effector_predictions(request, genome):
 def venn_candidate_effectors(request):
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
+    
+    sql = 'select distinct taxon_id from bioentry'
+    taxid_list = [i[0] for i in server.adaptor.execute_and_fetchall(sql,)]
 
-    taxid_list = [1279839,1279496,1035343,314,886707,804807,48,283,55,1279822,46,1279815,49,87925,52,1137444,67,1172028,1069693,1172027,307,59,60,313,1069694,62,1143376,293,1279767,1279497,1279774,64,66]
+    #taxid_list = [1279839,1279496,1035343,314,886707,804807,48,283,55,1279822,46,1279815,49,87925,52,1137444,67,1172028,1069693,1172027,307,59,60,313,1069694,62,1143376,293,1279767,1279497,1279774,64,66]
     taxid_list = [str(i) for i in taxid_list]
-
-    '''
-    taxid_list = ['67',
-'1279774',
-'1279496',
-'1280030',
-'1280034',
-'1279969',
-'48',
-'46',
-'55',
-'87925',
-'1279815',
-'1280079',
-'1279822',
-'66',
-'1280085',
-'52',
-'49',
-'64',
-'60',
-'804807',
-'886707',
-'283',
-'314',
-'1069693',
-'1280091',
-'1137444',
-'1280044',
-'288',
-'290',
-'1172027',
-'1172028',
-'1035343',
-'315',
-'293',
-'1117985',
-'1280098',
-'1280035',
-'1280065',
-'1280069',
-'1280073',
-'1279839',
-'1279972',
-'1279975',
-'1279978',
-'1279981',
-'1279984',
-'1279987',
-'1279990',
-'1279993',
-'1279996',
-'1279999',
-'1280002',
-'1280005',
-'1280008',
-'1280011',
-'1280014',
-'1280017',
-'1280020',
-'1279497']
-    '''
+    taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+    
 
     pfam_bacteria_freq_cutoff = '0.01'
     pfam_eukaryota_freq_cutoff = '0'
     interpro_euk_cutoff='95'
+    bacteria_freq = 1
+    eukaryote_count = 15
 
     sql_locus_tag_pfam = 'select distinct t5.locus_tag from interpro_interpro_signature2pfam_id t1  ' \
                          ' inner join interpro_interpro t2 on t1.signature_id=t2.signature_id ' \
                          ' inner join pfam.pfam2superkingdom_frequency_31 t3 on t1.pfam_id=t3.pfam_id ' \
                          ' inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
                          ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id' \
-                         ' where bacteria_freq<=%s and eukaryota_freq>%s and taxon_id in (%s);' % (pam_bacteria_freq_cutoff,
+                         ' where bacteria_freq<=%s and eukaryota_freq>%s and taxon_id in (%s);' % (pfam_bacteria_freq_cutoff,
                                                                                                    pfam_eukaryota_freq_cutoff,
                                                                                                    ','.join(taxid_list))
 
-    locus_tag_list_pfam = [i[0] for i in server.adaptor.execute_and_fetchall(sql_locus_tag_pfam,)]
+    #locus_tag_list_pfam = [i[0] for i in server.adaptor.execute_and_fetchall(sql_locus_tag_pfam,)]
 
 
     sql_locus_tag_interpro = 'select distinct locus_tag from interpro_interpro t1 ' \
@@ -4039,6 +4086,15 @@ def venn_candidate_effectors(request):
                              ' inner join annotation_seqfeature_id2locus t5 on t1.seqfeature_id=t5.seqfeature_id ' \
                              ' where p_eukaryote>%s and taxon_id in (%s);' % (interpro_euk_cutoff,
                                                                               ','.join(taxid_list))
+                             
+    sql_locus_tag_interpro = '''
+    select distinct t5.locus_tag from interpro_interpro t1  
+    inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
+    inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
+    inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
+    inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
+    where s_eukaryote > 15 and s_p_bacteria < 1 and t5.taxon_id in (%s);
+    ''' % (','.join(taxid_list))
 
     locus_tag_list_interpro = [i[0] for i in server.adaptor.execute_and_fetchall(sql_locus_tag_interpro, )]
 
@@ -4072,16 +4128,16 @@ def venn_candidate_effectors(request):
                                            'inner join annotation_seqfeature_id2locus t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                                            'where t1.taxon_id in (%s) and score >=10;' % (','.join(taxid_list))
 
-    locus_tag_list_effective_ELD = [i[0] for i in server.adaptor.execute_and_fetchall(sql_locus_tag_ELD, )]
+    #locus_tag_list_effective_ELD = [i[0] for i in server.adaptor.execute_and_fetchall(sql_locus_tag_ELD, )]
 
 
     interpro_or_pfam_not_in_blastnr = []
     for locus in locus_tag_list_interpro:
         if locus not in locus_tag_list_blastnr and locus not in interpro_or_pfam_not_in_blastnr:
             interpro_or_pfam_not_in_blastnr.append(locus)
-    for locus in locus_tag_list_pfam:
-        if locus not in locus_tag_list_blastnr and locus not in interpro_or_pfam_not_in_blastnr:
-            interpro_or_pfam_not_in_blastnr.append(locus)
+    #for locus in locus_tag_list_pfam:
+    #    if locus not in locus_tag_list_blastnr and locus not in interpro_or_pfam_not_in_blastnr:
+    #        interpro_or_pfam_not_in_blastnr.append(locus)
 
     sql = 'select species, count(*) as n from (' \
           ' select t1.locus_tag,t2.subject_taxon_id from annotation_seqfeature_id2locus t1 ' \
@@ -4089,21 +4145,22 @@ def venn_candidate_effectors(request):
           ' where locus_tag in (%s)) A left join blastnr_blastnr_taxonomy B on  A.subject_taxon_id=taxon_id ' \
           ' group by family order by n DESC;' % ('"'+'","'.join(interpro_or_pfam_not_in_blastnr)+'"')
 
-    data = server.adaptor.execute_and_fetchall(sql, )
-    for row in data:
-        print('%s\t%s' % (row[0], row[1]))
-    serie_pfam = '{name: "pfam", data: %s}' % locus_tag_list_pfam
+    #data = server.adaptor.execute_and_fetchall(sql, )
+    
+    #for row in data:
+    #    print('%s\t%s' % (row[0], row[1]))
+    #serie_pfam = '{name: "pfam", data: %s}' % locus_tag_list_pfam
     serie_interpro = '{name: "interpro", data: %s}' % locus_tag_list_interpro
     serie_blastnr = '{name: "blastnr", data: %s}' % locus_tag_list_blastnr
     serie_effective_T3 = '{name: "effectiveT3", data: %s}' % locus_tag_list_effective_T3
     serie_effective_T3MM = '{name: "T3MM", data: %s}' % locus_tag_list_effective_T3MM
     serie_effective_BPBAac = '{name: "BPBAac", data: %s}' % locus_tag_list_effective_BPBAac
-    serie_effective_ELD = '{name: "ELD", data: %s}' % locus_tag_list_effective_ELD
+    #serie_effective_ELD = '{name: "ELD", data: %s}' % locus_tag_list_effective_ELD
 
     #series = [serie_pfam, serie_interpro, serie_blastnr, serie_effective_ELD] # serie_effective_T3, serie_effective_T3MM
 
     series = [serie_effective_T3, serie_effective_T3MM, serie_effective_BPBAac]
-    series = [serie_pfam, serie_interpro,serie_blastnr]
+    series = [serie_effective_T3, serie_effective_T3MM, serie_effective_BPBAac, serie_interpro]
     series_string = '[%s]' % ','.join(series)
     pfam2description = {}
     envoi_venn = True
@@ -4246,7 +4303,9 @@ def entry_list_pfam(request,):
     return render(request, 'chlamdb/entry_list_pfam.html', my_locals(locals()))
 
 
-def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
+
+
+def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_count):
 
 
     from ete3 import TreeStyle
@@ -4259,68 +4318,54 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
 
         taxid_list = ['1279839', '1279496', '1035343', '314', '886707', '804807', '48', '283', '55', '1279822', '46', '1279815', '49', '87925', '52', '1137444', '67', '1172028', '1069693', '1172027', '307', '59', '60', '313', '1069694', '62', '1143376', '293', '1279767', '1279497', '1279774', '64', '66']
         taxid_list = ['314', '886707', '804807', '48', '283', '55', '1279822', '46', '1279815', '49', '87925', '52']
+        
+        sql = 'select distinct taxon_id from bioentry'
+        taxid_list = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql)]
 
-        '''
-        taxid_list = ['67',
-                      '1279774',
-                      '1279496',
-                      '1280030',
-                      '1280034',
-                      '1279969',
-                      '48',
-                      '46',
-                      '55',
-                      '87925',
-                      '1279815',
-                      '1280079',
-                      '1279822',
-                      '66',
-                      '1280085',
-                      '52',
-                      '49',
-                      '64',
-                      '60',
-                      '804807',
-                      '886707',
-                      '283',
-                      '314',
-                      '1069693',
-                      '1280091',
-                      '1137444',
-                      '1280044',
-                      '288',
-                      '290',
-                      '1172027',
-                      '1172028',
-                      '1035343',
-                      '315',
-                      '293',
-                      '1117985',
-                      '1280098',
-                      '1280035',
-                      '1280065',
-                      '1280069',
-                      '1280073',
-                      '1279839',
-                      '1279972',
-                      '1279975',
-                      '1279978',
-                      '1279981',
-                      '1279984',
-                      '1279987',
-                      '1279990',
-                      '1279993',
-                      '1279996',
-                      '1279999',
-                      '1280002',
-                      '1280005',
-                      '1280008',
-                      '1280011',
-                      '1280014',
-                      '1280017',
-                      '1280020',
-                      '1279497']
-        '''
+        taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+        
+
         sql = 'select distinct signature_accession,signature_description from ' \
               ' (select t4.*,t5.* from interpro_interpro_signature2pfam_id t1 ' \
               ' inner join interpro_interpro t2 on t1.signature_id=t2.signature_id ' \
@@ -4328,9 +4373,22 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
               ' inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
               ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id ' \
               ' where bacteria_freq<=%s and eukaryota_freq>=%s and taxon_id in (%s)) A;' % (bacteria_freq,
-                                                                                            eukaryote_freq,
+                                                                                            eukaryote_count,
                                                                                             ','.join(
                                                                                                 taxid_list))
+
+        sql = f'''
+        
+select distinct signature_accession,signature_description from interpro_interpro t1 
+inner join interpro_signature t2 on t1.signature_id=t2.signature_id 
+inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.signature_accession=t3.accession 
+inner join refseq_ref_repres_genomes_interpro_entries_freq_v2 t4 on t3.signature_id=t4.signature_id 
+inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id 
+        where s_eukaryote > {eukaryote_count} and s_p_bacteria < {bacteria_freq} and signature_accession like "PF%%%%";
+        ''' 
+        print(sql)
+
+
 
         data = server.adaptor.execute_and_fetchall(sql, )
         pfam2description = {}
@@ -4346,7 +4404,7 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
               ' inner join interpro_interpro_taxonomy_v_60 t3 on t2.interpro_id=t3.interpro_id where %s>=%s) A ' \
               ' inner join orthology_seqfeature_id2orthogroup B on A.seqfeature_id=B.seqfeature_id ' \
               ' inner join orthology_orthogroup C on B.orthogroup_id=C.orthogroup_id) AA ' \
-              ' group by AA.interpro_id) BB inner join interpro_entry CC on BB.interpro_id=CC.interpro_id;' % (domain,
+              ' group by AA.interpro_id) BB inner join interpro_entry CC on BB.interpro_id=CC.interpro_id ;' % (domain,
                                                                                                                percentage)
         '''
 
@@ -4361,10 +4419,22 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
               ' inner join orthology_orthogroup t7 on t6.orthogroup_id=t7.orthogroup_id' \
               ' where bacteria_freq<=%s and eukaryota_freq>%s and taxon_id in (%s) ' \
               ' group by signature_description, t7.orthogroup_name;' % (bacteria_freq,
-                                                                        eukaryote_freq,
+                                                                        eukaryote_count,
                                                                         ','.join(
                                                                         taxid_list))
-
+              
+        
+        sql = f'''
+        select distinct signature_accession,orthogroup_name from interpro_interpro t1 
+        inner join interpro_signature t2 on t1.signature_id=t2.signature_id 
+        inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.signature_accession=t3.accession 
+        inner join refseq_ref_repres_genomes_interpro_entries_freq_v2 t4 on t3.signature_id=t4.signature_id 
+        inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id 
+        inner join orthology_seqfeature_id2orthogroup t6 on t1.seqfeature_id=t6.seqfeature_id
+        inner join orthology_orthogroup t7 on t6.orthogroup_id=t7.orthogroup_id
+        where s_eukaryote > {eukaryote_count} and s_p_bacteria < {bacteria_freq} and signature_accession like "PF%%%%";
+                
+        '''
 
         orthogroup_data = server.adaptor.execute_and_fetchall(sql, )
 
@@ -4384,27 +4454,33 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
 
         pfam_list = list(set(pfam2orthogroups.keys()))
 
+        print("orthogroup_list", orthogroup_list[0:10])
         taxon2orthogroup2count = ete_motifs.get_taxon2name2count(biodb, orthogroup_list, type="orthogroup", taxon_filter=taxid_list)
 
         taxon2pfam2count = ete_motifs.get_taxon2name2count(biodb, pfam_list, type="Pfam", taxon_filter=taxid_list)
 
         # get total euk domain per taxon_id
         taxon_id2total = {}
+        taxon_id2sum = {}
         for taxon_id in taxid_list:
             taxon_id2total[taxon_id] = 0
+            taxon_id2sum[taxon_id] = 0
         for accession in taxon2pfam2count:
             for taxon_id in taxid_list:
                 if int(taxon2pfam2count[accession][taxon_id]) > 0 :
                     taxon_id2total[taxon_id]+=1
+                    taxon_id2sum[taxon_id] += int(taxon2pfam2count[accession][taxon_id])
 
         taxon2pfam2count['TOTAL'] = {}
+        taxon2pfam2count['SUM'] = {}
         for taxon in taxon_id2total:
             taxon2pfam2count['TOTAL'][taxon] = taxon_id2total[taxon]
+            taxon2pfam2count['SUM'][taxon] = taxon_id2sum[taxon]
 
         # rename interpro accession
         label_list = []
         for pfam_accession in list(taxon2pfam2count.keys()):
-            if pfam_accession == 'TOTAL':
+            if pfam_accession in {'TOTAL', 'SUM'}:
                 continue
             try:
                 pfam_des = "%s: %s (%s groups)" % (
@@ -4427,12 +4503,14 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
         freq_table =  pandas.DataFrame.from_dict(accession2count, orient='index')
         sort = freq_table.sort_values(freq_table.columns[0], ascending=False)
 
-        label_list = ['TOTAL'] + list(sort.index)
+        label_list = ['TOTAL', 'SUM'] + list(sort.index)
 
         tree, style = ete_motifs.multiple_profiles_heatmap(biodb,
                                                            label_list,
                                                            taxon2pfam2count,
-                                                           rotate=True, column_scale=True)
+                                                           rotate=True, 
+                                                           column_scale=True,
+                                                           prune=taxid_list)
         style.rotation=90
 
 
@@ -4465,7 +4543,7 @@ def pfam_taxonomy_with_homologs(request, bacteria_freq, eukaryote_freq):
     return render(request, 'chlamdb/interpro_taxonomy_homologs.html', my_locals(locals()))
 
 
-def interpro_taxonomy_with_homologs(request, domain, percentage):
+def interpro_taxonomy_with_homologs(request, bacteria_freq, eukaryote_count):
 
 
     from ete3 import TreeStyle
@@ -4477,107 +4555,81 @@ def interpro_taxonomy_with_homologs(request, domain, percentage):
         server, db = manipulate_biosqldb.load_db(biodb)
 
         taxid_list = ['1279839', '1279496', '1035343', '314', '886707', '804807', '48', '283', '55', '1279822', '46', '1279815', '49', '87925', '52', '1137444', '67', '1172028', '1069693', '1172027', '307', '59', '60', '313', '1069694', '62', '1143376', '293', '1279767', '1279497', '1279774', '64', '66']
+        
+        
         #taxid_list = ['314', '886707', '804807', '48', '283', '55', '1279822', '46', '1279815', '49', '87925', '52']
-        '''
-        taxid_list = ['67',
-                      '1279774',
-                      '1279496',
-                      '1280030',
-                      '1280034',
-                      '1279969',
-                      '48',
-                      '46',
-                      '55',
-                      '87925',
-                      '1279815',
-                      '1280079',
-                      '1279822',
-                      '66',
-                      '1280085',
-                      '52',
-                      '49',
-                      '64',
-                      '60',
-                      '804807',
-                      '886707',
-                      '283',
-                      '314',
-                      '1069693',
-                      '1280091',
-                      '1137444',
-                      '1280044',
-                      '288',
-                      '290',
-                      '1172027',
-                      '1172028',
-                      '1035343',
-                      '315',
-                      '293',
-                      '1117985',
-                      '1280098',
-                      '1280035',
-                      '1280065',
-                      '1280069',
-                      '1280073',
-                      '1279839',
-                      '1279972',
-                      '1279975',
-                      '1279978',
-                      '1279981',
-                      '1279984',
-                      '1279987',
-                      '1279990',
-                      '1279993',
-                      '1279996',
-                      '1279999',
-                      '1280002',
-                      '1280005',
-                      '1280008',
-                      '1280011',
-                      '1280014',
-                      '1280017',
-                      '1280020',
-                      '1279497']
-        '''
-        sql = 'select * from (select distinct interpro_accession from interpro where ' \
-              ' interpro_accession!="0" and taxon_id in (%s))A inner join interpro_entry B on A.interpro_accession=B.name ' \
-              ' inner join interpro_interpro_taxonomy_v_60 C on B.interpro_id=C.interpro_id where %s>=%s;' % (','.join(
-                                                                                                                  taxid_list),
-                                                                                                              domain,
-                                                                                                              percentage)
 
+        sql = 'select distinct taxon_id from bioentry'
+        taxid_list = [str(i[0]) for i in server.adaptor.execute_and_fetchall(sql)]
+        taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+
+
+        taxid_fil = ','.join(taxid_list)
+        sql = f'''
+        select A.interpro_accession,B.description from (select distinct interpro_accession from interpro where taxon_id in ({taxid_fil})) A 
+        inner join (select distinct t2.name,t2.description from refseq_ref_repres_genomes_interpro_entries t1  
+        inner join interpro_entry t2 on t1.interpro_id=t2.interpro_id  
+        inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t3 on t1.interpro_id=t3.interpro_id  
+        where t3.eukaryote>{eukaryote_count} and s_p_bacteria<{bacteria_freq})B on A.interpro_accession=B.name;
+        '''
+        print(sql)
         data = server.adaptor.execute_and_fetchall(sql, )
         interpro2description = {}
         for row in data:
-            interpro2description[row[0]] = row[3]
-
-        '''
-        # number of groups with identified signature domains
-        sql = 'select name,n from (select AA.interpro_id, count(*) as n from ' \
-              ' (select distinct A.interpro_id, B.orthogroup_id from ' \
-              ' (select distinct seqfeature_id,t2.interpro_id from interpro_interpro t1 ' \
-              ' inner join interpro_signature t2 on t1.signature_id=t2.signature_id ' \
-              ' inner join interpro_interpro_taxonomy_v_60 t3 on t2.interpro_id=t3.interpro_id where %s>=%s) A ' \
-              ' inner join orthology_seqfeature_id2orthogroup B on A.seqfeature_id=B.seqfeature_id ' \
-              ' inner join orthology_orthogroup C on B.orthogroup_id=C.orthogroup_id) AA ' \
-              ' group by AA.interpro_id) BB inner join interpro_entry CC on BB.interpro_id=CC.interpro_id;' % (domain,
-                                                                                                               percentage)
-        '''
-
+            interpro2description[row[0]] = row[1]
 
         # get list of all orthogroups with corresponding interpro entry
-        sql = 'select name,orthogroup_name from (select distinct A.interpro_id, C.orthogroup_name from ' \
-              '(select distinct seqfeature_id,t2.interpro_id from interpro_interpro t1 ' \
-              ' inner join interpro_signature t2 on t1.signature_id=t2.signature_id ' \
-              ' inner join interpro_interpro_taxonomy_v_60 t3 on t2.interpro_id=t3.interpro_id where %s>=%s) A ' \
-              ' inner join orthology_seqfeature_id2orthogroup B on A.seqfeature_id=B.seqfeature_id ' \
-              ' inner join annotation_seqfeature_id2locus D on A.seqfeature_id=D.seqfeature_id' \
-              ' inner join orthology_orthogroup C on B.orthogroup_id=C.orthogroup_id where D.taxon_id in (%s)) BB ' \
-              ' inner join interpro_entry CC on BB.interpro_id=CC.interpro_id;' % (domain,
-                                                                                   percentage,
-                                                                                   ','.join(taxid_list))
+        sql = f'''
+        select A.interpro_accession,D.orthogroup_name from (select distinct interpro_accession, seqfeature_id from interpro where taxon_id in ({taxid_fil})) A 
+        inner join (select distinct t2.name from refseq_ref_repres_genomes_interpro_entries t1  inner join interpro_entry t2 on t1.interpro_id=t2.interpro_id  
+        inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t3 on t1.interpro_id=t3.interpro_id  
+        where t3.eukaryote>{eukaryote_count} and s_p_bacteria<{bacteria_freq})B on A.interpro_accession=B.name 
+        inner join orthology_seqfeature_id2orthogroup C on A.seqfeature_id=C.seqfeature_id 
+        inner join orthology_orthogroup D on C.orthogroup_id=D.orthogroup_id;
+        '''
 
-
+        print(sql)
         orthogroup_data = server.adaptor.execute_and_fetchall(sql, )
 
         interpro2orthogroups = {}
@@ -4596,10 +4648,14 @@ def interpro_taxonomy_with_homologs(request, domain, percentage):
 
         interpro_list = list(set(interpro2orthogroups.keys()))
 
+        print("get taxon2orthogroup2count...")
         taxon2orthogroup2count = ete_motifs.get_taxon2name2count(biodb, orthogroup_list, type="orthogroup", taxon_filter=taxid_list)
 
+        print("get taxon2interpro2count...")
         taxon2interpro2count = ete_motifs.get_taxon2name2count(biodb, interpro_list, type="interpro", taxon_filter=taxid_list)
 
+
+        print("plotting...")
         # get total euk domain per taxon_id
         taxon_id2total = {}
         for taxon_id in taxid_list:
@@ -4631,9 +4687,6 @@ def interpro_taxonomy_with_homologs(request, domain, percentage):
                 label_list.append(interpro_des)
 
 
-
-
-
         # reporter interpro_accessions based on their frequency
         accession2count =  {}
         for i in label_list:
@@ -4647,18 +4700,18 @@ def interpro_taxonomy_with_homologs(request, domain, percentage):
         tree, style = ete_motifs.multiple_profiles_heatmap(biodb,
                                                            label_list,
                                                            taxon2interpro2count,
-                                                           rotate=True, column_scale=True)
+                                                           rotate=True, 
+                                                           column_scale=True,
+                                                           prune=taxid_list)
         style.rotation=90
 
-
-
         tree2, tss = ete_motifs.combined_profiles_heatmap(biodb,
-                                                     label_list,
-                                                     taxon2orthogroup2count,
-                                                     taxon2interpro2count,
-                                                     interpro2orthogroups,
-                                                     rotate=True,
-                                                          column_scale=True)
+                                                         label_list,
+                                                         taxon2orthogroup2count,
+                                                         taxon2interpro2count,
+                                                         interpro2orthogroups,
+                                                         rotate=True,
+                                                         column_scale=True)
 
 
         module_name = "taxonomy"
@@ -7500,6 +7553,7 @@ def blastnr_euk(request):
                                              ' inner join custom_tables_seqfeature_id2n_species t2 on t1.seqfeature_id=t2.seqfeature_id ' \
                                              ' where superkingdom="Eukaryota" and n_species=1 group by query_taxon_id;'
 
+    print(sql_best_non_self_euk)
     taxon_id2n_best_non_chlamydial_euk = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql_best_non_self_euk,))
 
     '''
@@ -8285,16 +8339,103 @@ def effector_pred(request):
 
     sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
+    taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+    
+    taxid_list = ['1',
+ '2',
+ '3',
+ '13',
+ '5',
+ '6',
+ '9',
+ '15',
+ '24',
+ '20',
+ '21',
+ '22',
+ '26',
+ '27',
+ '28',
+ '29',
+ '30',
+ '32',
+ '108',
+ '39',
+ '40',
+ '50',
+ '82',
+ '86',
+ '87',
+ '88',
+ '92',
+ '93',
+ '94',
+ '98',
+ '97',
+ '100',
+ '102',
+ '103',
+ '104',
+ '109',
+ '111',
+ '113',
+ '114',
+ '115',
+ '116',
+ '117']
+
     tree = server.adaptor.execute_and_fetchall(sql_tree)[0][0]
     t1 = Tree(tree)
+    #t1.prune(taxid_list)
     taxon_id_list = [i.name for i in t1.iter_leaves()]
 
-    set2taxon2value, column_names = hmm_heatmap.get_set_data(biodb, score_cutoff=30)
-
+    #set2taxon2value, column_names = hmm_heatmap.get_set_data(biodb, score_cutoff=30)
+    set2taxon2value = {}
     sql = 'select '
 
-    my_sets = ['T3SS', 'T6SSi', 'T4SS', 'flagellum', 'rinke_et_al_2013', 'dupont_et_al_2012', 'eisen_et_al_2013']
-
+    #my_sets = ['T3SS', 'T6SSi', 'T4SS', 'flagellum', 'rinke_et_al_2013', 'dupont_et_al_2012', 'eisen_et_al_2013']
+    my_sets = []
     set2taxon2value_new = {}
     for set in my_sets:
         set2taxon2value_new[set] = {}
@@ -8329,28 +8470,37 @@ def effector_pred(request):
     taxon2values_T3MM = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     # T4SEpre_bpbAac
-    sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_bpbAac where SVM_value>0 group by taxon_id;'
-    taxon2values_T4SEpre_bpbAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+    #sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_bpbAac where SVM_value>0 group by taxon_id;'
+    #taxon2values_T4SEpre_bpbAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     # T4SEpre_psAac
-    sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_psAac where SVM_value>0 group by taxon_id;'
-    taxon2values_T4SEpre_psAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+    #sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_psAac where SVM_value>0 group by taxon_id;'
+    #taxon2values_T4SEpre_psAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     # chapeones
-    sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_chaperones group by seqfeature_id,taxon_id) A group by A.taxon_id;'
-    taxon2values_chaperones = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+    #sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_chaperones group by seqfeature_id,taxon_id) A group by A.taxon_id;'
+    #taxon2values_chaperones = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     # ELD
-    sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_ELD ' \
-          ' where score >9 group by seqfeature_id) A group by A.taxon_id;'
+    #sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_ELD ' \
+    #      ' where score >9 group by seqfeature_id) A group by A.taxon_id;'
 
     taxon2values_eld = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
-    # pfam refseq tanonomy
+    # pfam refseq tanonomy number of distinct locus
     sql = 'select taxon_id, count(*) as n from (select distinct t5.taxon_id,t1.pfam_id,t5.locus_tag from interpro_interpro_signature2pfam_id t1 ' \
          ' inner join interpro_interpro t2 on t1.signature_id=t2.signature_id ' \
          ' inner join pfam.pfam2superkingdom_frequency_31 t3 on t1.pfam_id=t3.pfam_id  inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
          ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id where bacteria_freq<=0.02 and eukaryota_count>5) BBB group by taxon_id;'
+         
+    sql = '''
+    select taxon_id, count(*) as n from (select distinct t5.taxon_id,t5.locus_tag from interpro_interpro t1  
+    inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
+    inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
+    inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
+    inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
+    where s_eukaryote > 15 and s_p_bacteria < 1) A group by A.taxon_id;
+    '''
 
     taxon2pfam_refseq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -8359,6 +8509,16 @@ def effector_pred(request):
          ' inner join interpro_interpro t2 on t1.signature_id=t2.signature_id ' \
          ' inner join pfam.pfam2superkingdom_frequency_31 t3 on t1.pfam_id=t3.pfam_id  inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
          ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id where bacteria_freq<=0.02 and eukaryota_freq>=0.1) BBB group by taxon_id;'
+
+    sql = '''
+    select taxon_id, count(*) as n from (select distinct t5.taxon_id,t3.interpro_id from interpro_interpro t1  
+    inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
+    inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
+    inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
+    inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
+    where s_eukaryote > 15 and s_p_bacteria < 1) A group by A.taxon_id;
+    '''
+
 
     taxon2pfam_refseq_uniq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -8372,7 +8532,12 @@ def effector_pred(request):
     # counts
     taxon2values = {}
     taxon2values2 = {}
-    for taxon in taxon_id_list:
+    
+    print(taxon2pfam_refseq_uniq.values())
+    print("SUM refseq interpro_id", sum([value for key,value in taxon2pfam_refseq_uniq.items() if key in taxid_list]))
+    print("SUM locus with euk domain", sum([value for key,value in taxon2pfam_refseq.items() if key in taxid_list]))
+    
+    for taxon in taxid_list:
 
         if taxon not in taxon2values_mix:
             taxon2values_mix[taxon] = [0, 0]
@@ -8395,26 +8560,26 @@ def effector_pred(request):
         else:
             taxon2values_T3MM[taxon] = [int(taxon2values_T3MM[taxon]),
                                         round((float(taxon2values_T3MM[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
-        if taxon not in taxon2values_T4SEpre_bpbAac:
-            taxon2values_T4SEpre_bpbAac[taxon] = [0, 0]
-        else:
-            taxon2values_T4SEpre_bpbAac[taxon] = [int(taxon2values_T4SEpre_bpbAac[taxon]),
-                                                  round((float(taxon2values_T4SEpre_bpbAac[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
-        if taxon not in taxon2values_T4SEpre_psAac:
-            taxon2values_T4SEpre_psAac[taxon] = [0, 0]
-        else:
-            taxon2values_T4SEpre_psAac[taxon] = [int(taxon2values_T4SEpre_psAac[taxon]),
-                                                 round((float(taxon2values_T4SEpre_psAac[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
-        if taxon not in taxon2values_eld:
-            taxon2values_eld[taxon] = [0, 0]
-        else:
-            taxon2values_eld[taxon] = [int(taxon2values_eld[taxon]),
-                                       round((float(taxon2values_eld[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
-        if taxon not in taxon2values_chaperones:
-            taxon2values_chaperones[taxon] = [0, 0]
-        else:
-            taxon2values_chaperones[taxon] = [int(taxon2values_chaperones[taxon]),
-                                       round((float(taxon2values_chaperones[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
+        #if taxon not in taxon2values_T4SEpre_bpbAac:
+        #    taxon2values_T4SEpre_bpbAac[taxon] = [0, 0]
+        #else:
+        #    taxon2values_T4SEpre_bpbAac[taxon] = [int(taxon2values_T4SEpre_bpbAac[taxon]),
+        #                                          round((float(taxon2values_T4SEpre_bpbAac[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
+        #if taxon not in taxon2values_T4SEpre_psAac:
+        #    taxon2values_T4SEpre_psAac[taxon] = [0, 0]
+        #else:
+        #    taxon2values_T4SEpre_psAac[taxon] = [int(taxon2values_T4SEpre_psAac[taxon]),
+        #                                         round((float(taxon2values_T4SEpre_psAac[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
+        #if taxon not in taxon2values_eld:
+        #    taxon2values_eld[taxon] = [0, 0]
+        #else:
+        #    taxon2values_eld[taxon] = [int(taxon2values_eld[taxon]),
+        #                               round((float(taxon2values_eld[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
+        #if taxon not in taxon2values_chaperones:
+        #    taxon2values_chaperones[taxon] = [0, 0]
+        #else:
+        #    taxon2values_chaperones[taxon] = [int(taxon2values_chaperones[taxon]),
+        #                               round((float(taxon2values_chaperones[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
         if taxon not in taxon2pfam_refseq:
             taxon2pfam_refseq[taxon] = [0, 0]
         else:
@@ -8424,23 +8589,19 @@ def effector_pred(request):
         if taxon not in taxon2pfam_refseq_uniq:
             taxon2pfam_refseq_uniq[taxon] = [0, 0]
         else:
+            print()
             taxon2pfam_refseq_uniq[taxon] = [int(taxon2pfam_refseq_uniq[taxon]),
-                                       round((float(taxon2pfam_refseq_uniq[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
+                                            round((float(taxon2pfam_refseq_uniq[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
 
-        if taxon not in taxon2pfam_refseq:
-            taxon2pfam_refseq[taxon] = [0, 0]
-        else:
-            taxon2pfam_refseq[taxon] = [int(taxon2pfam_refseq[taxon]),
-                                       round((float(taxon2pfam_refseq[taxon])/float(taxon_id2genome_size[taxon]))*100,2)]
 
 
         taxon2values[taxon] = [taxon2values_effectiveT3[taxon][0],
                                taxon2values_BPBAac[taxon][0],
                                taxon2values_T3MM[taxon][0],
-                               taxon2values_T4SEpre_bpbAac[taxon][0],
-                               taxon2values_T4SEpre_psAac[taxon][0],
-                               taxon2values_chaperones[taxon][0],
-                               taxon2values_eld[taxon][0],
+                               #taxon2values_T4SEpre_bpbAac[taxon][0],
+                               #taxon2values_T4SEpre_psAac[taxon][0],
+                               #taxon2values_chaperones[taxon][0],
+                               #taxon2values_eld[taxon][0],
                                taxon2values_mix[taxon][0],
                                taxon2pfam_refseq[taxon][0],
                                taxon2pfam_refseq_uniq[taxon][0],
@@ -8449,20 +8610,22 @@ def effector_pred(request):
         taxon2values2[taxon] = [taxon2values_effectiveT3[taxon][1],
                                taxon2values_BPBAac[taxon][1],
                                taxon2values_T3MM[taxon][1],
-                               taxon2values_T4SEpre_bpbAac[taxon][1],
-                               taxon2values_T4SEpre_psAac[taxon][1],
-                               taxon2values_chaperones[taxon][1],
-                               taxon2values_eld[taxon][1],
+                               #taxon2values_T4SEpre_bpbAac[taxon][1],
+                               #taxon2values_T4SEpre_psAac[taxon][1],
+                               #taxon2values_chaperones[taxon][1],
+                               #taxon2values_eld[taxon][1],
                                taxon2values_mix[taxon][1],
                                taxon2pfam_refseq[taxon][1],
                                taxon2pfam_refseq_uniq[taxon][1],
                                ]
 
     header_list2 = ['effectiveT3', 'BPBAac', 'T3MM', 'T4SEpre_bpbAac', 'T4SEpre_psAac', 'chaperones','ELD', 'intesect' , 'refseq_pfam', 'refseq_pfam_uniq']
+    header_list2 = ['effectiveT3', 'BPBAac', 'T3MM', 'intesect' , 'refseq_pfam', 'refseq_pfam_uniq']
 
 
     sql = 'SELECT orthogroup, count(*) as n FROM (select  orthogroup,taxon_id from orthology_detail ' \
-          ' group by orthogroup,taxon_id) A  GROUP BY orthogroup' % biodb
+          ' group by orthogroup,taxon_id) A  GROUP BY orthogroup'
+          
     group2n_organisms = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     sql = 'select C.orthogroup from (select t1.taxon_id, t1.seqfeature_id from effectors_predicted_effectiveT3 t1 ' \
@@ -8485,19 +8648,23 @@ def effector_pred(request):
     #pairwiseid_plots.basic_plot(genome_count_list)
 
     general_max = 0 
-    for taxon in taxon2values2:
-        m = max([float(i) for i in taxon2values2[taxon]])
+    print("set2taxon2value_new", set2taxon2value_new)
+    for taxon in taxon2values:
+        print("values taxon",taxon, taxon2values[taxon])
+        m = max([float(i) for i in taxon2values[taxon]])
         if m > general_max:
             general_max=m
-    general_max=False
-
+    #general_max=False
+    print("general_max", general_max)
     tree1, style1 = phylo_tree_bar.plot_tree_barplot(tree,
                                                     taxon2values,
                                                     header_list2,
                                                     taxon2set2value_heatmap=set2taxon2value_new,
                                                     header_list2=my_sets,
                                                     biodb=biodb,
-                                                    general_max=general_max)
+                                                    general_max=general_max,
+                                                    prune=taxid_list,
+                                                    outgroup="9")
 
     path = settings.BASE_DIR + '/assets/temp/interpro_tree.svg'
     asset_path = '/temp/interpro_tree.svg'
@@ -8509,7 +8676,9 @@ def effector_pred(request):
                                                     taxon2set2value_heatmap=set2taxon2value_new,
                                                     header_list2=my_sets,
                                                     biodb=biodb,
-                                                    general_max=False)
+                                                    general_max=False,
+                                                    prune=taxid_list,
+                                                    outgroup="9")
     path2 = settings.BASE_DIR + '/assets/temp/interpro_tree2.svg'
     asset_path2 = '/temp/interpro_tree2.svg'
     tree2.render(path2, dpi=600, tree_style=style2)
@@ -8623,12 +8792,12 @@ def interpro_taxonomy(request):
                 taxon2values_T4SEpre_bpbAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
                 # T4SEpre_psAac
-                sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_psAac where SVM_value>0 group by taxon_id;'
-                taxon2values_T4SEpre_psAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+                #sql = 'select taxon_id, count(*) from effectors_predicted_T4SEpre_psAac where SVM_value>0 group by taxon_id;'
+                #taxon2values_T4SEpre_psAac = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
                 # chapeones
-                sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_chaperones group by seqfeature_id,taxon_id) A group by A.taxon_id;'
-                taxon2values_chaperones = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
+                #sql = 'select A.taxon_id, count(*) from (select * from effectors_predicted_chaperones group by seqfeature_id,taxon_id) A group by A.taxon_id;'
+                #taxon2values_chaperones = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
                 # mex 3 algo
                 sql = 'select A.taxon_id, count(*) from (select t1.taxon_id, t1.seqfeature_id from effectors_predicted_effectiveT3 t1 ' \
@@ -8896,9 +9065,15 @@ def homologs(request, orthogroup, locus_tag=False):
                             ' inner join custom_tables_locus2seqfeature_id t5 on t2.seqfeature_id=t5.seqfeature_id where orthogroup_name="%s";' % (orthogroup)
 
         homologues = pandas.read_sql(sql_main_annot, server.adaptor.conn)
-        locus2uniprot_annotation = pandas.read_sql(sql_uniprot_annot, server.adaptor.conn)
+        try:
+            locus2uniprot_annotation = pandas.read_sql(sql_uniprot_annot, server.adaptor.conn)
+        except:
+            locus2uniprot_annotation = {}
+            pass
         if len(locus2uniprot_annotation) > 0:
             homologues = homologues.set_index("locus_tag").join(locus2uniprot_annotation.set_index("locus_tag"), how="left")
+        else:
+            homologues = homologues.set_index("locus_tag")
 
         if locus_tag:
             # add identity column
@@ -8906,6 +9081,7 @@ def homologs(request, orthogroup, locus_tag=False):
                 orthogroup2identity_df = orthogroup_identity_db.orthogroup2identity(biodb, orthogroup).query('locus_a=="%s"' % locus_tag)
                 homologues = homologues.join(orthogroup2identity_df.set_index("locus_b"))              
         homologues = homologues.reset_index().rename(columns={"index": "locus_tag"})
+        print("homologues", homologues.head())
         return render(request, 'chlamdb/homologs.html', my_locals(locals()))
 
     return render(request, 'chlamdb/homologs.html', my_locals(locals()))
@@ -9849,6 +10025,103 @@ def get_pfam_hit_list(request,
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
 
+    sql1 = f'select signature_id from refseq_ref_repres_genomes_interpro_entries where accession like "{pfam_domain}%%%%";'
+    
+    signature_id = server.adaptor.execute_and_fetchall(sql1)[0][0]
+
+    if superkingdom == '-':
+        superkingdom = ''
+    if phylum == '-':
+        phylum = ''
+    if order == '-':
+        order = ''
+    if family == '-':
+        family = ''
+    if genus == '-':
+        genus = ''
+
+
+
+          
+
+    if superkingdom is False:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+             """
+    elif phylum is False:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+                  and superkingdom="{superkingdom}"
+             """
+    elif order is False:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+                  and t3.superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+             """
+    elif family is False:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+             """
+    elif genus is False:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+                  and t3.family="{family}"
+             """
+    else:
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={signature_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+                  and t3.family="{family}"
+                  and t3.genus="{genus}"
+             """
+    print(sql)
+    taxon_data = server.adaptor.execute_and_fetchall(sql,)
+
+    return render(request, 'chlamdb/pfam_taxon_detail.html', my_locals(locals()))
+
+
+def get_interpro_hit_list(request,
+                      interpro_domain,
+                      superkingdom=False,
+                      phylum=False,
+                      order=False,
+                      family=False,
+                      genus=False):
+
+    biodb = settings.BIODB
+    server, db = manipulate_biosqldb.load_db(biodb)
+
+    sql1 = f'select t1.interpro_id from refseq_ref_repres_genomes_interpro_entries t1 inner join interpro_entry t2 on t1.interpro_id=t2.interpro_id where t2.name="{interpro_domain}";'
+    
+    interpro_id = server.adaptor.execute_and_fetchall(sql1)[0][0]
+
     if superkingdom == '-':
         superkingdom = ''
     if phylum == '-':
@@ -9861,74 +10134,92 @@ def get_pfam_hit_list(request,
         genus = ''
 
     if superkingdom is False:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' % (pfam_domain)
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t4.interpro_id={interpro_id} 
+             """
     elif phylum is False:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' \
-              ' and t4.superkingdom="%s" '  % (pfam_domain, superkingdom)
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t4.interpro_id={interpro_id} 
+                  and superkingdom="{superkingdom}"
+             """
     elif order is False:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' \
-              ' and t4.superkingdom="%s" ' \
-              ' and t4.phylum="%s" ' % (pfam_domain, superkingdom, phylum)
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t1.signature_id={interpro_id} 
+                  and t3.superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+             """
     elif family is False:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' \
-              ' and t4.superkingdom="%s" ' \
-              ' and t4.phylum="%s" ' \
-              ' and t4.order="%s" '  % (pfam_domain, superkingdom, phylum, order)
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t4.interpro_id={interpro_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+             """
     elif genus is False:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' \
-              ' and t4.superkingdom="%s" ' \
-              ' and t4.phylum="%s" ' \
-              ' and t4.order="%s" ' \
-              ' and t4.family="%s" ' % (pfam_domain, superkingdom, phylum, order, family)
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t4.interpro_id={interpro_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+                  and t3.family="{family}"
+             """
     else:
-        sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,t2.assembly_accession,t2.organism_name,t1.protein_id,t1.evalue_full,t1.score_full from pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-              ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-              ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-              ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-              ' where t3.hmm_accession like "%s%%%%" ' \
-              ' and t4.superkingdom="%s" ' \
-              ' and t4.phylum="%s" ' \
-              ' and t4.order="%s" ' \
-              ' and t4.family="%s" ' \
-              ' and t4.genus="%s";' % (pfam_domain, superkingdom, phylum, order, family, genus)
-
+        sql = f"""select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,t3.species,t2.assembly_accession, t1.accession, start, end,score from 
+                  refseq_ref_repres_genomes_interpro_annots t1 
+                  inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id
+                  inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id
+                  inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  
+                  where t4.interpro_id={interpro_id} 
+                  and superkingdom="{superkingdom}"
+                  and t3.phylum="{phylum}"
+                  and t3.order="{order}"
+                  and t3.family="{family}"
+                  and t3.genus="{genus}"
+             """
+    print(sql)
     taxon_data = server.adaptor.execute_and_fetchall(sql,)
 
     return render(request, 'chlamdb/pfam_taxon_detail.html', my_locals(locals()))
+
+
 
 def get_pfam_taxon_table(request, pfam_domain):
 
     biodb = settings.BIODB
     server, db = manipulate_biosqldb.load_db(biodb)
 
-    sql = 'select t4.superkingdom,t4.phylum,t4.order,t4.family,t4.genus,count(*) as n from ' \
-          ' pfam.refseq_ref_repres_genomes_domains_pfam_31 t1 ' \
-          ' inner join pfam.refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
-          ' inner join pfam.pfam_summary_version_31 t3 on t1.pfam_id=t3.hmm_id ' \
-          ' inner join blastnr_blastnr_taxonomy t4 on t2.species_taxid=t4.taxon_id  ' \
-          ' where t3.hmm_accession like "%s%%%%" ' \
-          ' group by t4.superkingdom,t4.phylum,t4.family,t4.genus order by superkingdom,n DESC' % (pfam_domain)
+    sql1 = f'select signature_id from refseq_ref_repres_genomes_interpro_entries where accession like "{pfam_domain}%%%%";'
+    
+    signature_id = server.adaptor.execute_and_fetchall(sql1)[0][0]
 
+    sql = 'select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,count(*) as n from ' \
+          ' refseq_ref_repres_genomes_interpro_annots t1 ' \
+          ' inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
+          ' inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  ' \
+          ' where t1.signature_id=%s ' \
+          ' group by t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus order by superkingdom,n DESC' % (signature_id)
+
+    print(sql)
     raw_data = server.adaptor.execute_and_fetchall(sql,)
     taxon_data = []
     for row in raw_data:
@@ -9948,21 +10239,132 @@ def get_pfam_taxon_table(request, pfam_domain):
     return render(request, 'chlamdb/pfam_taxon_table.html', my_locals(locals()))
 
 
-def pfam_profile(request, pfam_domain, rank):
+def get_interpro_taxon_table(request, interpro_accession):
+
+    biodb = settings.BIODB
+    server, db = manipulate_biosqldb.load_db(biodb)
+
+    sql1 = f'select t1.interpro_id from refseq_ref_repres_genomes_interpro_entries t1 inner join interpro_entry t2 on t1.interpro_id=t2.interpro_id where t2.name ="{interpro_accession}";'
+    
+    interpro_id = server.adaptor.execute_and_fetchall(sql1)[0][0]
+
+    sql = 'select t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus,count(*) as n from ' \
+          ' refseq_ref_repres_genomes_interpro_annots t1 ' \
+          ' inner join refseq_ref_repres_genomes_interpro_entries t4 on t1.signature_id=t4.signature_id' \
+          ' inner join refseq_ref_repres_genomes t2 on t1.assembly_id=t2.assembly_id ' \
+          ' inner join blastnr_blastnr_taxonomy t3 on t2.species_taxid=t3.taxon_id  ' \
+          ' where t4.interpro_id=%s ' \
+          ' group by t3.superkingdom,t3.phylum,t3.order,t3.family,t3.genus order by superkingdom,n DESC' % (interpro_id)
+
+    print(sql)
+    raw_data = server.adaptor.execute_and_fetchall(sql,)
+    taxon_data = []
+    for row in raw_data:
+        row = list(row)
+        if row[0] == '':
+            row[0] = '-'
+        if row[1] == '':
+            row[1] = '-'
+        if row[2] == '':
+            row[2] = '-'
+        if row[3] == '':
+            row[3] = '-'
+        if row[4] == '':
+            row[4] = '-'
+        taxon_data.append(row)
+
+    return render(request, 'chlamdb/interpro_taxon_table.html', my_locals(locals()))
+
+
+
+def interpro_signature_profile(request, interpro_signature_accession, rank):
     biodb = settings.BIODB
     from ete3 import Tree,TreeStyle
     from chlamdb.biosqldb import manipulate_biosqldb
-    from chlamdb.phylo_tree_display import pfam_phylogenetic_profile
-    server, db = manipulate_biosqldb.load_db(biodb)
+    from chlamdb.phylo_tree_display import interpro_phylogenetic_profile
     path = settings.BASE_DIR + '/assets/temp/tree.svg'
     asset_path = '/temp/tree.svg'
-    sql = 'select hmm_accession from pfam.pfam_summary_version_31 where hmm_accession like "%s%%%%"; ' % pfam_domain
-    pf_id = server.adaptor.execute_and_fetchall(sql,)[0][0]
+    
+    server, db = manipulate_biosqldb.load_db(biodb)
+    
+    
 
-    tree, style = pfam_phylogenetic_profile.plot_phylum_counts(pf_id,rank)
+    
+    sql = f'''
+    select eukaryote,bacteria,archae,virus,total,p_eukaryote,p_bacteria,p_archae,p_virus,s_eukaryote,s_bacteria,s_archae,s_virus,s_p_eukaryote,s_p_bacteria,s_p_archae,s_p_virus from refseq_ref_repres_genomes_interpro_entries_freq_v2 t1 
+    inner join refseq_ref_repres_genomes_interpro_entries t2 on t1.signature_id=t2.signature_id where t2.accession like "{interpro_signature_accession}%%%%"
+    
+    '''
+    print(sql)
+    eukaryote, \
+    bacteria,\
+    archae, \
+    virus,\
+    total,\
+    p_eukaryote,\
+    p_bacteria,\
+    p_archae,\
+    p_virus,\
+    s_eukaryote,\
+    s_bacteria,\
+    s_archae,\
+    s_virus,\
+    s_p_eukaryote,\
+    s_p_bacteria,\
+    s_p_archae,\
+    s_p_virus = server.adaptor.execute_and_fetchall(sql)[0]
+
+    tree, style, signature_name, signature_type = interpro_phylogenetic_profile.plot_phylum_counts(interpro_signature_accession, biodb, rank)
 
     tree.render(path, tree_style=style, dpi=800)
     return render(request, 'chlamdb/pfam_profile.html', my_locals(locals()))
+
+
+
+def interpro_profile(request, interpro_accession, rank):
+    biodb = settings.BIODB
+    from ete3 import Tree,TreeStyle
+    from chlamdb.biosqldb import manipulate_biosqldb
+    from chlamdb.phylo_tree_display import interpro_phylogenetic_profile
+    path = settings.BASE_DIR + '/assets/temp/tree.svg'
+    asset_path = '/temp/tree.svg'
+    
+    server, db = manipulate_biosqldb.load_db(biodb)
+    
+    
+    
+    sql = f'''
+    select eukaryote,bacteria,archae,virus,total,p_eukaryote,p_bacteria,p_archae,p_virus,s_eukaryote,s_bacteria,s_archae,s_virus,s_p_eukaryote,s_p_bacteria,s_p_archae,s_p_virus 
+    from refseq_ref_repres_genomes_interpro_entries_freq_v3 t1 
+    inner join refseq_ref_repres_genomes_interpro_entries t2 on t1.interpro_id=t2.interpro_id 
+    inner join interpro_entry t3 on t2.interpro_id=t3.interpro_id where t3.name="{interpro_accession}"
+    
+    '''
+    print(sql)
+    eukaryote, \
+    bacteria,\
+    archae, \
+    virus,\
+    total,\
+    p_eukaryote,\
+    p_bacteria,\
+    p_archae,\
+    p_virus,\
+    s_eukaryote,\
+    s_bacteria,\
+    s_archae,\
+    s_virus,\
+    s_p_eukaryote,\
+    s_p_bacteria,\
+    s_p_archae,\
+    s_p_virus = server.adaptor.execute_and_fetchall(sql)[0]
+
+    tree, style, signature_name, signature_type = interpro_phylogenetic_profile.plot_phylum_counts(interpro_accession, biodb, rank)
+
+    tree.render(path, tree_style=style, dpi=800)
+    return render(request, 'chlamdb/interpro_profile.html', my_locals(locals()))
+
+
 
 def eggnog_profile(request, eggnog_id, rank):
     biodb = settings.BIODB

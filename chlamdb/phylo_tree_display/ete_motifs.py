@@ -878,7 +878,9 @@ def multiple_profiles_heatmap(biodb,
                               as_float=False,
                               rotate=False,
                               sqlite3=False,
-                              node2node_label=False):
+                              node2node_label=False,
+                              prune=False,
+                              root=False):
 
     '''
 
@@ -939,21 +941,29 @@ def multiple_profiles_heatmap(biodb,
         tree = server.adaptor.execute_and_fetchall(sql_tree)[0][0]
     if not isinstance(tree, Tree):
         t1 = Tree(tree)
-
     else:
         t1 = tree
+
+    
+    if prune:
+        t2 = t1.prune(prune)
+
     tss = TreeStyle()
     tss.show_branch_support = False
     tss.draw_guiding_lines = True
     tss.guiding_lines_color = "gray"
     tss.show_leaf_name = False
     tss.draw_aligned_faces_as_table=True
-    try:
-        R = t1.get_midpoint_outgroup()
-        t1.set_outgroup(R)
-    except:
-        pass
-    t1.ladderize()
+    
+    if root:
+        t1.set_outgroup(root)
+    else:
+        try:
+            R = t1.get_midpoint_outgroup()
+            t1.set_outgroup(R)
+        except:
+            pass
+        t1.ladderize()
 
     # retrieve leaf labels from db
     if not node2node_label:

@@ -16,25 +16,25 @@
                 {% include "chlamdb/menu.html" %}
 
                 <h3>{{ interpro_signature_accession }}: {{signature_name}} ({{signature_type}})
-                   <a type="button" class="btn btn-primary btn-xs" onclick="location.href='{% url 'pfam2fasta' interpro_signature_accession %}'">Pfam fasta</a>
+                   <a type="button" class="btn btn-primary btn-xs" onclick="location.href='{% url 'pfam2fasta' interpro_accession %}'">Pfam fasta</a>
 
                 </h3>
 
                 <ul id="tabs" class="nav nav-tabs" data-tabs="tabs">
-                    <li><a href="{% url 'fam' interpro_signature_accession 'pfam' %}#tab1">General</a></li>
-                    <li><a href="{% url 'fam' interpro_signature_accession 'pfam' %}#tab2">Details</a></li>
-                    <li><a href="{% url 'fam' interpro_signature_accession 'pfam' %}#tab3">Profile</a></li>
+                    <li><a href="{% url 'fam' interpro_accession 'pfam' %}#tab1">General</a></li>
+                    <li><a href="{% url 'fam' interpro_accession 'pfam' %}#tab2">Details</a></li>
+                    <li><a href="{% url 'fam' interpro_accession 'pfam' %}#tab3">Profile</a></li>
                     {% if rank == 'phylum'%}
-                    <li class="active"><a href="{% url 'interpro_profile' interpro_signature_accession 'phylum' %}">Taxonomic profile (phylum)</a></li>
-                    <li><a href="{% url 'interpro_profile' interpro_signature_accession 'order' %}">Taxonomic profile (order)</a></li>
+                    <li class="active"><a href="{% url 'interpro_profile' interpro_accession 'phylum' %}">Taxonomic profile (phylum)</a></li>
+                    <li><a href="{% url 'interpro_profile' interpro_accession 'order' %}">Taxonomic profile (order)</a></li>
                     {% else %}
-                    <li><a href="{% url 'interpro_profile' interpro_signature_accession 'phylum' %}">Taxonomic profile (phylum)</a></li>
-                    <li class="active"><a href="{% url 'interpro_profile' interpro_signature_accession 'order' %}">Taxonomic profile (order)</a></li>
+                    <li><a href="{% url 'interpro_profile' interpro_accession 'phylum' %}">Taxonomic profile (phylum)</a></li>
+                    <li class="active"><a href="{% url 'interpro_profile' interpro_accession 'order' %}">Taxonomic profile (order)</a></li>
                     {% endif %}
                 </ul>
 
                 <h2>Taxonomic profile of domain {{interpro_signature_accession}}</h2>
-                <a type="button" href="{% url 'get_pfam_taxon_table' interpro_signature_accession %}" class="btn btn-success">get detailed table <i class="fa fa-download"></i></a>
+                <a type="button" href="{% url 'get_interpro_taxon_table' interpro_accession %}" class="btn btn-success">get detailed table <i class="fa fa-download"></i></a>
                 <a download="profile.svg" class="btn" href="{% static asset_path %}"><i class="fa fa-download"></i> Download SVG</a>
                 <a onclick="exportPNG();" class="btn" id="png_button"><i class="fa fa-download"></i> Download PNG</a>
 

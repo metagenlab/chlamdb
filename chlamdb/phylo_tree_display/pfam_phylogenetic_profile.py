@@ -136,6 +136,7 @@ def get_rank_summary_statistics(rank='phylum'):
     for node in tree.traverse("postorder"):
         name =  taxon_id2scientific_name[int(node.name)]
         to_detach = []
+        
         if name in collapse:
             to_detach.extend(node.children)
             print ('ok-------------------', node.name)
@@ -273,7 +274,8 @@ def lead_reference_genome_table_into_database(genome_refseq_file=False):
 
 
 
-def plot_phylum_counts(domain_id, rank='phylum',
+def plot_phylum_counts(domain_id, 
+                       rank='phylum',
                        colapse_low_species_counts=4,
                        remove_unlassified=True):
 

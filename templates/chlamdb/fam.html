@@ -46,11 +46,14 @@
                                       <li><a href="#tab66" data-toggle="tab" onclick="window.open('{% url 'eggnog_profile' fam 'phylum' %}', 'orthoIDframe2'); return false">Taxonomic profile (phylum)</a></li>
                                       <li><a href="#tab66" data-toggle="tab" onclick="window.open('{% url 'eggnog_profile' fam 'order' %}', 'orthoIDframe2'); return false">Taxonomic profile (order)</a></li>
                                   {% elif type == 'pfam' %}
-                                      <li><a href="{% url 'pfam_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
-                                      <li><a href="{% url 'pfam_profile' fam 'order' %}">Taxonomic profile (order)</a></li>
+                                      <li><a href="{% url 'interpro_signature_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
+                                      <li><a href="{% url 'interpro_signature_profile' fam 'order' %}">Taxonomic profile (order)</a></li>
                                   {% elif type == 'Pfam' %}
-                                      <li><a href="{% url 'pfam_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
-                                      <li><a href="{% url 'pfam_profile' fam 'order' %}">Taxonomic profile (order)</a></li>
+                                      <li><a href="{% url 'interpro_signature_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
+                                      <li><a href="{% url 'interpro_signature_profile' fam 'order' %}">Taxonomic profile (order)</a></li>
+                                  {% elif type == 'interpro' %}
+                                      <li><a href="{% url 'interpro_profile' fam 'phylum' %}">Taxonomic profile (phylum)</a></li>
+                                      <li><a href="{% url 'interpro_profile' fam 'order' %}">Taxonomic profile (order)</a></li>                                  
                                   {% endif %}
                               </ul>
 

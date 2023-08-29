@@ -7,11 +7,11 @@ channels:
  - defaults
  - plotly
 dependencies:
- - python>=3.6
+ - python=3.9
  - biopython>=1.76
- - django>=3.0
+ - django=3.2
  - django-extensions
- - django-crispy-forms
+ - django-crispy-forms=1.12.0
  - gunicorn
  - celery
  - pip
@@ -29,7 +29,6 @@ dependencies:
  - pandas
  - qtconsole
  - ete3
- - ete_toolchain
  #- pyqt=4
  - matplotlib
  - scipy
@@ -45,7 +44,8 @@ dependencies:
  - circos
  - blast 
  - seaborn
- - ipython
+ - ipython=7.24
+ - asgiref=3.3
 
  - pip:
    - cython

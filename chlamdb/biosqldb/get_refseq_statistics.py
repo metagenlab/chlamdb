@@ -686,7 +686,7 @@ def count_majority_phylum_non_identical(biodb, accession2expluded_taxon_id):
             undef = 0
 
 
-        sql = 'insert into blastnr.BBH_taxo_hit_non_identical_%s values (%s,%s,%s,%s,%s,%s,%s)' % (                                                                                            biodb,
+        sql = 'insert into blastnr.BBH_taxo_hit_non_identical_%s values (%s,%s,%s,%s,%s,%s,%s)' % (biodb,
                                                                                                taxon_id,
                                                                                                taxon2n_chlamydiae[str(taxon_id)],
                                                                                                non_phylum,

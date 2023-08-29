@@ -56,14 +56,10 @@
                                       </tr>
                                   </thead>
                                   <tbody>
-                                      {% for n,values in homologues.iterrows %}
+                                      {% for values in homologues.itertuples %}
 
                                       <!-- 1locus_tag,2gene,3product,4organism ,5orthogroup_size,6n_genomes,7TM,8SP,9comment_function-->
                                       <!-- 10gene  | 11annotation_score | 12uniprot_status | 13recommendedName_fullName -->
-                                      gene                                            
-                                      product                      
-                                      organism  
-                                      orthogroup_size  n_genomes  TM    SP uniprot_accession     locus_b  pident
                                           
                                           <tr>
                                               <td>{{forloop.counter}}</td>

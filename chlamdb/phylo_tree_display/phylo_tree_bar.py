@@ -437,7 +437,9 @@ def plot_tree_barplot(tree_file,
                       biodb="chlamydia_04_16",
                       column_scale=True,
                       general_max=False,
-                      barplot2percentage=False):
+                      barplot2percentage=False,
+                      prune=False,
+                      outgroup=None):
 
     '''
 
@@ -470,10 +472,21 @@ def plot_tree_barplot(tree_file,
     else:
        t1 = Tree(tree_file)
 
+    if prune:
+        t1.prune(prune)
+    
+
+
     # Calculate the midpoint node
-    R = t1.get_midpoint_outgroup()
+    if not outgroup:
+        R = t1.get_midpoint_outgroup()
+        t1.set_outgroup(R)
+    else: 
+        t1.set_outgroup(outgroup)
+    
     # and set it as tree outgroup
-    t1.set_outgroup(R)
+    
+    t1.ladderize()
 
 
     tss = TreeStyle()
@@ -682,7 +695,7 @@ def plot_tree_barplot(tree_file,
     #print t1
     return t1, tss
 
-def plot_heat_tree(tree_file, biodb="chlamydia_04_16", exclude_outgroup=False, bw_scale=True):
+def plot_heat_tree(tree_file, biodb="chlamydia_04_16", exclude_outgroup=False, bw_scale=True, prune=False, outgroup=None):
     from chlamdb.biosqldb import manipulate_biosqldb
     import matplotlib.cm as cm
     from matplotlib.colors import rgb2hex
@@ -692,6 +705,7 @@ def plot_heat_tree(tree_file, biodb="chlamydia_04_16", exclude_outgroup=False, b
 
     sql_biodatabase_id = 'select biodatabase_id from biodatabase where name="%s"' % biodb
     db_id = server.adaptor.execute_and_fetchall(sql_biodatabase_id,)[0][0]
+    print("type",  type(tree_file))
     if type(tree_file) == str:
         t1 = Tree(tree_file)
         try:
