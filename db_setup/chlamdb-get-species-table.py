@@ -50,7 +50,7 @@ def median_RBBH2species(biodb, cutoff=97):
 
 
 def bioentry_metadata(biodb):
-    
+    import re
     from chlamdb.biosqldb import manipulate_biosqldb
     from Bio import Entrez
     
@@ -69,7 +69,7 @@ def bioentry_metadata(biodb):
 
     sql = 'create table assembly_metadata (assembly_id INT AUTO_INCREMENT PRIMARY KEY, AssemblyAccession varchar(200), ReleaseLevel TEXT, PartialGenomeRepresentation varchar(20), LastUpdateDate varchar(200), ' \
           ' RefSeq_category varchar(40), SpeciesTaxid INTEGER, BioSampleAccn varchar(200), ' \
-          ' SubmitterOrganization TEXT, Taxid INTEGER, FtpPath_GenBank TEXT, ExclFromRefSeq TEXT, AsmReleaseDate_GenBank varchar(400), ' \
+          ' SubmitterOrganization TEXT, Taxid INTEGER, ExclFromRefSeq TEXT, AsmReleaseDate_GenBank varchar(400), ' \
           ' FtpPath_RefSeq TEXT, AssemblyName varchar(400), SpeciesName TEXT, AnomalousList TEXT, AssemblyStatus varchar(200), Coverage INTEGER, Organism TEXT)'
     print(sql)
     server.adaptor.execute(sql,)
@@ -143,10 +143,13 @@ def bioentry_metadata(biodb):
     for assembly_accession in assembly2data:
         print(assembly_accession)
         sql = 'insert into assembly_metadata (AssemblyAccession, ReleaseLevel, PartialGenomeRepresentation, LastUpdateDate, RefSeq_category, ' \
-              ' SpeciesTaxid, BioSampleAccn, SubmitterOrganization, Taxid, FtpPath_GenBank, ExclFromRefSeq, AsmReleaseDate_GenBank, FtpPath_RefSeq,' \
+              ' SpeciesTaxid, BioSampleAccn, SubmitterOrganization, Taxid, ExclFromRefSeq, AsmReleaseDate_GenBank,' \
               ' AssemblyName, SpeciesName, AnomalousList, AssemblyStatus,Coverage, Organism) ' \
-              ' values (%s, %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)' 
-              
+              ' values (%s, %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)' 
+        
+        org = re.sub("\(", "", assembly2data[assembly_accession]["Organism"])
+        org = re.sub("\)", "", org)
+        
         values = [assembly_accession,
                   assembly2data[assembly_accession]["ReleaseLevel"] ,
                   assembly2data[assembly_accession]["PartialGenomeRepresentation"] ,
@@ -156,16 +159,17 @@ def bioentry_metadata(biodb):
                   assembly2data[assembly_accession]["BioSampleAccn"] ,
                   assembly2data[assembly_accession]["SubmitterOrganization"],
                   assembly2data[assembly_accession]["Taxid"] ,
-                  assembly2data[assembly_accession]["FtpPath_GenBank"],
                   assembly2data[assembly_accession]["ExclFromRefSeq"],
                   assembly2data[assembly_accession]["AsmReleaseDate_GenBank"] ,
-                  assembly2data[assembly_accession]["FtpPath_RefSeq"],
                   assembly2data[assembly_accession]["AssemblyName"],
                   assembly2data[assembly_accession]["SpeciesName"] ,
                   assembly2data[assembly_accession]["AnomalousList"] ,
                   assembly2data[assembly_accession]["AssemblyStatus"],
                   assembly2data[assembly_accession]["Coverage"],
-                  assembly2data[assembly_accession]["Organism"]]
+                  org]
+        values = [None if (len(i) == 0) else i for i in values]
+        print(sql)
+        print(values)
         server.adaptor.execute(sql, values)
     server.commit()
     
@@ -230,6 +234,6 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    median_RBBH2species(args.biodb)
-    bioentry_metadata(args.biodb)
+    #median_RBBH2species(args.biodb)
+    #bioentry_metadata(args.biodb)
     create_species_curated_taxonomy(args.biodb)
