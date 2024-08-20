@@ -24,7 +24,7 @@ def get_domain_taxonomy(domain_id, rank='phylum'):
 
     taxid_with_domain_list = [i[0] for i in cursor.fetchall()]
 
-    sql = 'select phylogeny from pfam.phylogeny where rank="%s"' % (rank)
+    sql = 'select phylogeny from pfam.phylogeny where `rank`="%s"' % (rank)
     cursor.execute(sql,)
     tree_string = cursor.fetchall()[0][0]
 
@@ -312,7 +312,7 @@ def plot_phylum_counts(domain_id, rank='phylum',
 
     leaf_taxon2n_species_with_domain = get_domain_taxonomy(domain_id, rank)
 
-    sql = 'select phylogeny from pfam.phylogeny where rank="%s"' % (rank)
+    sql = 'select phylogeny from pfam.phylogeny where `rank`="%s"' % (rank)
 
     cursor.execute(sql,)
     
