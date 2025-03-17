@@ -8339,6 +8339,9 @@ def effector_pred(request):
 
     sql_tree = 'select tree from reference_phylogeny as t1 inner join biodatabase as t2 on t1.biodatabase_id=t2.biodatabase_id where name="%s";' % biodb
 
+    n_euk_cutoff = 15
+    percent_bacterial_species = 1
+
     taxid_list = ['1',
  '2',
  '3',
@@ -8493,15 +8496,16 @@ def effector_pred(request):
          ' inner join pfam.pfam2superkingdom_frequency_31 t3 on t1.pfam_id=t3.pfam_id  inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
          ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id where bacteria_freq<=0.02 and eukaryota_count>5) BBB group by taxon_id;'
          
-    sql = '''
+    sql = f'''
     select taxon_id, count(*) as n from (select distinct t5.taxon_id,t5.locus_tag from interpro_interpro t1  
     inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
     inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
     inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
     inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
-    where s_eukaryote > 15 and s_p_bacteria < 1) A group by A.taxon_id;
+    where s_eukaryote > {n_euk_cutoff} and s_p_bacteria < {percent_bacterial_species}) A group by A.taxon_id;
     '''
 
+    # distinct locus_tag
     taxon2pfam_refseq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     # pfam refseq tanonomy: number of unique pfam domain
@@ -8510,22 +8514,35 @@ def effector_pred(request):
          ' inner join pfam.pfam2superkingdom_frequency_31 t3 on t1.pfam_id=t3.pfam_id  inner join interpro_signature t4 on t1.signature_id=t4.signature_id ' \
          ' inner join annotation_seqfeature_id2locus t5 on t2.seqfeature_id=t5.seqfeature_id where bacteria_freq<=0.02 and eukaryota_freq>=0.1) BBB group by taxon_id;'
 
-    sql = '''
+    sql = f'''
     select taxon_id, count(*) as n from (select distinct t5.taxon_id,t3.interpro_id from interpro_interpro t1  
     inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
     inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
     inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
     inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
-    where s_eukaryote > 15 and s_p_bacteria < 1) A group by A.taxon_id;
+    where s_eukaryote > {n_euk_cutoff} and s_p_bacteria < {percent_bacterial_species}) A group by A.taxon_id;
     '''
 
-
+    # distinct domains
     taxon2pfam_refseq_uniq = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
     sql = 'select A.taxon_id, count(*) from (select t1.taxon_id, t1.seqfeature_id from effectors_predicted_effectiveT3 t1 ' \
           ' inner join effectors_predicted_BPBAac t2 on t1.seqfeature_id=t2.seqfeature_id ' \
           ' inner join effectors_predicted_T3MM t3 on t1.seqfeature_id=t3.seqfeature_id ' \
           ' group by t1.taxon_id, t1.seqfeature_id) A group by A.taxon_id;'
+          
+    sql = f'''
+    select A.taxon_id, count(*) from (select distinct t5.seqfeature_id,t5.taxon_id from interpro_interpro t1  
+    inner join interpro_signature t2 on t1.signature_id=t2.signature_id  
+    inner join refseq_ref_repres_genomes_interpro_entries t3 on t2.interpro_id=t3.interpro_id  
+    inner join refseq_ref_repres_genomes_interpro_entries_freq_v3 t4 on t3.interpro_id=t4.interpro_id  
+    inner join custom_tables_locus2seqfeature_id t5 on t1.seqfeature_id=t5.seqfeature_id  
+    where s_eukaryote > {n_euk_cutoff} and s_p_bacteria < {percent_bacterial_species}) A
+    inner join effectors_predicted_effectiveT3 B on A.seqfeature_id=B.seqfeature_id
+    inner join effectors_predicted_BPBAac C on A.seqfeature_id=C.seqfeature_id 
+    inner join effectors_predicted_T3MM D on A.seqfeature_id=D.seqfeature_id
+    group by A.taxon_id
+    '''
 
     taxon2values_mix = manipulate_biosqldb.to_dict(server.adaptor.execute_and_fetchall(sql,))
 
@@ -8620,7 +8637,7 @@ def effector_pred(request):
                                ]
 
     header_list2 = ['effectiveT3', 'BPBAac', 'T3MM', 'T4SEpre_bpbAac', 'T4SEpre_psAac', 'chaperones','ELD', 'intesect' , 'refseq_pfam', 'refseq_pfam_uniq']
-    header_list2 = ['effectiveT3', 'BPBAac', 'T3MM', 'intesect' , 'refseq_pfam', 'refseq_pfam_uniq']
+    header_list2 = ['effectiveT3', 'BPBAac', 'T3MM', 'intesect' , 'Euk-like (locus)', 'Euk-like (unique domains)']
 
 
     sql = 'SELECT orthogroup, count(*) as n FROM (select  orthogroup,taxon_id from orthology_detail ' \
@@ -8654,7 +8671,7 @@ def effector_pred(request):
         m = max([float(i) for i in taxon2values[taxon]])
         if m > general_max:
             general_max=m
-    #general_max=False
+    general_max=False
     print("general_max", general_max)
     tree1, style1 = phylo_tree_bar.plot_tree_barplot(tree,
                                                     taxon2values,
