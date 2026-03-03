@@ -393,32 +393,6 @@ function clearBox(elementID)
 
 
                             {% endif %}
-                            <div class="row">
-
-
-                              <div class="panel panel-default">
-                                <div class="panel-heading">
-                                  <h3 class="panel-title">Orthogroup {{ data.0 }} Annotation</h3>
-                                </div>
-                                <div style="width: 100%;padding-left:20px">
-                                    <table>
-                                        <tr>
-                                        <td >Comment orthogroup   <a href="{% url 'add_comment' data.1 %}">  edit</a></td>
-                                        <td>
-                                            {% for values in cmt_format%}
-                                                {{values.0}}: {{values.1|safe}} </br>
-                                            {% endfor %}
-                                         </td>
-                                        </tr>
-
-                                    </table>
-                                </div>
-                              </div>
-
-
-                            </div>
-
-
 
 
                             {%if dbxref_uniprot_data %}
