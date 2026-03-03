@@ -48,4 +48,7 @@ Allow: /about
 Allow: /home
 Allow: /$
 
+User-agent: GPTBot
+Disallow: /
+
 Sitemap : http://www.chlamdb.ch/sitemap
